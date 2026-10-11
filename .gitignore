@@ -1,0 +1,39 @@
+node_modules
+dist
+*.tsbuildinfo
+
+# Rust build output.
+/src-tauri/target
+
+# Tauri updater signing keys. The public key lives in tauri.conf.json.
+*.key
+*.key.pub
+.tauri/
+
+# Code signing certificates and their passwords.
+*.pfx
+*.p12
+*.pem
+*.cer
+*.crt
+*.keystore
+*.jks
+
+# SSH keys a remote install might be tested with.
+id_rsa*
+id_ed25519*
+id_ecdsa*
+known_hosts
+
+# Local environment and secrets.
+.env
+.env.*
+!.env.example
+*.secret
+*.secrets
+secrets/
+credentials*.json
+tokens*.json
+
+# Local experiments, kept out of git for now.
+/.scratch
