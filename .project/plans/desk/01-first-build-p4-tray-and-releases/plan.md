@@ -9,6 +9,7 @@ requires:
   - plans/desk/01-first-build-p1-shell-and-url-hosts/plan.md
 decisions:
   - decisions/the-desk-starts-with-the-os-by-default.md
+  - decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md
 refs:
   - file:///github/opendoop/packages/tauri/src-tauri/src/tray.rs - the tray menu and the left click, at lines 8-62
   - file:///github/opendoop/packages/tauri/src-tauri/src/shell_settings.rs - closeBehavior, minimize to tray or quit
@@ -48,12 +49,14 @@ git tag v* -> GitHub Actions -> tauri build on windows-latest and ubuntu-latest 
 | # | Decision | Rationale / source |
 | --- | --- | --- |
 | 1 | [The desk starts with the OS by default](../../../decisions/the-desk-starts-with-the-os-by-default.md) | Softov, 2026-10-11 |
+| 2 | [ahp-desk is MIT, and ahpapp stays private](../../../decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md) | Softov, 2026-10-11 |
 
 | What | Source | Task |
 | --- | --- | --- |
 | Close hides to the tray by default; a setting can make it quit. | doop's `closeBehavior` | 02 |
 | CI builds the releases with GitHub Actions on a tag `v*`. | (defaulted: DEVELOPER.md speaks of "a CI run") | 04 |
 | Windows: NSIS for the current user. Linux: AppImage and deb. | DEVELOPER.md | 04 |
+| The release workflow builds the public build only, with `AHP_DESK_UI=ahpw` and `AHP_DESK_AHPW=npm`. | Decision 2 | 04 |
 
 ## Proposed architecture
 

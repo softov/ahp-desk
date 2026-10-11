@@ -13,6 +13,7 @@ decisions:
   - decisions/a-ui-bundle-comes-from-the-local-repository-or-from-npm.md
   - decisions/each-ui-is-served-from-its-own-uri-scheme.md
   - decisions/each-desk-build-ships-one-ui.md
+  - decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md
 refs:
   - file:///github/ahpapp/src/host-context.tsx - the host list at line 650, `register` at lines 583-639, `persist` at lines 820-823
   - file:///github/ahpapp/src/host-rows.ts - `SavedHost` at lines 56-64; `restoredRows` and `durableRows` drop unknown fields
@@ -59,6 +60,7 @@ ahpapp:// -> HostsProvider -> isDesk() -> hosts() + onHostsChanged() -> register
 | 2 | [A UI bundle comes from the local repository or from npm](../../../decisions/a-ui-bundle-comes-from-the-local-repository-or-from-npm.md) | Softov, 2026-10-11 |
 | 3 | [Each UI is served from its own URI scheme](../../../decisions/each-ui-is-served-from-its-own-uri-scheme.md) | Softov, 2026-10-11 |
 | 4 | [Each desk build ships one UI](../../../decisions/each-desk-build-ships-one-ui.md) | Softov, 2026-10-11 |
+| 5 | [ahp-desk is MIT, and ahpapp stays private](../../../decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md) | Softov, 2026-10-11 |
 
 | What | Source | Task |
 | --- | --- | --- |

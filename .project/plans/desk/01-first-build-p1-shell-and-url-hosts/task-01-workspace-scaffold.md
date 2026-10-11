@@ -17,7 +17,7 @@ A pnpm workspace with a Tauri 2 app in `src-tauri/` and a React app in `packages
 
 ## Files
 
-- `CREATE: package.json` - the workspace root, `packageManager: pnpm@11.21.0`, scripts `tauri`, `typecheck`, `test`, `lint`, and devDependency `@tauri-apps/cli@^2`.
+- `CREATE: package.json` - the workspace root, `license: MIT`, `packageManager: pnpm@11.21.0`, scripts `tauri`, `typecheck`, `test`, `lint`, and devDependency `@tauri-apps/cli@^2`.
 - `CREATE: pnpm-workspace.yaml` - the packages `packages/*`.
 - `CREATE: packages/shell/package.json` - `@ahp-desk/shell`, private, React 19, Vite, `@tauri-apps/api@^2`, scripts `dev`, `build`, `typecheck`, `test`.
 - `CREATE: packages/shell/vite.config.ts` - port 5175 on 127.0.0.1 with `strictPort`, `outDir: dist`.
@@ -25,7 +25,7 @@ A pnpm workspace with a Tauri 2 app in `src-tauri/` and a React app in `packages
 - `CREATE: packages/shell/src/main.tsx` - mounts `App`.
 - `CREATE: packages/shell/src/App.tsx` - shows the heading "Hosts".
 - `CREATE: packages/shell/tsconfig.json` - strict TypeScript for the shell.
-- `CREATE: src-tauri/Cargo.toml` - crate `ahp-desk`, lib `ahp_desk_lib`, `tauri = "2"`, `serde`, `serde_json`, `tokio`.
+- `CREATE: src-tauri/Cargo.toml` - crate `ahp-desk`, `license = "MIT"`, lib `ahp_desk_lib`, `tauri = "2"`, `serde`, `serde_json`, `tokio`.
 - `CREATE: src-tauri/build.rs` - calls `tauri_build::build()`.
 - `CREATE: src-tauri/src/main.rs` - calls `ahp_desk_lib::run()`.
 - `CREATE: src-tauri/src/lib.rs` - `run()` with the builder, the setup that builds the `shell` window, and an empty command list.

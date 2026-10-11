@@ -28,6 +28,7 @@ decisions:
   - decisions/a-cluster-holds-four-bots.md
   - decisions/the-pill-menu-opens-the-hosts-and-the-settings.md
   - decisions/each-desk-build-ships-one-ui.md
+  - decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md
   - decisions/the-bot-is-the-pill.md
   - decisions/a-bot-is-talked-to-from-an-input-on-hover.md
 refs:
@@ -107,6 +108,7 @@ shell starts -> hosts.json + OS keyring -> host list screen
 | 22 | [A cluster holds four bots](../../../decisions/a-cluster-holds-four-bots.md) | Softov, 2026-10-11 |
 | 23 | [The pill's menu opens the hosts and the settings](../../../decisions/the-pill-menu-opens-the-hosts-and-the-settings.md) | Softov, 2026-10-11 |
 | 24 | [Each desk build ships one UI](../../../decisions/each-desk-build-ships-one-ui.md) | Softov, 2026-10-11 |
+| 25 | [ahp-desk is MIT, and ahpapp stays private](../../../decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md) | Softov, 2026-10-11 |
 
 | What | Source | Task |
 | --- | --- | --- |
