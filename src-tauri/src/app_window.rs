@@ -129,6 +129,9 @@ pub async fn open_app_window(
         .transparent(true)
         .shadow(false)
         .initialization_script(EMBEDDER)
+        // Tauri's own drop handler replaces WebView2's, and with it on, Windows sends
+        // the page no HTML5 drag events: ahpw's explorer could not drag a file into a chat.
+        .disable_drag_drop_handler()
         .inner_size(1280.0, 860.0)
         .min_inner_size(600.0, 400.0)
         .build()
