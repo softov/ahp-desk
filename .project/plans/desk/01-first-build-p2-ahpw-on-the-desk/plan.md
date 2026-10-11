@@ -101,7 +101,7 @@ shell window status.ts -> invoke('publish_host_statuses') -> Rust keeps the map 
 | [06 - ahpw connects to the window's host](task-06-ahpw-connects-to-its-host.md) | done | 02 |
 | [07 - ahpw skips its sign-in wall on the desk](task-07-ahpw-skips-the-wall.md) | done | 02 |
 | [08 - ahpw's frame and title bar on the desk](task-08-ahpw-frame-and-title-bar.md) | done | 02, 04, 05 |
-| [09 - end to end from the desk](task-09-end-to-end.md) | todo | 01, 06, 07, 08 |
+| [09 - end to end from the desk](task-09-end-to-end.md) | doing | 01, 06, 07, 08 |
 
 ## Risks and tradeoffs
 
@@ -112,7 +112,7 @@ shell window status.ts -> invoke('publish_host_statuses') -> Rust keeps the map 
 ## Resume state
 
 - **Done so far:** tasks 01 to 08, 2026-10-11; ahpw's changes are on its branch `desk`.
-- **Next action:** [task 09](task-09-end-to-end.md): a release build staged from the `local` source, then the `npm` source after `@ahpd/web` is published from `desk`.
+- **Next action:** publish `@ahpd/web` from ahpw's `desk` branch, move ahp-desk's pin, and run task 09 step 4 with the `npm` source.
 - **Open questions:** none.
 - **Watch out for:** ahpw's `link:` to `../ahp-desk/packages/desk-client` until desk-client 0.1.0 is on npm.
 
@@ -120,6 +120,6 @@ shell window status.ts -> invoke('publish_host_statuses') -> Rust keeps the map 
 
 - [ ] ahpw in an app window connects to a URL host with a token, with `AHP_DESK_AHPW=local` and with `npm`.
 - [x] The app window has no accent border, round corners when restored, square when maximized, and working minimize, maximize and close.
-- [ ] ahpw in a browser through `ahpw serve` still works.
+- [x] ahpw in a browser through `ahpw serve` still works.
 - [x] `pnpm typecheck` and `pnpm test` pass in ahpw and in ahp-desk; `cargo clippy` and `cargo test` pass.
 - [x] `plans/index.md` updated.

@@ -1,6 +1,6 @@
 ---
 title: ahpw works end to end from the desk, from both sources
-status: todo
+status: doing
 depends: [task-01-ahpw-builds-on-windows.md, task-06-ahpw-connects-to-its-host.md, task-07-ahpw-skips-the-wall.md, task-08-ahpw-frame-and-title-bar.md]
 layer: "ahp-desk, ahpw"
 refs:
@@ -28,3 +28,8 @@ The desk opens ahpw on a URL host from the `local` source and, after a new `@ahp
 - `pnpm typecheck` and `pnpm test` pass in ahpw and in ahp-desk; `cargo clippy` and `cargo test` pass.
 
 ## Resume
+
+- 2026-10-11: steps 1 to 3 pass. `AHP_DESK_AHPW=local pnpm tauri dev` and a release build staged from ahpw's `desk` branch both open Desk test (ahpd 0.10.0) with no wall; a browser on ahpw's dev server shows the wall.
+- Found and fixed in ahpw: the host's default folder read `/C:/Users/...` on Windows (`folderLabel`, commit `7fd0c0a`).
+- Found: a second desk process cannot start while one runs with other WebView2 arguments, as they share one data folder. Single-instance belongs in p4.
+- Left: step 4, after `@ahpd/web` is published from `desk`.
