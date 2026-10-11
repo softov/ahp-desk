@@ -54,6 +54,11 @@ impl AppWindows {
             .map(|(label, _)| label.clone())
     }
 
+    /// True while any app window is open.
+    pub fn any_open(&self) -> bool {
+        !self.lock().is_empty()
+    }
+
     /// True when the window `label` may read `host_id`'s token: the host list, or the host's own window.
     pub fn may_read(&self, label: &str, host_id: &str) -> bool {
         label == SHELL_WINDOW || self.host_of(label).as_deref() == Some(host_id)

@@ -3,6 +3,7 @@ import { HostForm } from './hosts/HostForm.js';
 import { HostList } from './hosts/HostList.js';
 import { listHosts, onHostsChanged, type ShellHost } from './hosts/ipc.js';
 import { createHostStatuses, type HostStatuses } from './hosts/status.js';
+import { TitleBar } from './TitleBar.js';
 
 type Screen = { kind: 'list' } | { kind: 'form'; host: ShellHost | null };
 
@@ -28,25 +29,28 @@ export function App() {
   }, [hosts, statuses]);
 
   return (
-    <main className="shell">
-      {screen.kind === 'list' ? (
-        <HostList
-          hosts={hosts}
-          statuses={statuses}
-          onAdd={() => setScreen({ kind: 'form', host: null })}
-          onEdit={(host) => setScreen({ kind: 'form', host })}
-        />
-      ) : (
-        <HostForm
-          host={screen.host}
-          taken={hosts.map((host) => host.id)}
-          onDone={(savedId) => {
-            setScreen({ kind: 'list' });
-            // A new token is read on the next connect.
-            if (savedId !== null && screen.host !== null) void statuses.retry(savedId);
-          }}
-        />
-      )}
-    </main>
+    <>
+      <TitleBar />
+      <main className="shell">
+        {screen.kind === 'list' ? (
+          <HostList
+            hosts={hosts}
+            statuses={statuses}
+            onAdd={() => setScreen({ kind: 'form', host: null })}
+            onEdit={(host) => setScreen({ kind: 'form', host })}
+          />
+        ) : (
+          <HostForm
+            host={screen.host}
+            taken={hosts.map((host) => host.id)}
+            onDone={(savedId) => {
+              setScreen({ kind: 'list' });
+              // A new token is read on the next connect.
+              if (savedId !== null && screen.host !== null) void statuses.retry(savedId);
+            }}
+          />
+        )}
+      </main>
+    </>
   );
 }

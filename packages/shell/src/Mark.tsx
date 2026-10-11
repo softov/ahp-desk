@@ -1,0 +1,11 @@
+/** ahpw's mark, from ahpw's `public/ahpw.svg`, without its dark tile so it sits on any background. */
+export function Mark({ size }: { size: number }) {
+  return (
+    <svg className="mark" width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
+      <rect x="26" y="43" width="12" height="4.4" fill="#356b5e" />
+      <path d="M5.38 18 L14.62 18 L20.88 37.34 L16.38 52 Z" fill="#356b5e" />
+      <path d="M58.62 18 L49.38 18 L43.12 37.34 L47.62 52 Z" fill="#356b5e" />
+      <path d="M29.84 8 L34.16 8 L47.62 52 L38.4 52 L32 31.06 L25.6 52 L16.38 52 Z" fill="#62c9b0" />
+    </svg>
+  );
+}

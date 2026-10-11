@@ -22,3 +22,4 @@ What exists today: [00-desk.md](desk/00-desk.md).
 | [01 p4 - The tray, the updater and the releases](desk/01-first-build-p4-tray-and-releases/plan.md) | draft | write the tasks |
 | [01 p5 - ahpapp in a private build](desk/01-first-build-p5-ahpapp-on-the-desk/plan.md) | draft | name and release channel |
 | [01 p6 - The bot pill](desk/01-first-build-p6-bot-pill/plan.md) | draft | write the tasks |
+| [01 p7 - Desk polish before the first release](desk/01-first-build-p7-desk-polish/plan.md) | active | task 03 |

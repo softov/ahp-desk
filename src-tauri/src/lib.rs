@@ -5,7 +5,7 @@ mod statuses;
 mod tokens;
 mod ui_source;
 
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 use crate::app_window::AppWindows;
 use crate::hosts::HostStore;
@@ -27,11 +27,31 @@ pub fn run() {
             app.manage(AppWindows::default());
             app.manage(HostStatuses::default());
             app.manage(ui_source::resolve(app.handle())?);
-            WebviewWindowBuilder::new(app, SHELL_WINDOW, WebviewUrl::App("/".into()))
+            // Frameless and rounded, as an app window (decision: the app window
+            // draws its own rounded frame); the host list draws its title bar.
+            let shell = WebviewWindowBuilder::new(app, SHELL_WINDOW, WebviewUrl::App("/".into()))
                 .title("ahp-desk")
+                .decorations(false)
+                .transparent(true)
+                .shadow(false)
                 .inner_size(720.0, 520.0)
                 .min_inner_size(480.0, 360.0)
                 .build()?;
+            frame::round_corners(&shell);
+            let handle = app.handle().clone();
+            shell.on_window_event(move |event| {
+                // The host list holds every host's status, so while an app window
+                // shows a host it hides instead of closing (decision: open hides the host list).
+                if let WindowEvent::CloseRequested { api, .. } = event {
+                    if handle.state::<AppWindows>().any_open() {
+                        api.prevent_close();
+                        if let Some(shell) = handle.get_webview_window(SHELL_WINDOW) {
+                            // A host list that will not hide stays on screen; nothing is lost.
+                            let _ = shell.hide();
+                        }
+                    }
+                }
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -135,6 +135,7 @@ shell starts -> hosts.json + OS keyring -> host list screen
 | [p4 - The tray, the updater and the releases](../01-first-build-p4-tray-and-releases/plan.md) | draft | p1 |
 | [p5 - ahpapp in a private build](../01-first-build-p5-ahpapp-on-the-desk/plan.md) | draft | p1, p2 |
 | [p6 - The bot pill](../01-first-build-p6-bot-pill/plan.md) | draft | p1, p4 |
+| [p7 - Desk polish before the first release](../01-first-build-p7-desk-polish/plan.md) | active | p2 |
 
 ## Risks and tradeoffs
 

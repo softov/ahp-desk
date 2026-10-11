@@ -1,6 +1,7 @@
-//! The app window's frame: on Windows, DWM draws its corners round, as on
-//! pood's window (opendoop `packages/tauri/src-tauri/src/lib.rs`). The UI
-//! rounds its own root to match and squares it when maximized.
+//! The frame of a window with no OS frame, an app window or the host list: on
+//! Windows, DWM draws its corners round, as on pood's window (opendoop
+//! `packages/tauri/src-tauri/src/lib.rs`). The page rounds its own root to
+//! match and squares it when maximized.
 
 #[cfg(target_os = "windows")]
 pub fn round_corners<R: tauri::Runtime>(window: &tauri::WebviewWindow<R>) {
