@@ -11,9 +11,9 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    
     "@microsoft/agent-host-protocol": "^1.0.0",
     "@tauri-apps/api": "^2.9.0",
+    "@tauri-apps/plugin-opener": "^2.7.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },

@@ -1,6 +1,6 @@
 ---
 title: ahpw's mark and © ahpio.com at the bottom of the host list
-status: todo
+status: done
 depends: [task-02-host-list-palette.md]
 layer: "packages/shell, src-tauri"
 ---
@@ -25,4 +25,4 @@ The host list ends in ahpw's mark centred at the bottom, with "© ahpio.com" lin
 
 ## Resume
 
-- Not started.
+- Done 2026-10-11. `tauri-plugin-opener` with `opener:allow-open-url` scoped to https://ahpio.com on the shell window only. Seen in a release build; the browser opening not clicked yet.

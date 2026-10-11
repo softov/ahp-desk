@@ -15,6 +15,10 @@
     "allow-host-token",
     "allow-open-app-window",
     "allow-publish-host-statuses",
-    "allow-host-statuses"
+    "allow-host-statuses",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://ahpio.com" }]
+    }
   ]
 }

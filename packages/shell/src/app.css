@@ -136,6 +136,27 @@ html.is-maximized #root {
   padding: 14px 22px;
 }
 
+/* ahpw's mark and the site, centred at the bottom. */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: none;
+  padding: 10px 0 14px;
+  font-size: var(--oo-font-size-xs);
+}
+
+.footer a {
+  color: var(--oo-color-muted);
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: var(--oo-color-text);
+  text-decoration: underline;
+}
+
 h1 {
   margin: 0;
   font-size: 16px;

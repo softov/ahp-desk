@@ -3,6 +3,7 @@ import { HostForm } from './hosts/HostForm.js';
 import { HostList } from './hosts/HostList.js';
 import { listHosts, onHostsChanged, type ShellHost } from './hosts/ipc.js';
 import { createHostStatuses, type HostStatuses } from './hosts/status.js';
+import { Footer } from './Footer.js';
 import { TitleBar } from './TitleBar.js';
 
 type Screen = { kind: 'list' } | { kind: 'form'; host: ShellHost | null };
@@ -51,6 +52,7 @@ export function App() {
           />
         )}
       </main>
+      <Footer />
     </>
   );
 }

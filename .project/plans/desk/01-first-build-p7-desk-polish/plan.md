@@ -88,7 +88,7 @@ ahpw HostSwitcher -> embedder.switchHost | (new) embedder.manageHosts({ add }) -
 | [01 - the host list window has no OS frame](task-01-host-list-frame.md) | done | - |
 | [02 - the host list in ahpw's palette](task-02-host-list-palette.md) | done | 01 |
 | [03 - the desk's icon in ahpw's mark](task-03-icon.md) | todo | - |
-| [04 - the footer](task-04-footer.md) | todo | 02 |
+| [04 - the footer](task-04-footer.md) | done | 02 |
 | [05 - three languages](task-05-languages.md) | todo | 02 |
 | [06 - the first run](task-06-first-run.md) | todo | 05 |
 | [07 - Open hides the host list](task-07-open-hides.md) | todo | - |
@@ -102,7 +102,7 @@ ahpw HostSwitcher -> embedder.switchHost | (new) embedder.manageHosts({ add }) -
 
 ## Resume state
 
-- **Done so far:** the plan, tasks 01 and 02, 2026-10-11.
+- **Done so far:** the plan, tasks 01, 02 and 04, 2026-10-11.
 - **Next action:** task 03, the icon.
 - **Open questions:** none.
 - **Watch out for:** ahpw's changes go on its branch `desk`, merged with `main` first.
