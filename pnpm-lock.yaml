@@ -15,23 +15,27 @@ importers:
         specifier: ^2.11.2
         version: 2.12.1
 
-  packages/desk-client:
-    devDependencies:
+  packages/ahpw-embedder:
+    dependencies:
       '@tauri-apps/api':
         specifier: ^2.12.3
         version: 2.12.3
+    devDependencies:
+      '@ahpd/web':
+        specifier: link:../../../ahpw
+        version: link:../../../ahpw
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      vite:
+        specifier: ^8.2.1
+        version: 8.3.4
       vitest:
         specifier: ^4.1.0
         version: 4.1.11(vite@8.3.4)
 
   packages/shell:
     dependencies:
-      '@ahpd/desk-client':
-        specifier: workspace:*
-        version: link:../desk-client
       '@microsoft/agent-host-protocol':
         specifier: ^1.0.0
         version: 1.0.0

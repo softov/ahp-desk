@@ -9,7 +9,7 @@ requires:
   - plans/desk/01-first-build-p1-shell-and-url-hosts/plan.md
 decisions:
   - decisions/ahpw-shows-one-host-at-a-time-on-the-desk.md
-  - decisions/the-shell-contract-is-a-shared-npm-package.md
+  - decisions/ahpw-owns-its-embedding-contract.md
   - decisions/the-host-list-window-publishes-host-status.md
   - decisions/the-app-window-draws-its-own-rounded-frame.md
 refs:
@@ -68,7 +68,7 @@ shell window status.ts -> invoke('publish_host_statuses') -> Rust keeps the map 
 | # | Decision | Rationale / source |
 | --- | --- | --- |
 | 1 | [ahpw shows one host at a time on the desk](../../../decisions/ahpw-shows-one-host-at-a-time-on-the-desk.md) | Softov, 2026-10-11 |
-| 2 | [The shell's contract is a shared npm package](../../../decisions/the-shell-contract-is-a-shared-npm-package.md) | Softov, 2026-10-11 |
+| 2 | [ahpw owns its embedding contract, and the desk injects the embedder](../../../decisions/ahpw-owns-its-embedding-contract.md) | Softov, 2026-10-11 |
 | 3 | [The host list window publishes each host's status](../../../decisions/the-host-list-window-publishes-host-status.md) | Softov, 2026-10-11 |
 | 4 | [The app window draws its own rounded frame](../../../decisions/the-app-window-draws-its-own-rounded-frame.md) | Softov, 2026-10-11 |
 
@@ -76,7 +76,7 @@ shell window status.ts -> invoke('publish_host_statuses') -> Rust keeps the map 
 | --- | --- | --- |
 | On the desk, `HOST` stays `'daemon'`; a switch of host replaces the window's host and reloads. | Decision 1 | 06, 08 |
 | The host switcher lists every host, each with its status dot. | Softov, asked "which hosts does the host switcher list?": "Every host, with its status dot (Recommended)" | 08 |
-| ahpw depends on `@ahpd/desk-client` through `link:../ahp-desk/packages/desk-client` until 0.1.0 is on npm. | (defaulted) | 02 |
+| `packages/ahpw-embedder` takes `@ahpd/web` through `link:../../../ahpw` until a version with `./embed` is on npm. | Decision 2 | 10 |
 | ahpw's `sessions/activity.ts` becomes `sessions/activity-parts.ts`. | (defaulted: the name of what it groups) | 01 |
 | The ahpw work is on its branch `desk`, kept up to date with `main`. | Softov: "make a branch on ahpw for those changes." | all |
 | The desk's status client offers every protocol version, as ahpw's `offering()` does. | ahpw `connection/protocol-versions.ts` | 04 |
@@ -87,7 +87,7 @@ shell window status.ts -> invoke('publish_host_statuses') -> Rust keeps the map 
 - **Event flow** - `hosts-changed` reconnects ahpw when its host's address changes. `hosts-status` carries every host's status from the host list window to every window.
 - **State flow** - Rust keeps the last status map in `HostStatuses`. On the desk, ahpw writes no token to localStorage.
 - **Layer responsibilities** - ahp-desk: the frame of the app window, the status relay, the contract · ahpw: the desk branch in `connection/`, `token-provider.ts`, the rounded root, and the title bar.
-- **Source-of-truth files** - `ahpw/src/connection/data.ts`, `ahp-desk/packages/desk-client/src/index.ts`.
+- **Source-of-truth files** - `ahpw/src/embed/index.ts` for the contract, `ahpw/src/connection/data.ts`, `ahp-desk/packages/ahpw-embedder/src/embedder.ts`.
 
 ## Tasks
 
@@ -101,20 +101,21 @@ shell window status.ts -> invoke('publish_host_statuses') -> Rust keeps the map 
 | [06 - ahpw connects to the window's host](task-06-ahpw-connects-to-its-host.md) | done | 02 |
 | [07 - ahpw skips its sign-in wall on the desk](task-07-ahpw-skips-the-wall.md) | done | 02 |
 | [08 - ahpw's frame and title bar on the desk](task-08-ahpw-frame-and-title-bar.md) | done | 02, 04, 05 |
-| [09 - end to end from the desk](task-09-end-to-end.md) | doing | 01, 06, 07, 08 |
+| [09 - end to end from the desk](task-09-end-to-end.md) | doing | 01, 06, 07, 08, 10 |
+| [10 - ahpw takes its embedder from the desk](task-10-ahpw-takes-an-injected-embedder.md) | done | 08 |
 
 ## Risks and tradeoffs
 
 - The change is in another repository with its own release. ahpw publishes a new `@ahpd/web`, and ahp-desk moves its pin.
-- A `link:` dependency makes ahpw's build need the ahp-desk checkout beside it until `@ahpd/desk-client` 0.1.0 is published.
+- A `link:` dependency makes the desk's typecheck need the ahpw checkout beside it, built, until `@ahpd/web` with `./embed` is published.
 - The statuses exist only while the host list window runs; it is hidden, never destroyed.
 
 ## Resume state
 
-- **Done so far:** tasks 01 to 08, 2026-10-11; ahpw's changes are on its branch `desk`.
+- **Done so far:** tasks 01 to 08 and 10, 2026-10-11; ahpw's changes are on its branch `desk`.
 - **Next action:** publish `@ahpd/web` from ahpw's `desk` branch, move ahp-desk's pin, and run task 09 step 4 with the `npm` source.
 - **Open questions:** none.
-- **Watch out for:** ahpw's `link:` to `../ahp-desk/packages/desk-client` until desk-client 0.1.0 is on npm.
+- **Watch out for:** `packages/ahpw-embedder`'s `link:` to `../../../ahpw` until `@ahpd/web` with `./embed` is on npm.
 
 ## Final verification checklist
 

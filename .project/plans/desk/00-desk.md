@@ -19,7 +19,7 @@ The repository holds the mockups in `mockups/`, the developer guide, and the rec
 | build | A distribution of the desk with one UI: the public build with ahpw, or a private build with ahpapp. |
 | UI source | Where a UI's bundle comes from: `local` (a sibling repository) or `npm` (a published package). |
 | app window | A normal window that shows a UI on one host. Mockup 03 sketches it. |
-| desk-client | The npm package that gives a UI the shell's contract: the hosts, the window's host and the window controls. |
+| embedder | What an app gives ahpw as `globalThis.ahpwEmbedder`: the hosts, the window's host and its token, and the window controls. ahpw owns the contract; the desk's is `packages/ahpw-embedder`, injected into each app window. |
 | local ahpd | The ahpd on this computer, shown as the host "This computer". |
 | backend | An ahpd agent plugin, such as `@ahpd/agent-claude`. ahpd does not start without one. |
 | pill | The floating window. With a bot on it, it is only the bot's creature. |
@@ -30,17 +30,17 @@ The repository holds the mockups in `mockups/`, the developer guide, and the rec
 ## Packages
 
 None yet.
-The first plan creates `src-tauri/`, `packages/shell/` and `packages/desk-client/`.
+The first plan creates `src-tauri/`, `packages/shell/` and `packages/ahpw-embedder/`.
 
 ## Contracts
 
 None yet.
-The desk-client package will hold the contract between the shell and a UI.
+`packages/ahpw-embedder` implements ahpw's embedding contract over the desk's Tauri commands.
 
 ## Runtime path
 
 ```
-shell starts -> host list (hosts.json + OS keyring) -> app window -> UI bundle -> desk-client -> host over WebSocket
+shell starts -> host list (hosts.json + OS keyring) -> app window -> ahpw-embedder (injected) -> UI bundle -> host over WebSocket
 ```
 
 ## Tests

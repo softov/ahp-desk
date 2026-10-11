@@ -1,6 +1,7 @@
 ---
 title: The shell's contract is a shared npm package
-status: accepted
+status: superseded
+superseded-by: decisions/ahpw-owns-its-embedding-contract.md
 date: 2026-10-11
 refs:
   - file:///github/ahp-desk/.project/decisions/a-ui-takes-its-hosts-from-a-command-and-an-event.md - the contract that the package wraps

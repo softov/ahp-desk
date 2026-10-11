@@ -7,7 +7,7 @@ created: 2026-10-11
 revalidated: 2026-10-11
 decisions:
   - decisions/a-ui-takes-its-hosts-from-a-command-and-an-event.md
-  - decisions/the-shell-contract-is-a-shared-npm-package.md
+  - decisions/ahpw-owns-its-embedding-contract.md
   - decisions/ahpw-shows-one-host-at-a-time-on-the-desk.md
   - decisions/a-ui-bundle-comes-from-the-local-repository-or-from-npm.md
   - decisions/a-local-ahpd-is-found-or-installed-with-the-bundled-node.md
@@ -68,8 +68,8 @@ The child plans hold the file and line detail.
 
 ```
 shell starts -> hosts.json + OS keyring -> host list screen
-  -> open_app_window(host) -> the build's UI: ahpw:// or ahpapp:// -> desk-client windowHost() -> WebSocket to the host
-  -> pill window -> desk-client hosts() -> one MultiHostClient -> bots + session status -> bood in the DOM
+  -> open_app_window(host) -> the build's UI: ahpw:// or ahpapp:// -> ahpwEmbedder.host() -> WebSocket to the host
+  -> pill window -> the desk's hosts command -> one MultiHostClient -> bots + session status -> bood in the DOM
 ```
 
 ### Gaps
@@ -85,7 +85,7 @@ shell starts -> hosts.json + OS keyring -> host list screen
 | # | Decision | Rationale / source |
 | --- | --- | --- |
 | 1 | [A UI takes its hosts from a command and an event](../../../decisions/a-ui-takes-its-hosts-from-a-command-and-an-event.md) | Softov, 2026-10-11 |
-| 2 | [The shell's contract is a shared npm package](../../../decisions/the-shell-contract-is-a-shared-npm-package.md) | Softov, 2026-10-11 |
+| 2 | [ahpw owns its embedding contract, and the desk injects the embedder](../../../decisions/ahpw-owns-its-embedding-contract.md) | Softov, 2026-10-11 |
 | 3 | [ahpw shows one host at a time on the desk](../../../decisions/ahpw-shows-one-host-at-a-time-on-the-desk.md) | Softov, 2026-10-11 |
 | 4 | [A UI bundle comes from the local repository or from npm](../../../decisions/a-ui-bundle-comes-from-the-local-repository-or-from-npm.md) | Softov, 2026-10-11 |
 | 5 | [A local ahpd is found, or installed with the bundled Node](../../../decisions/a-local-ahpd-is-found-or-installed-with-the-bundled-node.md) | Softov, 2026-10-11 |
@@ -116,15 +116,14 @@ shell starts -> hosts.json + OS keyring -> host list screen
 | The first build has app window and URL hosts, local ahpd, tray and updater, and the bot pill. | Softov, asked "What does the first milestone include?" | p1 to p6 |
 | SSH hosts are not in this plan. | Not chosen in the first milestone | - |
 | ahpw comes first, and ahpapp after it. | Softov: "initially for working for ahpw and with easy to work with ahpapp" | p2 before p5 |
-| The contract package is `@ahpd/desk-client`. | (defaulted: the `@ahpd` scope that `@ahpd/web` uses) | p1 task 02 |
 
 ## Proposed architecture
 
-- **Data flow** - The shell owns the host list. A UI reads it through desk-client and connects to each host itself, over AHP.
+- **Data flow** - The shell owns the host list. A UI reads it through the embedder the desk injects and connects to its host itself, over AHP.
 - **Event flow** - The shell emits `hosts-changed` after every edit of the host list. Each UI and the pill listen to it.
 - **State flow** - `hosts.json` and `settings.json` in the app config folder, and the tokens in the OS keyring. A UI keeps its own view state.
-- **Layer responsibilities** - `src-tauri`: hosts, keyring, windows, URI schemes, local ahpd, tray, updater · `packages/shell`: host list, Add host, settings, pill, picker · `packages/desk-client`: the contract for a UI · ahpw and ahpapp: a desktop host source beside their current one.
-- **Source-of-truth files** - `packages/desk-client/src/index.ts` for the contract; `src-tauri/src/hosts.rs` for the host list.
+- **Layer responsibilities** - `src-tauri`: hosts, keyring, windows, URI schemes, local ahpd, tray, updater · `packages/shell`: host list, Add host, settings, pill, picker · `packages/ahpw-embedder`: ahpw's embedder, injected into each app window · ahpw and ahpapp: a desktop host source beside their current one.
+- **Source-of-truth files** - ahpw's `src/embed/index.ts` for the contract; `src-tauri/src/hosts.rs` for the host list.
 
 ## Tasks
 

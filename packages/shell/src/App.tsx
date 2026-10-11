@@ -1,8 +1,7 @@
-import { onHostsChanged } from '@ahpd/desk-client';
 import { useEffect, useReducer, useState } from 'react';
 import { HostForm } from './hosts/HostForm.js';
 import { HostList } from './hosts/HostList.js';
-import { listHosts, type ShellHost } from './hosts/ipc.js';
+import { listHosts, onHostsChanged, type ShellHost } from './hosts/ipc.js';
 import { createHostStatuses, type HostStatuses } from './hosts/status.js';
 
 type Screen = { kind: 'list' } | { kind: 'form'; host: ShellHost | null };

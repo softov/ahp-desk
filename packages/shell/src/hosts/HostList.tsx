@@ -1,6 +1,5 @@
-import { openHost } from '@ahpd/desk-client';
 import { useEffect, useRef, useState } from 'react';
-import { removeHost, type ShellHost } from './ipc.js';
+import { openHost, removeHost, type ShellHost } from './ipc.js';
 import type { HostStatus, HostStatuses } from './status.js';
 import { shortUrl } from './url.js';
 

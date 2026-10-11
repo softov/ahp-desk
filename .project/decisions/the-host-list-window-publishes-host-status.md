@@ -4,7 +4,7 @@ status: accepted
 date: 2026-10-11
 refs:
   - file:///github/ahp-desk/packages/shell/src/hosts/status.ts - the one MultiHostClient that already watches every host
-  - file:///github/ahp-desk/packages/desk-client/src/index.ts - the contract a UI reads the statuses through
+  - "[code://packages/ahpw-embedder/src/embedder.ts](../../packages/ahpw-embedder/src/embedder.ts) - the embedder ahpw reads the statuses through"
   - file:///github/ahp-desk/.project/decisions/ahpw-shows-one-host-at-a-time-on-the-desk.md - why ahpw holds no connection to the other hosts
 ---
 
@@ -17,7 +17,7 @@ A second watcher in each app window would open one more connection per host per 
 ## Decision
 
 The host list window sends each host's status as the event `hosts-status`, and the shell keeps the last map so a window that opens late can read it.
-`@ahpd/desk-client` gives a UI `hostStatuses()` and `onHostStatus(handler)`.
+ahpw's embedder gives it `statuses()` and `onStatuses(handler)` (decision: ahpw owns its embedding contract).
 Source: Softov, asked "Where should ahpw get the other hosts' status from?": "shell publishes.. but consider moving to rust future case and rust managing it without the shell maybe."
 
 ## Consequences

@@ -12,6 +12,10 @@ use crate::hosts::{HostStore, HostView};
 use crate::ui_source::{self, UiSource};
 use crate::SHELL_WINDOW;
 
+/// The script that hands ahpw its embedder, `globalThis.ahpwEmbedder`, before
+/// the page's own scripts run (decision: ahpw owns its embedding contract).
+const EMBEDDER: &str = include_str!(env!("AHP_DESK_EMBEDDER"));
+
 /// Which host each app window shows, by window label.
 #[derive(Default)]
 pub struct AppWindows(Mutex<HashMap<String, String>>);
@@ -119,6 +123,7 @@ pub async fn open_app_window(
         .decorations(false)
         .transparent(true)
         .shadow(false)
+        .initialization_script(EMBEDDER)
         .inner_size(1280.0, 860.0)
         .min_inner_size(600.0, 400.0)
         .build()

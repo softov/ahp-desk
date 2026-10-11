@@ -24,7 +24,7 @@ Source: Softov: "like pood we did. remove the border green on the panel. when no
 ## Consequences
 
 The same frame as pood's window, so both desktop apps look alike.
-A UI has to draw the frame: `@ahpd/desk-client` gives it `isMaximized()` and `onResized()`, and ahpw adds the rounded root, the controls and the drag.
+A UI has to draw the frame: ahpw's embedder gives it `window.isMaximized()` and `window.onResized()` (decision: ahpw owns its embedding contract), and ahpw adds the rounded root, the controls and the drag.
 A UI that draws no frame shows a window with no edge; ahpapp needs the same work in p5.
 
 ## Options

@@ -3,12 +3,12 @@
  * `MultiHostClient` that reconnects on its own.
  */
 
-import { hostToken, type DeskHostStatus } from '@ahpd/desk-client';
 import { AhpClient, RpcError, type AhpTransport } from '@microsoft/agent-host-protocol/client';
 import { MultiHostClient } from '@microsoft/agent-host-protocol/hosts';
 import { WebSocketTransport } from '@microsoft/agent-host-protocol/ws';
 import { invoke } from '@tauri-apps/api/core';
-import type { ShellHost } from './ipc.js';
+
+import { hostToken, type PublishedStatus, type ShellHost } from './ipc.js';
 import { OFFERED_PROTOCOL_VERSIONS, offering } from './protocol-versions.js';
 import { withToken } from './url.js';
 
@@ -119,7 +119,7 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
 
   /** Every host's dot, for the windows that list hosts but watch none (decision: the host list publishes). */
   const publish = () => {
-    const map: Record<string, DeskHostStatus> = {};
+    const map: Record<string, PublishedStatus> = {};
     for (const known of multi.hostsSnapshot()) map[known.id] = statuses.status(known.id).kind;
     const text = JSON.stringify(map);
     if (text === published) return;

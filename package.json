@@ -13,10 +13,10 @@
   "scripts": {
     "tauri": "tauri",
     "stage:ui": "node scripts/stage-ui.mjs",
-    "build:client": "pnpm --filter @ahpd/desk-client build",
+    "build:client": "pnpm --filter @ahp-desk/ahpw-embedder build",
     "typecheck": "pnpm build:client && pnpm -r typecheck",
     "test": "pnpm build:client && pnpm -r test && cargo test --manifest-path src-tauri/Cargo.toml",
-    "lint": "cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings"
+    "lint": "pnpm build:client && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings"
   },
   "devDependencies": {
     "@ahpd/web": "0.2.0",

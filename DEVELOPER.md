@@ -59,6 +59,9 @@ cd ahp-desk
 pnpm install
 ```
 
+Clone [ahpw](https://github.com/softov/ahpw) beside it and run `pnpm install && pnpm build` there once.
+`packages/ahpw-embedder` takes ahpw's embedding contract, `@ahpd/web/embed`, from that checkout until a version of `@ahpd/web` with it is on npm.
+
 ## Run and build
 
 | Command | What it does |
@@ -92,6 +95,9 @@ AHP_DESK_AHPW=local pnpm tauri dev     # here
 ```
 
 `pnpm stage:ui` copies the chosen `dist/app` into `src-tauri/resources/ui/`, where a release build bundles it from; `pnpm tauri build` runs it first.
+
+Each app window gets ahpw's embedder: `pnpm build:client` builds `packages/ahpw-embedder` into one script, and Rust injects it with `initialization_script` so `globalThis.ahpwEmbedder` is set before ahpw runs.
+`pnpm tauri dev`, `pnpm tauri build`, `pnpm test` and `pnpm lint` run `pnpm build:client` first; a bare `cargo build` stops and asks for it.
 
 ## Testing on Windows
 

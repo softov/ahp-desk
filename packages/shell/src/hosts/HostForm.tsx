@@ -1,6 +1,5 @@
-import { hostToken } from '@ahpd/desk-client';
 import { useState, type FormEvent } from 'react';
-import { saveHost, type ShellHost } from './ipc.js';
+import { hostToken, saveHost, type ShellHost } from './ipc.js';
 import { explain, testHost } from './status.js';
 import { hostId, normalizeUrl } from './url.js';
 
