@@ -50,7 +50,7 @@ ahpapp:// -> HostsProvider -> isDesk() -> hosts() + onHostsChanged() -> register
 
 - ahpapp's web build has not been checked by a person.
 - `HostsProvider` reads only its own storage.
-- The shell has one UI, ahpw, fixed in its code.
+- `AHP_DESK_UI=ahpapp` stops the build, as p1 left it.
 
 ## Decisions locked in
 
@@ -66,14 +66,14 @@ ahpapp:// -> HostsProvider -> isDesk() -> hosts() + onHostsChanged() -> register
 | --- | --- | --- |
 | ahpapp's only source is `local`, because ahpapp is not on npm. | `ahpapp/package.json` has `private: true` | 02 |
 | The desk builds ahpapp with `EXPO_PUBLIC_BOTS=1`. | `bots-flag.ts` | 02 |
-| The build setting `AHP_DESK_UI=ahpw|ahpapp` chooses the UI, default `ahpw`. | (defaulted) | 02 |
+| p1 adds `AHP_DESK_UI`; this plan makes its `ahpapp` value work. | Softov: "AHP_DESK_UI on p1, could be." | 02 |
 
 ## Proposed architecture
 
 - **Data flow** - On the desk, `HostsProvider` takes its rows from `hosts()` and its tokens from `hostToken()`.
 - **Event flow** - `onHostsChanged` adds, updates and removes hosts with the existing `register` path.
 - **State flow** - On the desk, `persist` writes no host and `setToken` writes no token.
-- **Layer responsibilities** - ahpapp: the desk branch in `HostsProvider` · ahp-desk: the build setting for the UI, the `ahpapp` scheme, and the private build's identity.
+- **Layer responsibilities** - ahpapp: the desk branch in `HostsProvider` · ahp-desk: the `ahpapp` value of the build setting, the `ahpapp` scheme, and the private build's identity.
 - **Source-of-truth files** - `ahpapp/src/host-context.tsx`.
 
 ## Tasks
@@ -83,7 +83,7 @@ These task files are written when this plan moves to `planned`.
 | Task | Status | Depends on |
 | --- | --- | --- |
 | 01 - run ahpapp's web build in a browser and fix what breaks | todo | - |
-| 02 - the build setting for the UI, the ahpapp scheme and the local source | todo | 01 |
+| 02 - the ahpapp value of AHP_DESK_UI, the ahpapp scheme and the local source | todo | 01 |
 | 03 - HostsProvider takes its hosts from the desk | todo | 02 |
 | 04 - title bar with drag and window controls | todo | 03 |
 | 05 - the private build's name, identifier, icon and release channel | todo | 02 |

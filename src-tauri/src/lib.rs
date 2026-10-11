@@ -1,0 +1,50 @@
+mod app_window;
+mod frame;
+mod hosts;
+mod statuses;
+mod tokens;
+mod ui_source;
+
+use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+
+use crate::app_window::AppWindows;
+use crate::hosts::HostStore;
+use crate::statuses::HostStatuses;
+use crate::tokens::Keyring;
+
+/// The label of the window with the host list.
+pub const SHELL_WINDOW: &str = "shell";
+
+pub fn run() {
+    tauri::Builder::default()
+        .register_asynchronous_uri_scheme_protocol(ui_source::UI, |ctx, request, responder| {
+            let source = ctx.app_handle().state::<ui_source::UiSource>().inner().clone();
+            ui_source::handle(source, ctx, request, responder);
+        })
+        .setup(|app| {
+            let config = app.path().app_config_dir()?;
+            app.manage(HostStore::load(config.join("hosts.json"), Box::new(Keyring))?);
+            app.manage(AppWindows::default());
+            app.manage(HostStatuses::default());
+            app.manage(ui_source::resolve(app.handle())?);
+            WebviewWindowBuilder::new(app, SHELL_WINDOW, WebviewUrl::App("/".into()))
+                .title("ahp-desk")
+                .inner_size(720.0, 520.0)
+                .min_inner_size(480.0, 360.0)
+                .build()?;
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            hosts::hosts,
+            hosts::save_host,
+            hosts::remove_host,
+            hosts::host_token,
+            app_window::open_app_window,
+            app_window::window_host,
+            app_window::show_host_list,
+            statuses::publish_host_statuses,
+            statuses::host_statuses,
+        ])
+        .run(tauri::generate_context!())
+        .expect("ahp-desk failed to start");
+}

@@ -1,6 +1,6 @@
 ---
 title: Open on a host shows ahpw in an app window that knows its host
-status: todo
+status: done
 depends: [task-03-host-store.md, task-04-ui-sources.md]
 layer: "src-tauri"
 refs:
@@ -27,7 +27,7 @@ In that window, `window_host` returns the host and `host_token` returns its toke
 2. Write `open_app_window(host_id, replace)` as an `async` command; the window loads the build's one UI.
 3. If an app window calls with `replace` true, map its label to the new host and reload it.
 4. When a window for the host exists, show and focus it.
-5. Otherwise build `app-<host id>` at `ahpw_url()`, with no frame, 1280 by 860, and a minimum of 600 by 400.
+5. Otherwise build `app-<host id>` at `ui_url()`, with no frame, 1280 by 860, and a minimum of 600 by 400.
 6. Write `window_host`, which finds the caller's label in `AppWindows` and returns the host.
 7. Restrict `host_token` to the `shell` window and to an app window that holds that host.
 8. Remove the label from `AppWindows` when Tauri destroys its window.
@@ -44,3 +44,9 @@ In that window, `window_host` returns the host and `host_token` returns its toke
 - Call `open_app_window` again for the same host; the window gets focus, and no second window opens.
 
 ## Resume
+
+- Done 2026-10-11, checked over WebView2's debugging port.
+- `invoke` works from `http://ahpw.localhost/` with no `remote.urls`; `ui.json` lists `http://127.0.0.1:5180/*` for the `local` dev server only.
+- `build.rs` declares the seven commands in an app manifest, so each is a permission: an app window calling `save_host` is refused, and `host_token` for another host fails.
+- A second Open of the same host focuses its window; no second window opens.
+- Added: `remove_host` closes the windows that show the host, which otherwise stay open on a host that is gone.

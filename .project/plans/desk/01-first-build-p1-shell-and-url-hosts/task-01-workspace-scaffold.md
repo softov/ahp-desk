@@ -1,6 +1,6 @@
 ---
 title: The workspace builds and opens an empty shell window
-status: todo
+status: done
 depends: []
 layer: "workspace, src-tauri, packages/shell"
 refs:
@@ -26,7 +26,7 @@ A pnpm workspace with a Tauri 2 app in `src-tauri/` and a React app in `packages
 - `CREATE: packages/shell/src/App.tsx` - shows the heading "Hosts".
 - `CREATE: packages/shell/tsconfig.json` - strict TypeScript for the shell.
 - `CREATE: src-tauri/Cargo.toml` - crate `ahp-desk`, `license = "MIT"`, lib `ahp_desk_lib`, `tauri = "2"`, `serde`, `serde_json`, `tokio`.
-- `CREATE: src-tauri/build.rs` - calls `tauri_build::build()`.
+- `CREATE: src-tauri/build.rs` - calls `tauri_build::build()`; task 04 adds `AHP_DESK_UI`.
 - `CREATE: src-tauri/src/main.rs` - calls `ahp_desk_lib::run()`.
 - `CREATE: src-tauri/src/lib.rs` - `run()` with the builder, the setup that builds the `shell` window, and an empty command list.
 - `CREATE: src-tauri/tauri.conf.json` - productName `ahp-desk`, identifier `dev.softov.ahpdesk`, devUrl `http://127.0.0.1:5175`, frontendDist `../packages/shell/dist`, `windows: []`.
@@ -53,3 +53,7 @@ A pnpm workspace with a Tauri 2 app in `src-tauri/` and a React app in `packages
 - Run `pnpm -r typecheck`; it passes.
 
 ## Resume
+
+- Done 2026-10-11. `pnpm tauri dev` opens the `shell` window with the heading "Hosts"; clippy and `pnpm -r typecheck` pass.
+- The icons come from `src-tauri/icons/placeholder.svg`, a green square with two dot eyes; the Android and iOS sets `tauri icon` writes were removed.
+- `.gitignore` already had `node_modules`, `dist` and `/src-tauri/target`; `/src-tauri/gen` was added.

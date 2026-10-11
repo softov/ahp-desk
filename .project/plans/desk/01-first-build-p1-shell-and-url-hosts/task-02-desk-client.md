@@ -1,6 +1,6 @@
 ---
 title: The desk-client package gives a UI the shell's contract
-status: todo
+status: done
 depends: [task-01-workspace-scaffold.md]
 layer: "packages/desk-client"
 refs:
@@ -42,3 +42,7 @@ It builds to ESM with types, and it is ready to publish to npm.
 - Run `npm pack --dry-run` in the package; the list holds only `dist`, `README.md` and `package.json`.
 
 ## Resume
+
+- Done 2026-10-11. 8 tests pass; `dist/index.js` and `dist/index.d.ts` build; `npm pack --dry-run` lists only `README.md`, `dist/` and `package.json`.
+- `openHost` sends `{ hostId, replace }`, the argument names of `open_app_window`.
+- The shell imports the package's `dist`, so the root scripts `typecheck` and `test`, and both `before*Command`s, run `pnpm build:client` first.

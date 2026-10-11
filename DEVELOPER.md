@@ -2,8 +2,6 @@
 
 ahp-desk is a Tauri 2 desktop app. The shell is Rust; the windows load the ahpw or ahpapp bundle.
 
-> There is no code yet. The repository holds the [mockups](mockups/) and the [`.project/`](.project/) records. The commands below are the ones the first scaffold will use.
-
 ## What you need
 
 | Tool | Version | Why |
@@ -75,6 +73,25 @@ The output is under `src-tauri/target/release/bundle/`:
 - Linux: `appimage/` and `deb/`.
 
 A Windows installer is built on Windows. Tauri does not cross-compile it from Linux in a supported way.
+
+## Testing ahpw from source
+
+A build ships one UI, chosen by `AHP_DESK_UI`: `ahpw`, the default, or `ahpapp`, which comes in plan p5.
+ahpw comes from the published `@ahpd/web` by default, or from an ahpw checkout:
+
+| Variable | Values | What it does |
+| --- | --- | --- |
+| `AHP_DESK_AHPW` | `npm` (default), `local` | `npm` serves `node_modules/@ahpd/web/dist/app`. `local` loads ahpw's dev server at `http://127.0.0.1:5180` in `pnpm tauri dev`, and stages the checkout's `dist/app` for `pnpm tauri build`. |
+| `AHP_DESK_AHPW_DIR` | a path | The ahpw checkout for `local`. Default `../ahpw`. |
+
+To work on ahpw inside the desk, run its dev server in the ahpw checkout, then the desk:
+
+```sh
+pnpm dev                               # in ../ahpw
+AHP_DESK_AHPW=local pnpm tauri dev     # here
+```
+
+`pnpm stage:ui` copies the chosen `dist/app` into `src-tauri/resources/ui/`, where a release build bundles it from; `pnpm tauri build` runs it first.
 
 ## Testing on Windows
 

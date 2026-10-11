@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "shell",
+  "description": "The host list window: it keeps the hosts and opens them.",
+  "windows": ["shell"],
+  "permissions": [
+    "core:default",
+    "allow-hosts",
+    "allow-save-host",
+    "allow-remove-host",
+    "allow-host-token",
+    "allow-open-app-window",
+    "allow-publish-host-statuses",
+    "allow-host-statuses"
+  ]
+}

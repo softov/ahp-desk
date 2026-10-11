@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-publish-host-statuses"
+description = "Enables the publish_host_statuses command without any pre-configured scope."
+commands.allow = ["publish_host_statuses"]
+
+[[permission]]
+identifier = "deny-publish-host-statuses"
+description = "Denies the publish_host_statuses command without any pre-configured scope."
+commands.deny = ["publish_host_statuses"]

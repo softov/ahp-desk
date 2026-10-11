@@ -1,0 +1,24 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "ui",
+  "description": "An app window: the UI reads its host and that host's token, follows the host list, and drives its frameless window.",
+  "windows": ["app-*"],
+  "remote": {
+    "urls": ["http://127.0.0.1:5180/*"]
+  },
+  "permissions": [
+    "core:default",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging",
+    "core:window:allow-set-title",
+    "core:webview:allow-internal-toggle-devtools",
+    "allow-hosts",
+    "allow-host-token",
+    "allow-window-host",
+    "allow-open-app-window",
+    "allow-show-host-list",
+    "allow-host-statuses"
+  ]
+}

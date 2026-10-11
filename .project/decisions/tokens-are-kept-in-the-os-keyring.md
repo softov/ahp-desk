@@ -1,7 +1,8 @@
 ---
 title: Tokens are kept in the OS keyring
-status: proposed
+status: superseded
 date: 2026-10-11
+superseded-by: decisions/tokens-are-in-the-os-keyring-with-hosts-json-as-the-fallback.md
 refs:
   - file:///github/ahp-desk/mockups/02-hosts.md - "Token [...] in the OS keyring"
   - file:///github/opendoop/packages/tauri/src-tauri/src/profile.rs - doop keeps only a token reference, which no code reads

@@ -1,0 +1,25 @@
+{
+  "name": "ahp-desk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A desktop app for Agent Host Protocol hosts: the host list, ahpw or ahpapp in a window, and a bot on the desktop",
+  "author": "Luiz Fernando Softov <lfs@softov.dev>",
+  "license": "MIT",
+  "packageManager": "pnpm@11.21.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "tauri": "tauri",
+    "stage:ui": "node scripts/stage-ui.mjs",
+    "build:client": "pnpm --filter @ahpd/desk-client build",
+    "typecheck": "pnpm build:client && pnpm -r typecheck",
+    "test": "pnpm build:client && pnpm -r test && cargo test --manifest-path src-tauri/Cargo.toml",
+    "lint": "cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings"
+  },
+  "devDependencies": {
+    "@ahpd/web": "0.2.0",
+    "@tauri-apps/cli": "^2.11.2"
+  }
+}

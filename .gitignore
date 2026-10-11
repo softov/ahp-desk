@@ -2,8 +2,12 @@ node_modules
 dist
 *.tsbuildinfo
 
-# Rust build output.
+# Rust build output, and the schemas Tauri generates on each build.
 /src-tauri/target
+/src-tauri/gen
+
+# The UI bundle scripts/stage-ui.mjs copies in before a release build.
+/src-tauri/resources/ui
 
 # Tauri updater signing keys. The public key lives in tauri.conf.json.
 *.key

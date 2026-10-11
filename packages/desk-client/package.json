@@ -1,0 +1,40 @@
+{
+  "name": "@ahpd/desk-client",
+  "version": "0.1.0",
+  "description": "What a UI in ahp-desk calls: its hosts, its window's host, a host's token, and the window controls",
+  "author": "Luiz Fernando Softov <lfs@softov.dev>",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/softov/ahp-desk.git",
+    "directory": "packages/desk-client"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@tauri-apps/api": "^2"
+  },
+  "devDependencies": {
+    "@tauri-apps/api": "^2.12.3",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

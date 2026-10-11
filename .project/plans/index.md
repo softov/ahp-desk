@@ -15,9 +15,9 @@ What exists today: [00-desk.md](desk/00-desk.md).
 
 | Plan | Status | Next |
 | --- | --- | --- |
-| [01 - The first build of ahp-desk](desk/01-first-build/plan.md) | planned | p1 |
-| [01 p1 - The shell, the host list and the app window](desk/01-first-build-p1-shell-and-url-hosts/plan.md) | planned | task 01 |
-| [01 p2 - ahpw on the desk](desk/01-first-build-p2-ahpw-on-the-desk/plan.md) | draft | write the tasks |
+| [01 - The first build of ahp-desk](desk/01-first-build/plan.md) | active | p1 |
+| [01 p1 - The shell, the host list and the app window](desk/01-first-build-p1-shell-and-url-hosts/plan.md) | built | - |
+| [01 p2 - ahpw on the desk](desk/01-first-build-p2-ahpw-on-the-desk/plan.md) | active | task 09, end to end; ahpw branch `desk` |
 | [01 p3 - The local ahpd](desk/01-first-build-p3-local-ahpd/plan.md) | draft | write the tasks |
 | [01 p4 - The tray, the updater and the releases](desk/01-first-build-p4-tray-and-releases/plan.md) | draft | write the tasks |
 | [01 p5 - ahpapp in a private build](desk/01-first-build-p5-ahpapp-on-the-desk/plan.md) | draft | name and release channel |

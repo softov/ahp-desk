@@ -1,6 +1,6 @@
 ---
 title: The host list screen adds, edits, tests, removes and opens URL hosts
-status: todo
+status: done
 depends: [task-02-desk-client.md, task-03-host-store.md, task-05-app-window.md]
 layer: "packages/shell"
 refs:
@@ -36,7 +36,7 @@ Add host saves a name, an address and a token; Test connects once and shows the 
 6. Call `openHost(id)` on Open.
 7. In `HostForm`, call `save_host` with `kind: 'url'`, the normalized address and the token.
 8. On Test, connect once with the typed address and token, and show the server's name and version or the error.
-9. Show the keyring error from `save_host` under the token field.
+9. Show a warning on a host with `tokenInFile: true`: "The token is in a plain file."
 10. Ask before Remove, with the host's name in the question.
 
 ## Validation
@@ -49,3 +49,11 @@ Add host saves a name, an address and a token; Test connects once and shows the 
 - Check each screen against mockup 02 at 100% and 150% display scale.
 
 ## Resume
+
+- Done 2026-10-11 against an ahpd 0.10.0 on 127.0.0.1:9199 with a connection token.
+- A wrong token's Test says "Could not connect. Check the address and the token." and `hosts.json` does not change; the right one says "Connected: ahpd 0.10.0".
+- Saved, the row turns ● with the server's name; stopped, it turns ○ with Retry; Retry after a restart turns it ● again; Open opens ahpw; Remove asks, then removes the host and closes its window.
+- The token goes as `?tkn=`, because a webview's WebSocket cannot set a header; ahpd reads either.
+- The desk offers only protocol 1.0.0, as `MultiHostClient` does; an ahpd 0.7.0 answers `-32005`, shown as "This host speaks an older protocol than 1.0.0. Update its server."
+- The dots are drawn in CSS: the ● glyph rendered too small in the system font.
+- Not checked: 150% display scale, and the "token is in a plain file" warning on screen (the flag is covered by a `hosts` test).

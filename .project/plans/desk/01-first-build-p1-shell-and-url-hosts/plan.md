@@ -1,7 +1,7 @@
 ---
 title: The shell, the host list and the app window
 domain: desk
-status: planned
+status: built
 priority: high
 created: 2026-10-11
 revalidated: 2026-10-11
@@ -10,7 +10,7 @@ decisions:
   - decisions/a-ui-takes-its-hosts-from-a-command-and-an-event.md
   - decisions/the-shell-contract-is-a-shared-npm-package.md
   - decisions/a-ui-bundle-comes-from-the-local-repository-or-from-npm.md
-  - decisions/tokens-are-kept-in-the-os-keyring.md
+  - decisions/tokens-are-in-the-os-keyring-with-hosts-json-as-the-fallback.md
   - decisions/each-ui-is-served-from-its-own-uri-scheme.md
   - decisions/each-desk-build-ships-one-ui.md
 refs:
@@ -30,7 +30,8 @@ refs:
 
 ## Goal
 
-ahp-desk runs as a Tauri 2 app with a host list of URL hosts, each token in the OS keyring.
+ahp-desk runs as a Tauri 2 app with a host list of URL hosts.
+Each token is in the OS keyring or, with no keyring, in `hosts.json`.
 "Open" on a host opens an app window with ahpw, from the `local` or the `npm` source.
 The `@ahpd/desk-client` package gives a UI the hosts, its window's host, a token, and the window controls.
 After this plan, ahpw loads in the window but still connects to its own origin; p2 changes that.
@@ -49,7 +50,7 @@ The files read and the patterns to reuse are the `refs` above, each with its not
 
 ```
 pnpm tauri dev -> lib.rs setup -> shell window (packages/shell) -> host list
-  -> invoke('save_host') -> hosts.rs -> hosts.json + keyring -> emit('hosts-changed')
+  -> invoke('save_host') -> hosts.rs -> tokens.rs -> keyring, or hosts.json with no keyring -> emit('hosts-changed')
   -> invoke('open_app_window', {hostId}) -> app_window.rs -> window app-<id> at ahpw://localhost/
   -> ui_source.rs serves dist/app from the local or npm source
 ```
@@ -66,7 +67,7 @@ pnpm tauri dev -> lib.rs setup -> shell window (packages/shell) -> host list
 | 1 | [A UI takes its hosts from a command and an event](../../../decisions/a-ui-takes-its-hosts-from-a-command-and-an-event.md) | Softov, 2026-10-11 |
 | 2 | [The shell's contract is a shared npm package](../../../decisions/the-shell-contract-is-a-shared-npm-package.md) | Softov, 2026-10-11 |
 | 3 | [A UI bundle comes from the local repository or from npm](../../../decisions/a-ui-bundle-comes-from-the-local-repository-or-from-npm.md) | Softov, 2026-10-11 |
-| 4 | [Tokens are kept in the OS keyring](../../../decisions/tokens-are-kept-in-the-os-keyring.md) | (defaulted: mockup 02) |
+| 4 | [Tokens are in the OS keyring, with hosts.json as the fallback](../../../decisions/tokens-are-in-the-os-keyring-with-hosts-json-as-the-fallback.md) | Softov, 2026-10-11 |
 | 5 | [Each UI is served from its own URI scheme](../../../decisions/each-ui-is-served-from-its-own-uri-scheme.md) | Softov, 2026-10-11 |
 | 6 | [Each desk build ships one UI](../../../decisions/each-desk-build-ships-one-ui.md) | Softov, 2026-10-11 |
 
@@ -74,6 +75,7 @@ pnpm tauri dev -> lib.rs setup -> shell window (packages/shell) -> host list
 | --- | --- | --- |
 | The package is `@ahpd/desk-client`. | (defaulted: the `@ahpd` scope of `@ahpd/web`) | 02 |
 | `hosts()` returns no tokens; `hostToken(id)` returns one. | Decision 1: "Tokens stay in the OS keyring until a UI asks for them." | 02, 03 |
+| The build setting `AHP_DESK_UI=ahpw|ahpapp` chooses the build's UI, default `ahpw`; `ahpapp` fails until p5. | Softov: "AHP_DESK_UI on p1, could be." | 04 |
 | The source is set by `AHP_DESK_AHPW=local|npm`, default `npm`, and `AHP_DESK_AHPW_DIR`, default `../ahpw`. | (defaulted) | 04 |
 | The app identifier is `dev.softov.ahpdesk`. | (defaulted) | 01 |
 | The app window has no OS frame; the UI draws its title bar. | Mockup 03: "title bar drawn by the UI" | 05 |
@@ -91,30 +93,30 @@ pnpm tauri dev -> lib.rs setup -> shell window (packages/shell) -> host list
 
 | Task | Status | Depends on |
 | --- | --- | --- |
-| [01 - workspace-scaffold](task-01-workspace-scaffold.md) | todo | - |
-| [02 - desk-client](task-02-desk-client.md) | todo | 01 |
-| [03 - host-store](task-03-host-store.md) | todo | 01 |
-| [04 - ui-sources](task-04-ui-sources.md) | todo | 01 |
-| [05 - app-window](task-05-app-window.md) | todo | 03, 04 |
-| [06 - host-list](task-06-host-list.md) | todo | 02, 03, 05 |
+| [01 - workspace-scaffold](task-01-workspace-scaffold.md) | done | - |
+| [02 - desk-client](task-02-desk-client.md) | done | 01 |
+| [03 - host-store](task-03-host-store.md) | done | 01 |
+| [04 - ui-sources](task-04-ui-sources.md) | done | 01 |
+| [05 - app-window](task-05-app-window.md) | done | 03, 04 |
+| [06 - host-list](task-06-host-list.md) | done | 02, 03, 05 |
 
 ## Risks and tradeoffs
 
 - Tauri may treat a custom scheme page as a remote origin for IPC. Task 05 tests `invoke` from `ahpw://` before task 06 depends on it.
-- `keyring` on Linux needs a Secret Service. Task 03 maps its error to a message for Add host.
+- `keyring` on Linux needs a Secret Service. With none, task 03 saves the token in `hosts.json`, and task 06 shows a warning.
 - `open_app_window` must be async, or the window build can deadlock on Windows, as doop's note says.
 
 ## Resume state
 
-- **Done so far:** nothing.
-- **Next action:** [task-01-workspace-scaffold.md](task-01-workspace-scaffold.md).
+- **Done so far:** every task; see [implemented.md](implemented.md).
+- **Next action:** none; p2 builds on it.
 - **Open questions:** none.
-- **Watch out for:** ahpw still connects to `window.location` after this plan, so it shows its sign-in wall in the app window. That is expected until p2.
+- **Watch out for:** nothing.
 
 ## Final verification checklist
 
-- [ ] `pnpm tauri dev` opens the host list on Windows.
-- [ ] A URL host saved in the host list survives a restart, and its token is in the Windows Credential Manager.
-- [ ] Open shows ahpw's sign-in wall with `AHP_DESK_AHPW=npm` and with `AHP_DESK_AHPW=local`.
-- [ ] `cargo clippy -- -D warnings`, `cargo test`, `pnpm -r typecheck` and `pnpm -r test` pass.
-- [ ] `plans/index.md` updated.
+- [x] `pnpm tauri dev` opens the host list on Windows.
+- [x] A URL host saved in the host list survives a restart, and its token is in the Windows Credential Manager.
+- [x] Open shows ahpw's sign-in wall with `AHP_DESK_AHPW=npm` and with `AHP_DESK_AHPW=local`.
+- [x] `cargo clippy -- -D warnings`, `cargo test`, `pnpm -r typecheck` and `pnpm -r test` pass.
+- [x] `plans/index.md` updated.

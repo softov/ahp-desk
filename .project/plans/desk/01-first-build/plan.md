@@ -1,7 +1,7 @@
 ---
 title: The first build of ahp-desk
 domain: desk
-status: planned
+status: active
 priority: high
 created: 2026-10-11
 revalidated: 2026-10-11
@@ -17,7 +17,7 @@ decisions:
   - decisions/the-picker-lists-the-bots-of-every-host.md
   - decisions/the-pill-with-no-bot-is-a-setting.md
   - decisions/the-bot-shows-its-session-state.md
-  - decisions/tokens-are-kept-in-the-os-keyring.md
+  - decisions/tokens-are-in-the-os-keyring-with-hosts-json-as-the-fallback.md
   - decisions/each-ui-is-served-from-its-own-uri-scheme.md
   - decisions/the-local-ahpd-runs-through-its-own-start-and-stop.md
   - decisions/the-local-ahpd-uses-a-token-file.md
@@ -97,7 +97,7 @@ shell starts -> hosts.json + OS keyring -> host list screen
 | 11 | [The bot shows its session state](../../../decisions/the-bot-shows-its-session-state.md) | Softov, 2026-10-11 |
 | 12 | [The bot is the pill](../../../decisions/the-bot-is-the-pill.md) | Softov, 2026-10-11 |
 | 13 | [A bot is talked to from an input that shows on hover](../../../decisions/a-bot-is-talked-to-from-an-input-on-hover.md) | Softov, 2026-10-11 |
-| 14 | [Tokens are kept in the OS keyring](../../../decisions/tokens-are-kept-in-the-os-keyring.md) | (defaulted: mockup 02) |
+| 14 | [Tokens are in the OS keyring, with hosts.json as the fallback](../../../decisions/tokens-are-in-the-os-keyring-with-hosts-json-as-the-fallback.md) | Softov, 2026-10-11 |
 | 15 | [Each UI is served from its own URI scheme](../../../decisions/each-ui-is-served-from-its-own-uri-scheme.md) | Softov, 2026-10-11 |
 | 16 | [The local ahpd runs through its own start and stop](../../../decisions/the-local-ahpd-runs-through-its-own-start-and-stop.md) | Softov, 2026-10-11 |
 | 17 | [The local ahpd uses a token file](../../../decisions/the-local-ahpd-uses-a-token-file.md) | Softov, 2026-10-11 |
@@ -130,8 +130,8 @@ shell starts -> hosts.json + OS keyring -> host list screen
 
 | Task | Status | Depends on |
 | --- | --- | --- |
-| [p1 - The shell, the host list and the app window](../01-first-build-p1-shell-and-url-hosts/plan.md) | planned | - |
-| [p2 - ahpw on the desk](../01-first-build-p2-ahpw-on-the-desk/plan.md) | draft | p1 |
+| [p1 - The shell, the host list and the app window](../01-first-build-p1-shell-and-url-hosts/plan.md) | built | - |
+| [p2 - ahpw on the desk](../01-first-build-p2-ahpw-on-the-desk/plan.md) | active | p1 |
 | [p3 - The local ahpd](../01-first-build-p3-local-ahpd/plan.md) | draft | p1 |
 | [p4 - The tray, the updater and the releases](../01-first-build-p4-tray-and-releases/plan.md) | draft | p1 |
 | [p5 - ahpapp in a private build](../01-first-build-p5-ahpapp-on-the-desk/plan.md) | draft | p1, p2 |
@@ -142,12 +142,12 @@ shell starts -> hosts.json + OS keyring -> host list screen
 - A transparent window on Windows can make other webviews white. p6 starts the hidden host window first, as doop does.
 - A custom URI scheme may not count as a local origin for Tauri's IPC. p1 task 05 checks this before the host list uses it.
 - ahpapp's web build is not checked by its own team yet. p5 starts with a run of that build in a browser.
-- The Linux keyring needs a Secret Service. Add host shows the error when there is none.
+- The Linux keyring needs a Secret Service. With none, the token is in `hosts.json`, and the host list shows a warning.
 
 ## Resume state
 
-- **Done so far:** decisions and plans written, 2026-10-11.
-- **Next action:** [p1 task 01](../01-first-build-p1-shell-and-url-hosts/task-01-workspace-scaffold.md).
+- **Done so far:** decisions and plans written; p1 tasks 01, 02, 03, 05 and 06 done, 2026-10-11. A custom scheme does count as a local origin for IPC on Windows (p1 task 05).
+- **Next action:** [p2 task 09](../01-first-build-p2-ahpw-on-the-desk/task-09-end-to-end.md); then the task files of p3 to p6.
 - **Open questions:** the open questions of each child plan are in its own *Resume state*.
 - **Watch out for:** the child plans p2 to p6 are `draft`; write their task files before their first task starts.
 
