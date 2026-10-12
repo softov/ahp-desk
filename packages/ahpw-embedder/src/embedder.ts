@@ -38,7 +38,7 @@ export function createEmbedder(): Embedder {
         listen<Record<string, EmbedHostStatus>>('hosts-status', (event) => handler(event.payload)),
       ),
     switchHost: (id) => invoke('open_app_window', { hostId: id, replace: true }),
-    manageHosts: () => invoke('show_host_list'),
+    manageHosts: (options) => invoke<void>('show_host_list', { add: options?.add === true }),
     window: {
       minimize: () => getCurrentWindow().minimize(),
       toggleMaximize: () => getCurrentWindow().toggleMaximize(),

@@ -29,6 +29,11 @@ export function onHostsChanged(handler: (hosts: ShellHost[]) => void): Promise<U
   return listen<ShellHost[]>('hosts-changed', (event) => handler(event.payload));
 }
 
+/** Calls `handler` when an app window asks for the Add form, as ahpw's "+ Add host" does. */
+export function onAddAsked(handler: () => void): Promise<UnlistenFn> {
+  return listen('host-list-add', () => handler());
+}
+
 /** The host's token, or null for a host with none. */
 export function hostToken(id: string): Promise<string | null> {
   return invoke<string | null>('host_token', { id });

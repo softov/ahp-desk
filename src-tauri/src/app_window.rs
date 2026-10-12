@@ -5,7 +5,8 @@ use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
 
 use tauri::{
-    AppHandle, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent,
+    AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+    WindowEvent,
 };
 
 use crate::hosts::{HostStore, HostView};
@@ -112,7 +113,8 @@ pub async fn open_app_window(
     }
 
     if let Some(open) = windows.window_of(&host.id).and_then(|label| app.get_webview_window(&label)) {
-        return show(&open);
+        show(&open)?;
+        return hide_if_host_list(&window);
     }
 
     let label = label_for(&app, &host.id);
@@ -142,10 +144,27 @@ pub async fn open_app_window(
     let handle = app.clone();
     opened.on_window_event(move |event| {
         if let WindowEvent::Destroyed = event {
-            handle.state::<AppWindows>().lock().remove(&label);
+            let windows = handle.state::<AppWindows>();
+            windows.lock().remove(&label);
+            // The last host closed: the host list comes back, or the desk would
+            // run with no window to reach it (decision: open hides the host list).
+            if !windows.any_open() {
+                if let Some(shell) = handle.get_webview_window(SHELL_WINDOW) {
+                    // A host list that will not show leaves the tray; nothing is lost.
+                    let _ = show(&shell);
+                }
+            }
         }
     });
-    Ok(())
+    hide_if_host_list(&window)
+}
+
+/// Opening a host from the host list hides the list (decision: open hides the host list).
+fn hide_if_host_list(caller: &WebviewWindow) -> Result<(), String> {
+    if caller.label() != SHELL_WINDOW {
+        return Ok(());
+    }
+    caller.hide().map_err(|err| err.to_string())
 }
 
 /// The host the calling window shows.
@@ -161,11 +180,19 @@ pub fn window_host(
     store.find(&id).ok_or_else(|| format!("no host {id}"))
 }
 
-/// Shows and focuses the host list.
+/// The event that asks the host list to open its Add form.
+pub const HOST_LIST_ADD: &str = "host-list-add";
+
+/// Shows and focuses the host list; with `add`, on its Add form.
 #[tauri::command]
-pub fn show_host_list(app: AppHandle) -> Result<(), String> {
+pub fn show_host_list(app: AppHandle, add: Option<bool>) -> Result<(), String> {
     let shell = app
         .get_webview_window(SHELL_WINDOW)
         .ok_or("the host list window is gone")?;
-    show(&shell)
+    show(&shell)?;
+    if add == Some(true) {
+        app.emit_to(SHELL_WINDOW, HOST_LIST_ADD, ())
+            .map_err(|err| err.to_string())?;
+    }
+    Ok(())
 }

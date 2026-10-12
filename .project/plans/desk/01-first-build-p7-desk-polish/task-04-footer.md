@@ -1,5 +1,5 @@
 ---
-title: ahpw's mark and © ahpio.com at the bottom of the host list
+title: ahpio's logo and © ahpio.com at the bottom of the host list
 status: done
 depends: [task-02-host-list-palette.md]
 layer: "packages/shell, src-tauri"
@@ -7,7 +7,7 @@ layer: "packages/shell, src-tauri"
 
 ## Objective
 
-The host list ends in ahpw's mark centred at the bottom, with "© ahpio.com" linking to https://ahpio.com in the browser.
+The host list ends in ahpio's logo (for now ahpapp's mark) centred at the bottom, with "© ahpio.com" linking to https://ahpio.com in the browser.
 
 ## Files
 
@@ -16,7 +16,7 @@ The host list ends in ahpw's mark centred at the bottom, with "© ahpio.com" lin
 
 ## Steps
 
-1. Draw the mark at 20 px with the muted text beside it.
+1. Draw the logo at 26 px with the muted text beside it.
 2. A click opens https://ahpio.com in the browser, never in the desk.
 
 ## Validation

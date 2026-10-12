@@ -61,7 +61,12 @@ describe('createEmbedder', () => {
     await embedder.switchHost('work');
     expect(invoke).toHaveBeenCalledWith('open_app_window', { hostId: 'work', replace: true });
     await embedder.manageHosts();
-    expect(invoke).toHaveBeenLastCalledWith('show_host_list');
+    expect(invoke).toHaveBeenLastCalledWith('show_host_list', { add: false });
+  });
+
+  it('shows the host list on its Add form', async () => {
+    await createEmbedder().manageHosts({ add: true });
+    expect(invoke).toHaveBeenLastCalledWith('show_host_list', { add: true });
   });
 
   it("drives this window's controls", async () => {

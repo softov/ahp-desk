@@ -136,15 +136,15 @@ html.is-maximized #root {
   padding: 14px 22px;
 }
 
-/* ahpw's mark and the site, centred at the bottom. */
+/* ahpio's logo and the site, centred at the bottom. */
 .footer {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   flex: none;
-  padding: 10px 0 14px;
-  font-size: var(--oo-font-size-xs);
+  padding: 8px 0 12px;
+  font-size: var(--oo-font-size-sm);
 }
 
 .footer a {

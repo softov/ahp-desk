@@ -70,7 +70,8 @@ ahpw HostSwitcher -> embedder.switchHost | (new) embedder.manageHosts({ add }) -
 | The host list's close hides it while an app window is open, and quits the desk when none is. | (defaulted: the host list holds the statuses; decision 3) | 01 |
 | The host list follows the OS's light or dark. | (defaulted: ahpw's default theme mode is "system") | 02 |
 | The desk's icon takes ahpw's mark and colours. | Softov: "Bot default icon color ... does not match" | 03 |
-| The footer is ahpw's mark and "© ahpio.com", linking to https://ahpio.com in the browser. | Softov: "Logo ahpw on center bottom with site 'C (copyright)' ahpio.com" | 04 |
+| The footer is ahpio's logo, for now ahpapp's mark at 26 px, and "© ahpio.com", linking to https://ahpio.com in the browser; the title bar keeps ahpw's mark. | Softov: "I'm thinking on the ahpio to use for now the ahpapp logo, give it move visibility. just on the hosts list. on bottom." | 04 |
+| The host list window opens at 640 x 400, at least 480 x 300. | Softov: "Also make it less height." | 07 |
 | ahpw's switcher lists "Manage hosts" and "+ Add host" under the hosts. | Decision 3, decision 6 | 08 |
 
 ## Proposed architecture
@@ -91,8 +92,8 @@ ahpw HostSwitcher -> embedder.switchHost | (new) embedder.manageHosts({ add }) -
 | [04 - the footer](task-04-footer.md) | done | 02 |
 | [05 - three languages](task-05-languages.md) | todo | 02 |
 | [06 - the first run](task-06-first-run.md) | todo | 05 |
-| [07 - Open hides the host list](task-07-open-hides.md) | todo | - |
-| [08 - ahpw's switcher manages hosts](task-08-switcher-manages-hosts.md) | todo | 07 |
+| [07 - Open hides the host list](task-07-open-hides.md) | done | - |
+| [08 - ahpw's switcher manages hosts](task-08-switcher-manages-hosts.md) | done | 07 |
 | [09 - end to end](task-09-end-to-end.md) | todo | 01 to 08 |
 
 ## Risks and tradeoffs
@@ -102,7 +103,7 @@ ahpw HostSwitcher -> embedder.switchHost | (new) embedder.manageHosts({ add }) -
 
 ## Resume state
 
-- **Done so far:** the plan, tasks 01, 02 and 04, 2026-10-11.
+- **Done so far:** the plan, tasks 01, 02, 04, 07 and 08, 2026-10-11.
 - **Next action:** task 03, the icon.
 - **Open questions:** none.
 - **Watch out for:** ahpw's changes go on its branch `desk`, merged with `main` first.

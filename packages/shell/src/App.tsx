@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useState } from 'react';
 import { HostForm } from './hosts/HostForm.js';
 import { HostList } from './hosts/HostList.js';
-import { listHosts, onHostsChanged, type ShellHost } from './hosts/ipc.js';
+import { listHosts, onAddAsked, onHostsChanged, type ShellHost } from './hosts/ipc.js';
 import { createHostStatuses, type HostStatuses } from './hosts/status.js';
 import { Footer } from './Footer.js';
 import { TitleBar } from './TitleBar.js';
@@ -18,10 +18,10 @@ export function App() {
   useEffect(() => {
     let live = true;
     void listHosts().then((list) => live && setHosts(list));
-    const stop = onHostsChanged((list) => setHosts(list));
+    const stops = [onHostsChanged((list) => setHosts(list)), onAddAsked(() => setScreen({ kind: 'form', host: null }))];
     return () => {
       live = false;
-      void stop.then((unlisten) => unlisten());
+      for (const stop of stops) void stop.then((unlisten) => unlisten());
     };
   }, []);
 

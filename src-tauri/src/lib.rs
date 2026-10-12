@@ -36,8 +36,8 @@ pub fn run() {
                 .decorations(false)
                 .transparent(true)
                 .shadow(false)
-                .inner_size(720.0, 520.0)
-                .min_inner_size(480.0, 360.0)
+                .inner_size(640.0, 400.0)
+                .min_inner_size(480.0, 300.0)
                 .build()?;
             frame::round_corners(&shell);
             let handle = app.handle().clone();
