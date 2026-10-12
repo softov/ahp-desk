@@ -4,10 +4,12 @@
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
 
+use tauri::webview::NewWindowResponse;
 use tauri::{
-    AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+    AppHandle, Emitter, Manager, State, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
     WindowEvent,
 };
+use tauri_plugin_opener::OpenerExt;
 
 use crate::hosts::{HostStore, HostView};
 use crate::ui_source::{self, UiSource};
@@ -118,10 +120,12 @@ pub async fn open_app_window(
     }
 
     let label = label_for(&app, &host.id);
+    let ui = ui_source::ui_url(source.inner());
     let url = match source.inner() {
         UiSource::DevServer(url) => WebviewUrl::External(url.clone()),
-        folder @ UiSource::Folder(_) => WebviewUrl::CustomProtocol(ui_source::ui_url(folder)),
+        UiSource::Folder(_) => WebviewUrl::CustomProtocol(ui.clone()),
     };
+    let (for_new, for_nav) = (app.clone(), app.clone());
     let opened = WebviewWindowBuilder::new(&app, &label, url)
         .title(&host.name)
         // No OS frame, and no OS shadow, which on Windows brings the accent
@@ -134,6 +138,20 @@ pub async fn open_app_window(
         // Tauri's own drop handler replaces WebView2's, and with it on, Windows sends
         // the page no HTML5 drag events: ahpw's explorer could not drag a file into a chat.
         .disable_drag_drop_handler()
+        // A web link opens in the browser, as in VS Code: a new window
+        // (target=_blank, window.open) never opens inside the desk, and the
+        // window itself never leaves the UI for a site.
+        .on_new_window(move |url, _| {
+            open_outside(&for_new, &url);
+            NewWindowResponse::Deny
+        })
+        .on_navigation(move |url| {
+            if url.origin() == ui.origin() {
+                return true;
+            }
+            open_outside(&for_nav, url);
+            false
+        })
         .inner_size(1280.0, 860.0)
         .min_inner_size(600.0, 400.0)
         .build()
@@ -157,6 +175,16 @@ pub async fn open_app_window(
         }
     });
     hide_if_host_list(&window)
+}
+
+/// Opens a web or mail link in the OS's own app for it; any other scheme is dropped.
+fn open_outside(app: &AppHandle, url: &Url) {
+    if !matches!(url.scheme(), "http" | "https" | "mailto") {
+        return;
+    }
+    if let Err(err) = app.opener().open_url(url.as_str(), None::<&str>) {
+        eprintln!("opening {url} outside the desk failed: {err}");
+    }
 }
 
 /// Opening a host from the host list hides the list (decision: open hides the host list).
