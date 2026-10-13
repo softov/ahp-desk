@@ -57,6 +57,8 @@ app_window.rs open_app_window -> page ?host=<address> -> embedder hostUrl -> ahp
 | --- | --- | --- |
 | ahpw's README stops listing the administration screens. | Softov: "remove from read-me from now." | 03 |
 | The unscoped keys in the desk profile, and the stale `ahpd-web.token`, are removed once by hand. | Softov: "yes, remove the old ahpd-web.token"; decision 1 | 04 |
+| ahpw's session counters follow the host: it keeps what the SDK's session cache drops (`changes` and more), so a relist sticks (ahpw `08e7518`). | Softov: "Counters does not match. Only after some time" | 03 |
+| A running session's row shows its counts above its activity, as ahpapp does (ahpw `3677719`). | Softov: "ok" to the proposed three-line row | 03 |
 | scena shows no words of its own in an empty surface, tree or list; an app gives a surface an empty view with `surfaces.setEmpty`, and ahpw gives `main` a start page. | Softov, 2026-10-13: "Nothing (Recommended)" and "App-provided empty view (Recommended)" | 03 |
 
 ## Proposed architecture

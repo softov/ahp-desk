@@ -9,7 +9,7 @@ refs:
 
 ## Objective
 
-`@ahpd/web` 0.3.1 is on npm with the host keys, the start page and the README without the administration screens, on scena 0.5.5, and the desk takes it from npm in both places.
+`@ahpd/web` 0.3.1 is on npm with the host keys, the start page, session counters that follow the host, counts on a running row, and the README without the administration screens, on scena 0.5.5, and the desk takes it from npm in both places.
 
 ## Files
 
