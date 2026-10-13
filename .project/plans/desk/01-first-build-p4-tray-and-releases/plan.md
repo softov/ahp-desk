@@ -10,6 +10,7 @@ requires:
 decisions:
   - decisions/the-desk-starts-with-the-os-by-default.md
   - decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md
+  - decisions/the-desk-asks-before-installing-its-update.md
 refs:
   - file:///github/opendoop/packages/tauri/src-tauri/src/tray.rs - the tray menu and the left click, at lines 8-62
   - file:///github/opendoop/packages/tauri/src-tauri/src/shell_settings.rs - closeBehavior, minimize to tray or quit

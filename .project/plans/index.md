@@ -24,3 +24,5 @@ What exists today: [00-desk.md](desk/00-desk.md).
 | [01 p6 - The bot pill](desk/01-first-build-p6-bot-pill/plan.md) | draft | write the tasks |
 | [01 p7 - Desk polish before the first release](desk/01-first-build-p7-desk-polish/plan.md) | built | - |
 | [01 p8 - Each host keeps its own pages on the desk](desk/01-first-build-p8-host-scoped-storage/plan.md) | active | task 03, the 0.3.1 release; ahpw branch `desk` |
+| [01 p9 - The desk says what can be updated, and updates it](desk/01-first-build-p9-update-alerts/plan.md) | draft | task 03 to the ahpd repository; write the tasks |
+| [01 p10 - Install ahpd on a Linux server over SSH](desk/01-first-build-p10-ssh-install/plan.md) | draft | write the tasks |

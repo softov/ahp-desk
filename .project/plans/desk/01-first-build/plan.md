@@ -114,7 +114,8 @@ shell starts -> hosts.json + OS keyring -> host list screen
 | --- | --- | --- |
 | A plan first, then code. | Softov, asked "What should I produce first in ahp-desk?": "Plan first (Recommended)" | this plan |
 | The first build has app window and URL hosts, local ahpd, tray and updater, and the bot pill. | Softov, asked "What does the first milestone include?" | p1 to p6 |
-| SSH hosts are not in this plan. | Not chosen in the first milestone | - |
+| ahpd is installed on a Linux server over SSH. | Softov, 2026-10-13: "this computer and the ssh installer" | p10 |
+| The desk says what can be updated (itself, ahpw with it, each host's ahpd) and updates it. | Softov, 2026-10-13: "how to make it alert updates" | p9 |
 | ahpw comes first, and ahpapp after it. | Softov: "initially for working for ahpw and with easy to work with ahpapp" | p2 before p5 |
 
 ## Proposed architecture
@@ -137,6 +138,8 @@ shell starts -> hosts.json + OS keyring -> host list screen
 | [p6 - The bot pill](../01-first-build-p6-bot-pill/plan.md) | draft | p1, p4 |
 | [p7 - Desk polish before the first release](../01-first-build-p7-desk-polish/plan.md) | built | p2 |
 | [p8 - Each host keeps its own pages on the desk](../01-first-build-p8-host-scoped-storage/plan.md) | active | p2 |
+| [p9 - The desk says what can be updated, and updates it](../01-first-build-p9-update-alerts/plan.md) | draft | p3, p4 |
+| [p10 - Install ahpd on a Linux server over SSH](../01-first-build-p10-ssh-install/plan.md) | draft | p3 |
 
 ## Risks and tradeoffs
 
