@@ -20,7 +20,7 @@ refs:
   - "[code://src-tauri/src/lib.rs](../../../../src-tauri/src/lib.rs) - the shell window, still decorated"
   - "[code://src-tauri/src/frame.rs](../../../../src-tauri/src/frame.rs) - `round_corners`, reused for the shell window"
   - "[code://src-tauri/src/app_window.rs](../../../../src-tauri/src/app_window.rs) - `open_app_window`, `show_host_list`"
-  - "[code://src-tauri/icons/placeholder.svg](../../../../src-tauri/icons/placeholder.svg) - the icon in a green no window uses"
+  - "[code://src-tauri/icons/icon.svg](../../../../src-tauri/icons/icon.svg) - ahpw's mark, the source of every icon"
   - file:///github/ahpw/node_modules/@softov/scena/dist/styles/themes/tokens.css - ahpw's light palette
   - file:///github/ahpw/node_modules/@softov/scena/dist/styles/themes/dark.css - ahpw's dark palette
   - file:///github/ahpw/public/ahpw.svg - ahpw's mark, for the footer
@@ -88,7 +88,7 @@ ahpw HostSwitcher -> embedder.switchHost | (new) embedder.manageHosts({ add }) -
 | --- | --- | --- |
 | [01 - the host list window has no OS frame](task-01-host-list-frame.md) | done | - |
 | [02 - the host list in ahpw's palette](task-02-host-list-palette.md) | done | 01 |
-| [03 - the desk's icon in ahpw's mark](task-03-icon.md) | todo | - |
+| [03 - the desk's icon in ahpw's mark](task-03-icon.md) | done | - |
 | [04 - the footer](task-04-footer.md) | done | 02 |
 | [05 - three languages](task-05-languages.md) | todo | 02 |
 | [06 - the first run](task-06-first-run.md) | todo | 05 |
