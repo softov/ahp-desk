@@ -57,6 +57,7 @@ app_window.rs open_app_window -> page ?host=<address> -> embedder hostUrl -> ahp
 | --- | --- | --- |
 | ahpw's README stops listing the administration screens. | Softov: "remove from read-me from now." | 03 |
 | The unscoped keys in the desk profile, and the stale `ahpd-web.token`, are removed once by hand. | Softov: "yes, remove the old ahpd-web.token"; decision 1 | 04 |
+| scena shows no words of its own in an empty surface, tree or list; an app gives a surface an empty view with `surfaces.setEmpty`, and ahpw gives `main` a start page. | Softov, 2026-10-13: "Nothing (Recommended)" and "App-provided empty view (Recommended)" | 03 |
 
 ## Proposed architecture
 
