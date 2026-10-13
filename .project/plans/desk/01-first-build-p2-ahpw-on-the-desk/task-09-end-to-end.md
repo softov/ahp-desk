@@ -1,6 +1,6 @@
 ---
 title: ahpw works end to end from the desk, from both sources
-status: doing
+status: done
 depends: [task-01-ahpw-builds-on-windows.md, task-06-ahpw-connects-to-its-host.md, task-07-ahpw-skips-the-wall.md, task-08-ahpw-frame-and-title-bar.md]
 layer: "ahp-desk, ahpw"
 refs:
@@ -34,3 +34,5 @@ The desk opens ahpw on a URL host from the `local` source and, after a new `@ahp
 - Found: a second desk process cannot start while one runs with other WebView2 arguments, as they share one data folder. Single-instance belongs in p4.
 - Left: step 4, after `@ahpd/web` is published from `desk`.
 - 2026-10-13: the pin is `@ahpd/web` 0.3.0, and a release build on it opens a throwaway ahpd with a token and no wall (p7 task 09). Step 4 as written, `pnpm tauri dev` with `npm`, is not run yet.
+- 2026-10-13: step 4 passes. `pnpm tauri dev` with the `npm` source serves `node_modules/@ahpd/web/dist/app` (the page's script is the package's `index-DBKNxflN.js`) and opens the throwaway ahpd 0.7.0 with its token, connected, with no wall.
+- Found: every host shares ahpw's origin on the desk, so its kept tabs and layout cross hosts; fixed in [p8](../01-first-build-p8-host-scoped-storage/plan.md).

@@ -17,9 +17,10 @@ What exists today: [00-desk.md](desk/00-desk.md).
 | --- | --- | --- |
 | [01 - The first build of ahp-desk](desk/01-first-build/plan.md) | active | p1 |
 | [01 p1 - The shell, the host list and the app window](desk/01-first-build-p1-shell-and-url-hosts/plan.md) | built | - |
-| [01 p2 - ahpw on the desk](desk/01-first-build-p2-ahpw-on-the-desk/plan.md) | active | task 09 step 4, after `@ahpd/web` is published; ahpw branch `desk` |
+| [01 p2 - ahpw on the desk](desk/01-first-build-p2-ahpw-on-the-desk/plan.md) | built | - |
 | [01 p3 - The local ahpd](desk/01-first-build-p3-local-ahpd/plan.md) | draft | write the tasks |
 | [01 p4 - The tray, the updater and the releases](desk/01-first-build-p4-tray-and-releases/plan.md) | draft | write the tasks |
 | [01 p5 - ahpapp in a private build](desk/01-first-build-p5-ahpapp-on-the-desk/plan.md) | draft | name and release channel |
 | [01 p6 - The bot pill](desk/01-first-build-p6-bot-pill/plan.md) | draft | write the tasks |
 | [01 p7 - Desk polish before the first release](desk/01-first-build-p7-desk-polish/plan.md) | built | - |
+| [01 p8 - Each host keeps its own pages on the desk](desk/01-first-build-p8-host-scoped-storage/plan.md) | active | task 01; ahpw branch `desk` |

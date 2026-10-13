@@ -1,7 +1,7 @@
 ---
 title: ahpw on the desk
 domain: desk
-status: active
+status: built
 priority: high
 created: 2026-10-11
 revalidated: 2026-10-11
@@ -101,7 +101,7 @@ shell window status.ts -> invoke('publish_host_statuses') -> Rust keeps the map 
 | [06 - ahpw connects to the window's host](task-06-ahpw-connects-to-its-host.md) | done | 02 |
 | [07 - ahpw skips its sign-in wall on the desk](task-07-ahpw-skips-the-wall.md) | done | 02 |
 | [08 - ahpw's frame and title bar on the desk](task-08-ahpw-frame-and-title-bar.md) | done | 02, 04, 05 |
-| [09 - end to end from the desk](task-09-end-to-end.md) | doing | 01, 06, 07, 08, 10 |
+| [09 - end to end from the desk](task-09-end-to-end.md) | done | 01, 06, 07, 08, 10 |
 | [10 - ahpw takes its embedder from the desk](task-10-ahpw-takes-an-injected-embedder.md) | done | 08 |
 
 ## Risks and tradeoffs
@@ -112,14 +112,14 @@ shell window status.ts -> invoke('publish_host_statuses') -> Rust keeps the map 
 
 ## Resume state
 
-- **Done so far:** tasks 01 to 08 and 10, 2026-10-11; ahpw's changes are on its branch `desk`.
-- **Next action:** publish `@ahpd/web` from ahpw's `desk` branch, move ahp-desk's pin, and run task 09 step 4 with the `npm` source.
+- **Done so far:** every task; built 2026-10-13, see [implemented.md](implemented.md).
+- **Next action:** none.
 - **Open questions:** none.
 - **Watch out for:** `packages/ahpw-embedder`'s `link:` to `../../../ahpw` until `@ahpd/web` with `./embed` is on npm.
 
 ## Final verification checklist
 
-- [ ] ahpw in an app window connects to a URL host with a token, with `AHP_DESK_AHPW=local` and with `npm`.
+- [x] ahpw in an app window connects to a URL host with a token, with `AHP_DESK_AHPW=local` and with `npm`.
 - [x] The app window has no accent border, round corners when restored, square when maximized, and working minimize, maximize and close.
 - [x] ahpw in a browser through `ahpw serve` still works.
 - [x] `pnpm typecheck` and `pnpm test` pass in ahpw and in ahp-desk; `cargo clippy` and `cargo test` pass.

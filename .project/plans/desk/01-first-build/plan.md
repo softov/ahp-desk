@@ -130,12 +130,13 @@ shell starts -> hosts.json + OS keyring -> host list screen
 | Task | Status | Depends on |
 | --- | --- | --- |
 | [p1 - The shell, the host list and the app window](../01-first-build-p1-shell-and-url-hosts/plan.md) | built | - |
-| [p2 - ahpw on the desk](../01-first-build-p2-ahpw-on-the-desk/plan.md) | active | p1 |
+| [p2 - ahpw on the desk](../01-first-build-p2-ahpw-on-the-desk/plan.md) | built | p1 |
 | [p3 - The local ahpd](../01-first-build-p3-local-ahpd/plan.md) | draft | p1 |
 | [p4 - The tray, the updater and the releases](../01-first-build-p4-tray-and-releases/plan.md) | draft | p1 |
 | [p5 - ahpapp in a private build](../01-first-build-p5-ahpapp-on-the-desk/plan.md) | draft | p1, p2 |
 | [p6 - The bot pill](../01-first-build-p6-bot-pill/plan.md) | draft | p1, p4 |
-| [p7 - Desk polish before the first release](../01-first-build-p7-desk-polish/plan.md) | active | p2 |
+| [p7 - Desk polish before the first release](../01-first-build-p7-desk-polish/plan.md) | built | p2 |
+| [p8 - Each host keeps its own pages on the desk](../01-first-build-p8-host-scoped-storage/plan.md) | active | p2 |
 
 ## Risks and tradeoffs
 
