@@ -1,6 +1,6 @@
 ---
 title: "@ahpd/web 0.3.1 is released and the desk takes it from npm"
-status: todo
+status: doing
 depends: [task-01-ahpw-host-keys.md, task-02-desk-host-url.md]
 layer: "ahpw, ahp-desk"
 refs:
@@ -28,3 +28,5 @@ refs:
 - `npm view @ahpd/web version` is 0.3.1; the desk's checks pass on it.
 
 ## Resume
+
+- 2026-10-13: scena 0.5.5 released (npm latest, GitHub Release). ahpw `desk` 1cbfc4d on scena ^0.5.5, PR #3 to `main` open for Softov to merge, tag `v0.3.1` pushed; `@ahpd/web@0.3.1` staged on npm for Softov to approve; GitHub Release v0.3.1. Left: step 3, the desk pins, after the approval.

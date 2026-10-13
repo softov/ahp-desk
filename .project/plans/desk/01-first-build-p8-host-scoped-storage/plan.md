@@ -75,7 +75,7 @@ app_window.rs open_app_window -> page ?host=<address> -> embedder hostUrl -> ahp
 | --- | --- | --- |
 | [01 - ahpw keys a host's pages by its address](task-01-ahpw-host-keys.md) | done | - |
 | [02 - the desk gives the window's host address](task-02-desk-host-url.md) | done | 01 |
-| [03 - release @ahpd/web 0.3.1 and move the pins](task-03-release.md) | todo | 01, 02 |
+| [03 - release @ahpd/web 0.3.1 and move the pins](task-03-release.md) | doing | 01, 02 |
 | [04 - end to end](task-04-end-to-end.md) | todo | 03 |
 
 ## Risks and tradeoffs
@@ -85,7 +85,7 @@ app_window.rs open_app_window -> page ?host=<address> -> embedder hostUrl -> ahp
 ## Resume state
 
 - **Done so far:** the plan, tasks 01 and 02, 2026-10-13.
-- **Next action:** [task-03-release.md](task-03-release.md), after Softov says to push ahpw's `desk` and open the PR.
+- **Next action:** [task-03-release.md](task-03-release.md) step 3: move both desk pins once Softov approves `@ahpd/web@0.3.1` on npm.
 - **Open questions:** none.
 - **Watch out for:** ahpw's changes go on its branch `desk`, then a PR to `main` that Softov merges; the npm release is approved by Softov.
 
