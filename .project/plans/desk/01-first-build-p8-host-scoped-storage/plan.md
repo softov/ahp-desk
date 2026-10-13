@@ -1,7 +1,7 @@
 ---
 title: Each host keeps its own pages on the desk
 domain: desk
-status: active
+status: built
 priority: high
 created: 2026-10-13
 revalidated: 2026-10-13
@@ -76,7 +76,7 @@ app_window.rs open_app_window -> page ?host=<address> -> embedder hostUrl -> ahp
 | [01 - ahpw keys a host's pages by its address](task-01-ahpw-host-keys.md) | done | - |
 | [02 - the desk gives the window's host address](task-02-desk-host-url.md) | done | 01 |
 | [03 - release @ahpd/web 0.3.1 and move the pins](task-03-release.md) | done | 01, 02 |
-| [04 - end to end](task-04-end-to-end.md) | todo | 03 |
+| [04 - end to end](task-04-end-to-end.md) | done | 03 |
 
 ## Risks and tradeoffs
 
@@ -84,14 +84,14 @@ app_window.rs open_app_window -> page ?host=<address> -> embedder hostUrl -> ahp
 
 ## Resume state
 
-- **Done so far:** the plan, tasks 01 to 03, 2026-10-13.
-- **Next action:** [task-04-end-to-end.md](task-04-end-to-end.md), on a release build of the npm pins.
+- **Done so far:** every task; built 2026-10-13, see [implemented.md](implemented.md).
+- **Next action:** none.
 - **Open questions:** none.
 - **Watch out for:** ahpw's changes go on its branch `desk`, then a PR to `main` that Softov merges; the npm release is approved by Softov.
 
 ## Final verification checklist
 
-- [ ] Two hosts on the desk each open on their own tabs and layout; the theme is the same on both.
-- [ ] ahpw in a browser keeps its keys unchanged.
-- [ ] `pnpm typecheck`, `pnpm test`, `pnpm lint` pass in ahp-desk; `pnpm typecheck` and `pnpm test` in ahpw.
-- [ ] `plans/index.md` updated.
+- [x] Two hosts on the desk each open on their own tabs and layout; the theme is the same on both.
+- [x] ahpw in a browser keeps its keys unchanged.
+- [x] `pnpm typecheck`, `pnpm test`, `pnpm lint` pass in ahp-desk; `pnpm typecheck` and `pnpm test` in ahpw.
+- [x] `plans/index.md` updated.

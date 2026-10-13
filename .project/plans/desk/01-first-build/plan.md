@@ -137,7 +137,7 @@ shell starts -> hosts.json + OS keyring -> host list screen
 | [p5 - ahpapp in a private build](../01-first-build-p5-ahpapp-on-the-desk/plan.md) | draft | p1, p2 |
 | [p6 - The bot pill](../01-first-build-p6-bot-pill/plan.md) | draft | p1, p4 |
 | [p7 - Desk polish before the first release](../01-first-build-p7-desk-polish/plan.md) | built | p2 |
-| [p8 - Each host keeps its own pages on the desk](../01-first-build-p8-host-scoped-storage/plan.md) | active | p2 |
+| [p8 - Each host keeps its own pages on the desk](../01-first-build-p8-host-scoped-storage/plan.md) | built | p2 |
 | [p9 - The desk says what can be updated, and updates it](../01-first-build-p9-update-alerts/plan.md) | draft | p3, p4 |
 | [p10 - Install ahpd on a Linux server over SSH](../01-first-build-p10-ssh-install/plan.md) | draft | p3 |
 

@@ -1,6 +1,6 @@
 ---
 title: Two hosts on the desk keep their own pages
-status: todo
+status: done
 depends: [task-03-release.md]
 layer: "ahp-desk, ahpw"
 ---
@@ -23,3 +23,5 @@ A release build on 0.3.1 shows each host its own tabs and layout, with one theme
 - Every item of the plan's checklist.
 
 ## Resume
+
+- Done 2026-10-13 on a release build of `@ahpd/web` 0.3.1 from npm; see [implemented.md](implemented.md).
