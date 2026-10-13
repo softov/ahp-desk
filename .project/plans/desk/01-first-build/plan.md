@@ -151,7 +151,7 @@ shell starts -> hosts.json + OS keyring -> host list screen
 ## Resume state
 
 - **Done so far:** decisions and plans written; p1 tasks 01, 02, 03, 05 and 06 done, 2026-10-11. A custom scheme does count as a local origin for IPC on Windows (p1 task 05).
-- **Next action:** [p3 task 02](../01-first-build-p3-local-ahpd/task-02-find-ahpd.md); then the task files of p4 to p6.
+- **Next action:** [p3 task 03](../01-first-build-p3-local-ahpd/task-03-install-ahpd.md); then the task files of p4 to p6.
 - **Open questions:** the open questions of each child plan are in its own *Resume state*.
 - **Watch out for:** the child plans p2 to p6 are `draft`; write their task files before their first task starts.
 

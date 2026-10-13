@@ -10,11 +10,27 @@ export interface Host {
   kind: 'url' | 'local';
   /** The host's WebSocket address, as `ws://127.0.0.1:9187`. */
   url: string;
+  /** The ahpd a `local` host uses, when one is set instead of the one found. */
+  ahpdPath?: string;
 }
 
 /** A host as the host list sees it: with the flag for a token kept in the plain file. */
 export interface ShellHost extends Host {
   tokenInFile?: boolean;
+}
+
+/** An ahpd on this computer, and where it was found: the path set on the host, the desk's own install, or `PATH`. */
+export interface FoundAhpd {
+  path: string;
+  origin: 'set' | 'installed' | 'path';
+  version: string;
+  /** False for an ahpd older than the oldest the desk drives. */
+  supported: boolean;
+}
+
+/** The ahpd the desk would use for a `local` host, or null when there is none. */
+export function findLocalAhpd(ahpdPath: string | null): Promise<FoundAhpd | null> {
+  return invoke<FoundAhpd | null>('find_local_ahpd', { ahpdPath });
 }
 
 /** A host's state, as the host list publishes it to the app windows. */

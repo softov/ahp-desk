@@ -1,6 +1,7 @@
 mod app_window;
 mod frame;
 mod hosts;
+mod local_ahpd;
 mod statuses;
 mod tokens;
 mod ui_source;
@@ -9,6 +10,7 @@ use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 use crate::app_window::AppWindows;
 use crate::hosts::HostStore;
+use crate::local_ahpd::LocalAhpd;
 use crate::statuses::HostStatuses;
 use crate::tokens::Keyring;
 
@@ -33,6 +35,7 @@ pub fn run() {
             app.manage(HostStore::load(config.join("hosts.json"), Box::new(Keyring))?);
             app.manage(AppWindows::default());
             app.manage(HostStatuses::default());
+            app.manage(LocalAhpd::new(app.handle())?);
             app.manage(ui_source::resolve(app.handle())?);
             // Frameless and rounded, as an app window (decision: the app window
             // draws its own rounded frame); the host list draws its title bar.
@@ -66,6 +69,7 @@ pub fn run() {
             hosts::save_host,
             hosts::remove_host,
             hosts::host_token,
+            local_ahpd::find_local_ahpd,
             app_window::open_app_window,
             app_window::window_host,
             app_window::show_host_list,

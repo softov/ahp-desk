@@ -84,7 +84,7 @@ quit -> stop setting on -> ahpd stop
 | Task | Status | Depends on |
 | --- | --- | --- |
 | [01 - check ahpd start, stop and status against the needs of the shell](task-01-check-ahpd-commands.md) | done | - |
-| [02 - find ahpd on PATH or at a set path](task-02-find-ahpd.md) | todo | 01 |
+| [02 - find ahpd on PATH or at a set path](task-02-find-ahpd.md) | done | 01 |
 | [03 - ship Node and install ahpd with the chosen backends](task-03-install-ahpd.md) | todo | 01 |
 | [04 - start, find and stop through ahpd's own commands](task-04-start-find-stop.md) | todo | 02 |
 | [05 - the start and quit settings](task-05-start-quit-settings.md) | todo | 04 |
@@ -99,9 +99,9 @@ quit -> stop setting on -> ahpd stop
 
 ## Resume state
 
-- **Done so far:** the task files, and task 01, 2026-10-13, on `@ahpd/server` 0.11.0.
-- **Next action:** task 02.
-- **Open questions:** none for the desk; a graceful `ahpd stop` on Windows is an ahpd change, taken up in ahpd's own session.
+- **Done so far:** the task files; task 01 on `@ahpd/server` 0.11.0; task 02, `local_ahpd::find()`; 2026-10-13.
+- **Next action:** task 03.
+- **Open questions:** what Add host does with an ahpd on `PATH` older than 0.8.0, before task 06; a graceful `ahpd stop` on Windows is an ahpd change, taken up in ahpd's own session.
 - **Watch out for:** an ahpd that the shell found and did not start is never stopped by the shell.
 
 ## Final verification checklist

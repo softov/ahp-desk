@@ -30,6 +30,9 @@ pub struct Host {
     pub name: String,
     pub kind: HostKind,
     pub url: String,
+    /// The ahpd a `local` host uses, when one is set instead of the one found.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ahpd_path: Option<String>,
     /// The token, only when the keyring could not keep it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
@@ -43,6 +46,9 @@ pub struct HostInput {
     pub name: String,
     pub kind: HostKind,
     pub url: String,
+    /// The ahpd a `local` host uses, when one is set instead of the one found.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ahpd_path: Option<String>,
 }
 
 /// A host as a window sees it: never the token, only whether it sits in the plain file.
@@ -53,6 +59,9 @@ pub struct HostView {
     pub name: String,
     pub kind: HostKind,
     pub url: String,
+    /// The ahpd a `local` host uses, when one is set instead of the one found.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ahpd_path: Option<String>,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub token_in_file: bool,
 }
@@ -64,6 +73,7 @@ impl From<&Host> for HostView {
             name: host.name.clone(),
             kind: host.kind,
             url: host.url.clone(),
+            ahpd_path: host.ahpd_path.clone(),
             token_in_file: host.token.is_some(),
         }
     }
@@ -128,6 +138,7 @@ impl HostStore {
             name: input.name,
             kind: input.kind,
             url: input.url,
+            ahpd_path: input.ahpd_path,
         };
         if let Some(token) = token {
             tokens::set(self.vault.as_ref(), &mut host, &token);
@@ -258,6 +269,7 @@ mod tests {
             name: name.into(),
             kind: HostKind::Url,
             url: "ws://127.0.0.1:9187".into(),
+            ahpd_path: None,
         }
     }
 
@@ -344,6 +356,7 @@ mod tests {
             name: "Home".into(),
             kind: HostKind::Url,
             url: "ws://h".into(),
+            ahpd_path: None,
             token: Some("from-file".into()),
         };
         assert_eq!(tokens::get(&vault, &host).as_deref(), Some("from-vault"));
