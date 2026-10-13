@@ -1,6 +1,6 @@
 ---
 title: The first run, for a desk with no host
-status: todo
+status: done
 depends: [task-05-languages.md]
 layer: "packages/shell"
 ---
@@ -13,7 +13,8 @@ With no host, the host list opens on a welcome, the choice of where the host is,
 
 - `CREATE: packages/shell/src/FirstRun.tsx` - the steps.
 - `UPDATE: packages/shell/src/App.tsx` - the first run when the list is empty.
-- `UPDATE: packages/shell/src/hosts/HostForm.tsx` - reused in the first run, with Open after a saved host.
+- `UPDATE: packages/shell/src/hosts/HostForm.tsx` - reused in the first run, with Back and "Save and open".
+- `UPDATE: packages/shell/src/hosts/HostList.tsx` - the empty state goes; with no host the desk is on the first run.
 
 ## Steps
 
@@ -27,4 +28,5 @@ With no host, the host list opens on a welcome, the choice of where the host is,
 
 ## Resume
 
-- Not started.
+- Done 2026-10-13. The first run holds until the new host opens, so the list arriving after the save does not cut it short; a failed open stays on it with Retry and "Host list". Removing the last host starts it again.
+- Checked in task 09 in each language.

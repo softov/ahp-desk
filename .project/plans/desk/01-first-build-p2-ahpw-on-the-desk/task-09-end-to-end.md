@@ -33,3 +33,4 @@ The desk opens ahpw on a URL host from the `local` source and, after a new `@ahp
 - Found and fixed in ahpw: the host's default folder read `/C:/Users/...` on Windows (`folderLabel`, commit `7fd0c0a`).
 - Found: a second desk process cannot start while one runs with other WebView2 arguments, as they share one data folder. Single-instance belongs in p4.
 - Left: step 4, after `@ahpd/web` is published from `desk`.
+- 2026-10-13: the pin is `@ahpd/web` 0.3.0, and a release build on it opens a throwaway ahpd with a token and no wall (p7 task 09). Step 4 as written, `pnpm tauri dev` with `npm`, is not run yet.

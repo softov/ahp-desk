@@ -1,7 +1,7 @@
 ---
 title: Desk polish before the first release
 domain: desk
-status: active
+status: built
 priority: high
 created: 2026-10-11
 revalidated: 2026-10-11
@@ -91,10 +91,10 @@ ahpw HostSwitcher -> embedder.switchHost | (new) embedder.manageHosts({ add }) -
 | [03 - the desk's icon in ahpw's mark](task-03-icon.md) | done | - |
 | [04 - the footer](task-04-footer.md) | done | 02 |
 | [05 - three languages](task-05-languages.md) | done | 02 |
-| [06 - the first run](task-06-first-run.md) | todo | 05 |
+| [06 - the first run](task-06-first-run.md) | done | 05 |
 | [07 - Open hides the host list](task-07-open-hides.md) | done | - |
 | [08 - ahpw's switcher manages hosts](task-08-switcher-manages-hosts.md) | done | 07 |
-| [09 - end to end](task-09-end-to-end.md) | todo | 01 to 08 |
+| [09 - end to end](task-09-end-to-end.md) | done | 01 to 08 |
 
 ## Risks and tradeoffs
 
@@ -103,16 +103,16 @@ ahpw HostSwitcher -> embedder.switchHost | (new) embedder.manageHosts({ add }) -
 
 ## Resume state
 
-- **Done so far:** the plan, tasks 01, 02, 04, 07 and 08, 2026-10-11.
-- **Next action:** task 03, the icon.
+- **Done so far:** every task; built 2026-10-13, see [implemented.md](implemented.md).
+- **Next action:** none.
 - **Open questions:** none.
 - **Watch out for:** ahpw's changes go on its branch `desk`, merged with `main` first.
 
 ## Final verification checklist
 
-- [ ] The host list and an ahpw window side by side share background, text, borders, buttons, hovers and dots, dark and light.
-- [ ] The host list window has no OS border, round corners, and working minimize, maximize and close.
-- [ ] The first run, in each language, ends in an open host.
-- [ ] Open hides the host list; "Manage hosts" and "+ Add host" bring it back.
-- [ ] `pnpm typecheck`, `pnpm test`, `pnpm lint` pass in ahp-desk; `pnpm typecheck` and `pnpm test` in ahpw.
-- [ ] `plans/index.md` updated.
+- [x] The host list and an ahpw window side by side share background, text, borders, buttons, hovers and dots, dark and light.
+- [x] The host list window has no OS border, round corners, and working minimize, maximize and close.
+- [x] The first run, in each language, ends in an open host.
+- [x] Open hides the host list; "Manage hosts" and "+ Add host" bring it back.
+- [x] `pnpm typecheck`, `pnpm test`, `pnpm lint` pass in ahp-desk; `pnpm typecheck` and `pnpm test` in ahpw.
+- [x] `plans/index.md` updated.

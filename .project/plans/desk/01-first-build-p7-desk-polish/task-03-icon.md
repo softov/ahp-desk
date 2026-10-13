@@ -25,4 +25,4 @@ The desk's icon is ahpw's mark in ahpw's colours.
 
 ## Resume
 
-- Done 2026-10-13. `icon.svg` is ahpw's `public/ahpw.svg` at 1024 px; `pnpm tauri icon` regenerated the set, and its Android and iOS output was removed as in p1 task 01. The taskbar is checked in task 09.
+- Done 2026-10-13. `icon.svg` is ahpw's `public/ahpw.svg` at 1024 px; `pnpm tauri icon` regenerated the set, and its Android and iOS output was removed as in p1 task 01. The exe and, with `installerIcon`, the installer carry the mark (task 09).
