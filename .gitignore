@@ -9,6 +9,10 @@ dist
 # The UI bundle scripts/stage-ui.mjs copies in before a release build.
 /src-tauri/resources/ui
 
+# The Node runtime scripts/stage-node.mjs fetches, and its download cache.
+/src-tauri/resources/node
+/.cache
+
 # Tauri updater signing keys. The public key lives in tauri.conf.json.
 *.key
 *.key.pub

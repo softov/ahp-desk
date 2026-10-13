@@ -70,6 +70,7 @@ pub fn run() {
             hosts::remove_host,
             hosts::host_token,
             local_ahpd::find_local_ahpd,
+            local_ahpd::install_local_ahpd,
             app_window::open_app_window,
             app_window::window_host,
             app_window::show_host_list,

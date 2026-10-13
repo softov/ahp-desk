@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "dev.softov.ahpdesk",
   "build": {
-    "beforeDevCommand": "pnpm build:client && pnpm --filter @ahp-desk/shell dev",
+    "beforeDevCommand": "pnpm stage:all && pnpm --filter @ahp-desk/shell dev",
     "devUrl": "http://127.0.0.1:5175",
-    "beforeBuildCommand": "pnpm stage:ui && pnpm build:client && pnpm --filter @ahp-desk/shell build",
+    "beforeBuildCommand": "pnpm stage:all && pnpm --filter @ahp-desk/shell build",
     "frontendDist": "../packages/shell/dist"
   },
   "app": {
@@ -19,7 +19,8 @@
     "active": true,
     "targets": ["nsis", "appimage", "deb"],
     "resources": {
-      "resources/ui/": "ui/"
+      "resources/ui/": "ui/",
+      "resources/node/": "node/"
     },
     "icon": [
       "icons/32x32.png",

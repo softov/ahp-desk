@@ -96,7 +96,7 @@ These task files are written when this plan moves to `planned`.
 
 ## Risks and tradeoffs
 
-- The end to end needs a Linux server that can be thrown away; a container with sshd and systemd, or a VM, never a real host.
+- The end to end runs on dev02, which Softov offered for it on 2026-10-13; never on dev01 or another host in use.
 - A tunnelled host is down whenever the desk is closed; the form says so.
 
 ## Resume state

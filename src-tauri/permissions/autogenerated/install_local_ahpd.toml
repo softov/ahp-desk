@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-install-local-ahpd"
+description = "Enables the install_local_ahpd command without any pre-configured scope."
+commands.allow = ["install_local_ahpd"]
+
+[[permission]]
+identifier = "deny-install-local-ahpd"
+description = "Denies the install_local_ahpd command without any pre-configured scope."
+commands.deny = ["install_local_ahpd"]

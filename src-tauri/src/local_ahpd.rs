@@ -3,26 +3,32 @@
 //! with the bundled Node).
 
 use std::ffi::OsString;
+use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
+use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
+use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager, State};
 
 /// The oldest ahpd the desk drives: `status --json` came in 0.8.0.
 pub const OLDEST_SUPPORTED: (u64, u64, u64) = (0, 8, 0);
 
-/// How to run one ahpd: a program, and what goes before ahpd's own arguments.
+/// How to run one ahpd: a program, what goes before ahpd's own arguments, and
+/// the environment it needs on top of the desk's.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Launcher {
     pub program: PathBuf,
     pub before: Vec<OsString>,
+    pub env: Vec<(OsString, OsString)>,
 }
 
 impl Launcher {
     pub fn command(&self) -> Command {
         let mut command = Command::new(&self.program);
         command.args(&self.before);
+        command.envs(self.env.iter().map(|(key, value)| (key, value)));
         #[cfg(windows)]
         {
             use std::os::windows::process::CommandExt;
@@ -58,12 +64,52 @@ impl Found {
     }
 }
 
+/// The Node runtime the installer ships, as `scripts/stage-node.mjs` lays it out.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BundledNode {
+    pub node: PathBuf,
+    pub npm_cli: PathBuf,
+}
+
+impl BundledNode {
+    /// The runtime in `dir`, the `node/` resource; none when it is not there.
+    pub fn in_dir(dir: &Path) -> Option<Self> {
+        let (node, npm_cli) = if cfg!(windows) {
+            (
+                dir.join("node.exe"),
+                dir.join("node_modules/npm/bin/npm-cli.js"),
+            )
+        } else {
+            (
+                dir.join("bin/node"),
+                dir.join("lib/node_modules/npm/bin/npm-cli.js"),
+            )
+        };
+        (node.is_file() && npm_cli.is_file()).then_some(BundledNode { node, npm_cli })
+    }
+
+    /// `PATH` with this Node's folder first, so the `node` that npm and ahpd
+    /// start is this one.
+    fn path_var(&self) -> OsString {
+        let folder = self
+            .node
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_default();
+        let rest = std::env::var_os("PATH").unwrap_or_default();
+        std::env::join_paths(std::iter::once(folder).chain(std::env::split_paths(&rest)))
+            .unwrap_or(rest)
+    }
+}
+
 /// Where the desk installs ahpd, and the Node that runs it.
 pub struct LocalAhpd {
     /// The npm prefix, `<app local data>/ahpd`.
     pub prefix: PathBuf,
     /// The Node the installer ships; none in a build without it.
-    pub node: Option<PathBuf>,
+    pub node: Option<BundledNode>,
+    /// Held while an install runs, so two never write the prefix at once.
+    installing: Mutex<()>,
 }
 
 impl LocalAhpd {
@@ -73,19 +119,119 @@ impl LocalAhpd {
             .app_local_data_dir()
             .map_err(|err| err.to_string())?
             .join("ahpd");
-        Ok(LocalAhpd { prefix, node: None })
+        let node = app
+            .path()
+            .resource_dir()
+            .ok()
+            .and_then(|dir| BundledNode::in_dir(&dir.join("node")));
+        Ok(LocalAhpd::at(prefix, node))
+    }
+
+    pub fn at(prefix: PathBuf, node: Option<BundledNode>) -> Self {
+        LocalAhpd {
+            prefix,
+            node,
+            installing: Mutex::new(()),
+        }
     }
 
     /// The ahpd the desk installed, run by its Node rather than npm's shim,
-    /// which would look for a `node` on `PATH`.
+    /// which would look for a `node` on `PATH`. Its backends are under the
+    /// prefix, and its config folder is the usual one (decision 7).
     pub fn installed(&self) -> Option<Launcher> {
         let node = self.node.as_ref()?;
         let script = installed_script(&self.prefix)?;
         Some(Launcher {
-            program: node.clone(),
+            program: node.node.clone(),
             before: vec![script.into_os_string()],
+            env: vec![
+                (
+                    "AHPD_PLUGIN_ROOT".into(),
+                    self.prefix.clone().into_os_string(),
+                ),
+                ("PATH".into(), node.path_var()),
+            ],
         })
     }
+
+    /// Installs `@ahpd/server` into the prefix with the bundled npm, sending
+    /// each line npm writes to `line`.
+    pub fn install(
+        &self,
+        line: impl Fn(String) + Send + Sync + Clone + 'static,
+    ) -> Result<(), String> {
+        let node = self
+            .node
+            .as_ref()
+            .ok_or("this build of the desk has no Node to install ahpd with")?;
+        let _held = self
+            .installing
+            .try_lock()
+            .map_err(|_| "ahpd is already being installed".to_string())?;
+        std::fs::create_dir_all(&self.prefix)
+            .map_err(|err| format!("cannot make {}: {err}", self.prefix.display()))?;
+        let npm = Launcher {
+            program: node.node.clone(),
+            before: vec![node.npm_cli.clone().into_os_string()],
+            env: vec![
+                ("PATH".into(), node.path_var()),
+                ("npm_config_update_notifier".into(), "false".into()),
+                ("npm_config_fund".into(), "false".into()),
+                ("npm_config_audit".into(), "false".into()),
+            ],
+        };
+        let mut command = npm.command();
+        command
+            .arg("install")
+            .arg("--prefix")
+            .arg(&self.prefix)
+            .arg("@ahpd/server@latest");
+        run_streaming(command, line)
+    }
+}
+
+/// Runs `command`, sending each line of its stdout and stderr as it comes,
+/// and fails with its last lines when it exits non-zero.
+fn run_streaming(
+    mut command: Command,
+    line: impl Fn(String) + Send + Sync + Clone + 'static,
+) -> Result<(), String> {
+    let program = command.get_program().to_string_lossy().into_owned();
+    let mut child = command
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|err| format!("cannot run {program}: {err}"))?;
+    let last = Arc::new(Mutex::new(Vec::<String>::new()));
+    let pump = |pipe: Box<dyn Read + Send>| {
+        let (line, last) = (line.clone(), last.clone());
+        std::thread::spawn(move || {
+            for text in BufReader::new(pipe).lines().map_while(Result::ok) {
+                let mut kept = last.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+                kept.push(text.clone());
+                if kept.len() > 20 {
+                    kept.remove(0);
+                }
+                drop(kept);
+                line(text);
+            }
+        })
+    };
+    let readers = [
+        pump(Box::new(child.stdout.take().expect("stdout is piped"))),
+        pump(Box::new(child.stderr.take().expect("stderr is piped"))),
+    ];
+    let status = child.wait().map_err(|err| err.to_string())?;
+    for reader in readers {
+        // A reader that panicked has already sent what it read.
+        let _ = reader.join();
+    }
+    if status.success() {
+        return Ok(());
+    }
+    let kept = last.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    Err(format!("npm exited with {status}:\n{}", kept.join("\n")))
 }
 
 /// `<prefix>/node_modules/@ahpd/server`'s `bin.ahpd`, when it is installed there.
@@ -98,7 +244,11 @@ pub fn installed_script(prefix: &Path) -> Option<PathBuf> {
         serde_json::Value::Object(bins) => bins.get("ahpd")?.as_str()?,
         _ => return None,
     };
-    let script = package.join(bin);
+    // `./dist/main.js` as `dist\main.js`, so the path the shell shows is plain.
+    let script = Path::new(bin)
+        .components()
+        .filter(|part| *part != std::path::Component::CurDir)
+        .fold(package, |path, part| path.join(part));
     script.is_file().then_some(script)
 }
 
@@ -146,6 +296,7 @@ fn plain(program: &Path) -> Launcher {
     Launcher {
         program: program.to_path_buf(),
         before: Vec::new(),
+        env: Vec::new(),
     }
 }
 
@@ -223,6 +374,35 @@ pub async fn find_local_ahpd(
     .map_err(|err| err.to_string())?
 }
 
+/// One step of an install, as the shell shows it.
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "lowercase")]
+pub enum InstallEvent {
+    /// A line npm wrote.
+    Line { text: String },
+}
+
+/// Installs ahpd with the bundled Node, then answers the ahpd the desk now uses.
+#[tauri::command]
+pub async fn install_local_ahpd(
+    app: AppHandle,
+    events: Channel<InstallEvent>,
+) -> Result<Option<FoundView>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let local = app.state::<LocalAhpd>();
+        local.install(move |text| {
+            // A shell that went away mid-install does not stop npm.
+            let _ = events.send(InstallEvent::Line { text });
+        })?;
+        let installed = local
+            .installed()
+            .ok_or("npm finished, but @ahpd/server is not in the prefix")?;
+        find(None, Some(installed), None, version).map(|found| found.as_ref().map(FoundView::from))
+    })
+    .await
+    .map_err(|err| err.to_string())?
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -265,6 +445,7 @@ mod tests {
         Launcher {
             program: at.join("node"),
             before: vec![at.join("main.js").into_os_string()],
+            env: Vec::new(),
         }
     }
 
@@ -384,10 +565,7 @@ mod tests {
         );
         assert_eq!(installed_script(&scratch.0), None, "no script yet");
         let script = scratch.file("node_modules/@ahpd/server/dist/main.js", "");
-        assert_eq!(
-            installed_script(&scratch.0).map(|path| path.canonicalize().unwrap()),
-            Some(script.canonicalize().unwrap())
-        );
+        assert_eq!(installed_script(&scratch.0), Some(script));
     }
 
     #[test]
@@ -398,16 +576,84 @@ mod tests {
             r#"{"bin":"./main.js"}"#,
         );
         scratch.file("node_modules/@ahpd/server/main.js", "");
-        let local = LocalAhpd {
-            prefix: scratch.0.clone(),
-            node: None,
-        };
+        let local = LocalAhpd::at(scratch.0.clone(), None);
         assert_eq!(local.installed(), None);
-        let local = LocalAhpd {
-            prefix: scratch.0.clone(),
-            node: Some(scratch.0.join("node")),
+        let node = BundledNode {
+            node: scratch.0.join("node"),
+            npm_cli: scratch.0.join("npm-cli.js"),
         };
-        assert_eq!(local.installed().unwrap().program, scratch.0.join("node"));
+        let local = LocalAhpd::at(scratch.0.clone(), Some(node));
+        let launcher = local.installed().unwrap();
+        assert_eq!(launcher.program, scratch.0.join("node"));
+        let root = (
+            "AHPD_PLUGIN_ROOT".into(),
+            scratch.0.clone().into_os_string(),
+        );
+        assert!(launcher.env.contains(&root));
+    }
+
+    #[test]
+    fn local_ahpd_the_bundled_node_needs_node_and_npm() {
+        let scratch = Scratch::new();
+        let (node, npm) = if cfg!(windows) {
+            ("node.exe", "node_modules/npm/bin/npm-cli.js")
+        } else {
+            ("bin/node", "lib/node_modules/npm/bin/npm-cli.js")
+        };
+        scratch.file(node, "");
+        assert_eq!(BundledNode::in_dir(&scratch.0), None, "no npm yet");
+        scratch.file(npm, "");
+        let bundled = BundledNode::in_dir(&scratch.0).unwrap();
+        assert_eq!(bundled.node, scratch.0.join(node));
+        let first = std::env::split_paths(&bundled.path_var()).next().unwrap();
+        assert_eq!(first, bundled.node.parent().unwrap());
+    }
+
+    #[test]
+    fn local_ahpd_an_install_with_no_node_says_so() {
+        let local = LocalAhpd::at(std::env::temp_dir().join("never-made"), None);
+        let error = local.install(|_| {}).unwrap_err();
+        assert!(error.contains("no Node"), "{error}");
+    }
+
+    #[test]
+    fn local_ahpd_a_failed_command_answers_its_last_lines() {
+        let command = if cfg!(windows) {
+            let mut command = Command::new("cmd");
+            command.args(["/C", "echo one && echo two 1>&2 && exit 3"]);
+            command
+        } else {
+            let mut command = Command::new("sh");
+            command.args(["-c", "echo one; echo two 1>&2; exit 3"]);
+            command
+        };
+        let heard = Arc::new(Mutex::new(Vec::new()));
+        let sink = heard.clone();
+        let error = run_streaming(command, move |text| {
+            sink.lock().unwrap().push(text.trim().to_string())
+        })
+        .unwrap_err();
+        let mut heard = heard.lock().unwrap().clone();
+        heard.sort();
+        assert_eq!(heard, ["one", "two"]);
+        assert!(error.contains("one") && error.contains("two"), "{error}");
+    }
+
+    /// A real install from npm, with the Node `pnpm stage:node` put in
+    /// `resources/node`, into a scratch prefix.
+    #[test]
+    #[ignore = "needs the network and a staged Node"]
+    fn local_ahpd_a_real_install() {
+        let scratch = Scratch::new();
+        let resources = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/node");
+        let local = LocalAhpd::at(scratch.0.join("ahpd"), BundledNode::in_dir(&resources));
+        local.install(|text| println!("npm: {text}")).unwrap();
+        let found = find(None, local.installed(), None, version)
+            .unwrap()
+            .unwrap();
+        println!("{found:?}");
+        assert_eq!(found.origin, Origin::Installed);
+        assert!(found.supported());
     }
 
     /// Runs the real `ahpd --version` of the first ahpd on this machine's `PATH`.

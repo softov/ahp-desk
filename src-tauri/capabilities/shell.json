@@ -16,6 +16,8 @@
     "allow-open-app-window",
     "allow-publish-host-statuses",
     "allow-host-statuses",
+    "allow-find-local-ahpd",
+    "allow-install-local-ahpd",
     {
       "identifier": "opener:allow-open-url",
       "allow": [{ "url": "https://ahpio.com" }]
