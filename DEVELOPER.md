@@ -86,6 +86,7 @@ ahpw comes from the published `@ahpd/web` by default, or from an ahpw checkout:
 | --- | --- | --- |
 | `AHP_DESK_AHPW` | `npm` (default), `local` | `npm` serves `node_modules/@ahpd/web/dist/app`. `local` loads ahpw's dev server at `http://127.0.0.1:5180` in `pnpm tauri dev`, and stages the checkout's `dist/app` for `pnpm tauri build`. |
 | `AHP_DESK_AHPW_DIR` | a path | The ahpw checkout for `local`. Default `../ahpw`. |
+| `AHP_DESK_CONFIG_DIR` | a path | Read when the desk runs, not when it builds: the folder of `hosts.json`, in place of the app config folder. A test runs on its own host list with it. |
 
 To work on ahpw inside the desk, run its dev server in the ahpw checkout, then the desk:
 

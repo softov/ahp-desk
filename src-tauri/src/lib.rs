@@ -24,7 +24,12 @@ pub fn run() {
             ui_source::handle(source, ctx, request, responder);
         })
         .setup(|app| {
-            let config = app.path().app_config_dir()?;
+            // AHP_DESK_CONFIG_DIR runs the desk on another host list, as a test
+            // does, so it never reads or writes the user's own hosts.
+            let config = match std::env::var_os("AHP_DESK_CONFIG_DIR") {
+                Some(dir) => std::path::PathBuf::from(dir),
+                None => app.path().app_config_dir()?,
+            };
             app.manage(HostStore::load(config.join("hosts.json"), Box::new(Keyring))?);
             app.manage(AppWindows::default());
             app.manage(HostStatuses::default());

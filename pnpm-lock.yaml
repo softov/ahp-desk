@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@ahpd/web':
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: 0.3.0
+        version: 0.3.0
       '@tauri-apps/cli':
         specifier: ^2.11.2
         version: 2.12.1
@@ -73,8 +73,8 @@ importers:
 
 packages:
 
-  '@ahpd/web@0.2.0':
-    resolution: {integrity: sha512-v/r1lRX0JCqIhaUxS91KrMj6Z66XofGvjFh4ODxFysjtX6Dw7M08C7pNycdMg9/uw0tLMz3LJHzvsJmV07/S0w==}
+  '@ahpd/web@0.3.0':
+    resolution: {integrity: sha512-B4GcAPm2lB5fX5vo9KkT05gN5HrSl7I6SJs3Kz+n7RywL2R3wQVPjsNuj8p3njkURc8BGGyI9NOa8XKPg+xPXQ==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
@@ -641,7 +641,7 @@ packages:
 
 snapshots:
 
-  '@ahpd/web@0.2.0':
+  '@ahpd/web@0.3.0':
     dependencies:
       '@cofold/commands': 0.3.0
       '@cofold/config': 0.3.1
