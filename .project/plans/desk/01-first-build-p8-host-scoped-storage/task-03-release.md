@@ -1,6 +1,6 @@
 ---
 title: "@ahpd/web 0.3.1 is released and the desk takes it from npm"
-status: doing
+status: done
 depends: [task-01-ahpw-host-keys.md, task-02-desk-host-url.md]
 layer: "ahpw, ahp-desk"
 refs:
@@ -30,3 +30,4 @@ refs:
 ## Resume
 
 - 2026-10-13: scena 0.5.5 released (npm latest, GitHub Release). ahpw `desk` 1cbfc4d on scena ^0.5.5, PR #3 to `main` open for Softov to merge, tag `v0.3.1` pushed; `@ahpd/web@0.3.1` staged on npm for Softov to approve; GitHub Release v0.3.1. Left: step 3, the desk pins, after the approval.
+- 2026-10-13: Softov approved `@ahpd/web@0.3.1` and merged PR #3 (`0b2bd82`). Both desk pins are `0.3.1` from npm; the embedder no longer links the checkout. `pnpm typecheck`, `pnpm test` (shell 24, embedder 11, cargo 15) and `pnpm lint` pass.

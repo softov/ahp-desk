@@ -59,8 +59,8 @@ cd ahp-desk
 pnpm install
 ```
 
-Clone [ahpw](https://github.com/softov/ahpw) beside it and run `pnpm install && pnpm build` there once.
-`packages/ahpw-embedder` takes ahpw's embedding contract, `@ahpd/web/embed`, from that checkout until a version of `@ahpd/web` with it is on npm.
+ahpw and its embedding contract, `@ahpd/web/embed`, come from the pinned `@ahpd/web` on npm; both pins, in `package.json` and `packages/ahpw-embedder/package.json`, move together.
+An ahpw checkout beside this one is needed only to work on ahpw inside the desk (below).
 
 ## Run and build
 
