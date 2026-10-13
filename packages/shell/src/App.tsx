@@ -4,11 +4,14 @@ import { HostList } from './hosts/HostList.js';
 import { listHosts, onAddAsked, onHostsChanged, type ShellHost } from './hosts/ipc.js';
 import { createHostStatuses, type HostStatuses } from './hosts/status.js';
 import { Footer } from './Footer.js';
+import { useLanguage } from './i18n.js';
 import { TitleBar } from './TitleBar.js';
 
 type Screen = { kind: 'list' } | { kind: 'form'; host: ShellHost | null };
 
 export function App() {
+  // Every word below is read in this language; a pick redraws the whole window.
+  useLanguage();
   const [hosts, setHosts] = useState<ShellHost[]>([]);
   const [screen, setScreen] = useState<Screen>({ kind: 'list' });
   // Each host's state lives in the client; a change only asks for a redraw.

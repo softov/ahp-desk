@@ -8,6 +8,7 @@ import { MultiHostClient } from '@microsoft/agent-host-protocol/hosts';
 import { WebSocketTransport } from '@microsoft/agent-host-protocol/ws';
 import { invoke } from '@tauri-apps/api/core';
 
+import { t } from '../i18n.js';
 import { hostToken, type PublishedStatus, type ShellHost } from './ipc.js';
 import { OFFERED_PROTOCOL_VERSIONS, offering } from './protocol-versions.js';
 import { withToken } from './url.js';
@@ -18,7 +19,7 @@ const NO_COMMON_VERSION = -32005;
 /** What went wrong, in words a person can act on. */
 export function explain(error: unknown): string {
   if (error instanceof RpcError && error.code === NO_COMMON_VERSION)
-    return `This host speaks none of the protocol versions ${OFFERED_PROTOCOL_VERSIONS.join(', ')}. Update its server.`;
+    return t('status.noCommonVersion', { versions: OFFERED_PROTOCOL_VERSIONS.join(', ') });
   return error instanceof Error ? error.message : String(error);
 }
 
@@ -166,7 +167,7 @@ export async function testHost(url: string, token: string | null): Promise<strin
     Promise.race([
       work,
       new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error('No answer in 8 seconds.')), 8000),
+        setTimeout(() => reject(new Error(t('status.noAnswer'))), 8000),
       ),
     ]);
   let transport: AhpTransport;
@@ -174,7 +175,7 @@ export async function testHost(url: string, token: string | null): Promise<strin
     transport = await timeout(WebSocketTransport.connect(withToken(url, token)));
   } catch {
     // A browser socket says nothing about why: a wrong address, a down host and a refused token look the same.
-    throw new Error('Could not connect. Check the address and the token.');
+    throw new Error(t('status.couldNotConnect'));
   }
   const client = new AhpClient(transport);
   client.connect();

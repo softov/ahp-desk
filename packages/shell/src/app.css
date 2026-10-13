@@ -129,6 +129,32 @@ html.is-maximized #root {
   color: #ffffff;
 }
 
+/* The language picker sits with the window's buttons, its menu under the title bar. */
+.titlebar__controls .menu {
+  height: 100%;
+}
+
+.control--language {
+  width: auto;
+  padding: 0 12px;
+  font-size: var(--oo-font-size-xs);
+  font-weight: 600;
+  color: var(--oo-color-muted);
+}
+
+.control--language:hover:not(:disabled),
+.control--language[aria-expanded='true'] {
+  color: var(--oo-color-text);
+  background: var(--oo-color-hover);
+}
+
+.titlebar .menu-items {
+  top: calc(100% + 2px);
+  right: 4px;
+  min-width: 170px;
+  font-weight: normal;
+}
+
 .shell {
   flex: 1;
   min-height: 0;
@@ -338,6 +364,11 @@ button.danger:hover:not(:disabled) {
   border: none;
   text-align: left;
   padding: 7px 8px;
+}
+
+.menu-items button[aria-checked='true'] {
+  color: var(--oo-color-primary);
+  font-weight: 600;
 }
 
 .fields {

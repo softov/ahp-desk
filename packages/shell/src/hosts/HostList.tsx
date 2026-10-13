@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { t } from '../i18n.js';
+import { useOutsideClose } from '../useOutsideClose.js';
 import { openHost, removeHost, type ShellHost } from './ipc.js';
 import type { HostStatus, HostStatuses } from './status.js';
 import { shortUrl } from './url.js';
@@ -6,11 +8,11 @@ import { shortUrl } from './url.js';
 function statusText(status: HostStatus): string {
   switch (status.kind) {
     case 'connected':
-      return status.server ?? 'connected';
+      return status.server ?? t('status.connected');
     case 'connecting':
-      return 'connecting';
+      return t('status.connecting');
     case 'down':
-      return 'down';
+      return t('status.down');
   }
 }
 
@@ -18,17 +20,10 @@ function statusText(status: HostStatus): string {
 function RowMenu({ onEdit, onRemove }: { onEdit: () => void; onRemove: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: MouseEvent) => {
-      if (!ref.current?.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [open]);
+  useOutsideClose(ref, open, () => setOpen(false));
   return (
     <div className="menu" ref={ref}>
-      <button className="more" aria-label="More" onClick={() => setOpen(!open)}>
+      <button className="more" aria-label={t('hosts.more')} onClick={() => setOpen(!open)}>
         ⋯
       </button>
       {open && (
@@ -40,7 +35,7 @@ function RowMenu({ onEdit, onRemove }: { onEdit: () => void; onRemove: () => voi
               onEdit();
             }}
           >
-            Edit
+            {t('hosts.edit')}
           </button>
           <button
             role="menuitem"
@@ -49,7 +44,7 @@ function RowMenu({ onEdit, onRemove }: { onEdit: () => void; onRemove: () => voi
               onRemove();
             }}
           >
-            Remove
+            {t('hosts.remove')}
           </button>
         </div>
       )}
@@ -78,9 +73,9 @@ export function HostList({
   return (
     <section className="panel">
       <header className="panel-head">
-        <h1>Hosts</h1>
+        <h1>{t('hosts.title')}</h1>
         <button className="primary" onClick={onAdd}>
-          + Add host
+          {t('hosts.add')}
         </button>
       </header>
       {error !== null && (
@@ -89,7 +84,7 @@ export function HostList({
         </p>
       )}
       {hosts.length === 0 ? (
-        <p className="empty">No hosts yet. Add an ahpd, or any AHP server, by its address.</p>
+        <p className="empty">{t('hosts.empty')}</p>
       ) : (
         <ul className="hosts">
           {hosts.map((host) => {
@@ -97,8 +92,8 @@ export function HostList({
             if (removing === host.id) {
               return (
                 <li key={host.id} className="host confirm">
-                  <span className="question">Remove {host.name}?</span>
-                  <button onClick={() => setRemoving(null)}>Cancel</button>
+                  <span className="question">{t('hosts.removeQuestion', { name: host.name })}</span>
+                  <button onClick={() => setRemoving(null)}>{t('form.cancel')}</button>
                   <button
                     className="danger"
                     onClick={() => {
@@ -106,7 +101,7 @@ export function HostList({
                       void run(removeHost(host.id));
                     }}
                   >
-                    Remove
+                    {t('hosts.remove')}
                   </button>
                 </li>
               );
@@ -116,14 +111,14 @@ export function HostList({
                 <span
                   className={`dot ${status.kind}`}
                   role="img"
-                  aria-label={status.kind}
-                  title={status.kind}
+                  aria-label={t(`status.${status.kind}`)}
+                  title={t(`status.${status.kind}`)}
                 />
                 <span className="name">
                   {host.name}
                   {host.tokenInFile === true && (
-                    <span className="warn" title="No OS keyring was available.">
-                      The token is in a plain file.
+                    <span className="warn" title={t('hosts.noKeyring')}>
+                      {t('hosts.tokenInFile')}
                     </span>
                   )}
                 </span>
@@ -138,10 +133,10 @@ export function HostList({
                 </span>
                 <span className="action">
                   {status.kind === 'connected' && (
-                    <button onClick={() => void run(openHost(host.id))}>Open</button>
+                    <button onClick={() => void run(openHost(host.id))}>{t('hosts.open')}</button>
                   )}
                   {status.kind === 'down' && (
-                    <button onClick={() => void run(statuses.retry(host.id))}>Retry</button>
+                    <button onClick={() => void run(statuses.retry(host.id))}>{t('hosts.retry')}</button>
                   )}
                 </span>
                 <RowMenu onEdit={() => onEdit(host)} onRemove={() => setRemoving(host.id)} />

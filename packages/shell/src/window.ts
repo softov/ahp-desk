@@ -7,7 +7,7 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
 /** What in the title bar takes its own clicks instead of moving the window. */
-const INTERACTIVE = 'button, input, select, textarea, a, [role="menu"], [role="menuitem"]';
+const INTERACTIVE = 'button, input, select, textarea, a, [role="menu"], [role="menuitem"], [role="menuitemradio"]';
 
 export const controls = {
   minimize: (): Promise<void> => getCurrentWindow().minimize(),

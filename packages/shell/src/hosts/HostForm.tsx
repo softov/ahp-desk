@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { hostToken, saveHost, type ShellHost } from './ipc.js';
+import { t } from '../i18n.js';
 import { explain, testHost } from './status.js';
 import { hostId, normalizeUrl } from './url.js';
 
@@ -62,20 +63,20 @@ export function HostForm({
   return (
     <form className="panel" onSubmit={save}>
       <header className="panel-head">
-        <h1>{host === null ? 'Add host' : `Edit ${host.name}`}</h1>
+        <h1>{host === null ? t('form.addTitle') : t('form.editTitle', { name: host.name })}</h1>
       </header>
       <div className="fields">
         <label>
-          <span>Name</span>
+          <span>{t('form.name')}</span>
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Office"
+            placeholder={t('form.namePlaceholder')}
             autoFocus
           />
         </label>
         <label>
-          <span>Address</span>
+          <span>{t('form.address')}</span>
           <input
             value={address}
             onChange={(event) => {
@@ -87,7 +88,7 @@ export function HostForm({
           />
         </label>
         <label>
-          <span>Token</span>
+          <span>{t('form.token')}</span>
           <input
             type="password"
             value={token}
@@ -95,27 +96,27 @@ export function HostForm({
               setToken(event.target.value);
               setResult(null);
             }}
-            placeholder={host === null ? '' : 'unchanged'}
+            placeholder={host === null ? '' : t('form.tokenUnchanged')}
             autoComplete="off"
           />
         </label>
-        <p className="hint">The token is kept in the OS keyring.</p>
+        <p className="hint">{t('form.tokenHint')}</p>
       </div>
       {result !== null && (
         <p className={result.ok ? 'result ok' : 'result bad'}>
-          {result.ok ? `Connected: ${result.text}` : result.text}
+          {result.ok ? t('form.connected', { server: result.text }) : result.text}
         </p>
       )}
       {error !== null && <p className="result bad">{error}</p>}
       <footer className="actions">
         <button type="button" onClick={() => onDone(null)}>
-          Cancel
+          {t('form.cancel')}
         </button>
         <button type="button" onClick={test} disabled={url === '' || testing}>
-          {testing ? 'Testing…' : 'Test'}
+          {testing ? t('form.testing') : t('form.test')}
         </button>
         <button type="submit" className="primary" disabled={!ready}>
-          Save
+          {t('form.save')}
         </button>
       </footer>
     </form>

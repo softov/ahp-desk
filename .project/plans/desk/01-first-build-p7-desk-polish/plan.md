@@ -90,7 +90,7 @@ ahpw HostSwitcher -> embedder.switchHost | (new) embedder.manageHosts({ add }) -
 | [02 - the host list in ahpw's palette](task-02-host-list-palette.md) | done | 01 |
 | [03 - the desk's icon in ahpw's mark](task-03-icon.md) | done | - |
 | [04 - the footer](task-04-footer.md) | done | 02 |
-| [05 - three languages](task-05-languages.md) | todo | 02 |
+| [05 - three languages](task-05-languages.md) | done | 02 |
 | [06 - the first run](task-06-first-run.md) | todo | 05 |
 | [07 - Open hides the host list](task-07-open-hides.md) | done | - |
 | [08 - ahpw's switcher manages hosts](task-08-switcher-manages-hosts.md) | done | 07 |
