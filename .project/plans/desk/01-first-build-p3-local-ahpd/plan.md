@@ -1,10 +1,10 @@
 ---
 title: The local ahpd
 domain: desk
-status: draft
+status: active
 priority: high
 created: 2026-10-11
-revalidated: 2026-10-11
+revalidated: 2026-10-13
 requires:
   - plans/desk/01-first-build-p1-shell-and-url-hosts/plan.md
 decisions:
@@ -14,6 +14,7 @@ decisions:
   - decisions/the-local-ahpd-runs-through-its-own-start-and-stop.md
   - decisions/the-local-ahpd-uses-a-token-file.md
   - decisions/ahpd-updates-itself-when-the-first-install-says-so.md
+  - decisions/the-installed-ahpd-keeps-the-usual-config-folder.md
 refs:
   - file:///github/ahpd/packages/server/src/daemon.ts - `ahpd start`, `stop` and `status`, with daemon.json, at lines 10-37, 189-196 and 436-439
   - file:///github/ahpd/packages/server/src/commands/options.ts - the token from `--connection-token-file`, at lines 1051-1085
@@ -49,7 +50,8 @@ quit -> stop setting on -> ahpd stop
 
 ### Gaps
 
-- `Not found: a check that ahpd start passes --port and --connection-token-file through - read daemon.ts only in part.`
+- `ahpd stop` is not graceful on Windows: SIGTERM there is a hard kill, and the AHP `shutdown` method signals itself the same way (task 01).
+- A bare plugin name resolves from the config folder, then from `AHPD_PLUGIN_ROOT` (task 01).
 - The Node runtime for each OS, and how the build fetches it.
 
 ## Decisions locked in
@@ -62,6 +64,7 @@ quit -> stop setting on -> ahpd stop
 | 4 | [The local ahpd runs through its own start and stop](../../../decisions/the-local-ahpd-runs-through-its-own-start-and-stop.md) | Softov, 2026-10-11 |
 | 5 | [The local ahpd uses a token file](../../../decisions/the-local-ahpd-uses-a-token-file.md) | Softov, 2026-10-11 |
 | 6 | [ahpd updates itself when the first install says so](../../../decisions/ahpd-updates-itself-when-the-first-install-says-so.md) | Softov, 2026-10-11 |
+| 7 | [An ahpd the desk installs keeps the usual config folder, with its backends under AHPD_PLUGIN_ROOT](../../../decisions/the-installed-ahpd-keeps-the-usual-config-folder.md) | Softov, 2026-10-13 |
 
 | What | Source | Task |
 | --- | --- | --- |
@@ -78,29 +81,27 @@ quit -> stop setting on -> ahpd stop
 
 ## Tasks
 
-These task files are written when this plan moves to `planned`.
-
 | Task | Status | Depends on |
 | --- | --- | --- |
-| 01 - check ahpd start, stop and status against the needs of the shell | todo | - |
-| 02 - find ahpd on PATH or at a set path | todo | 01 |
-| 03 - ship Node and install ahpd with the chosen backends | todo | 01 |
-| 04 - start, find and stop through ahpd's own commands | todo | 02 |
-| 05 - the start and quit settings | todo | 04 |
-| 06 - Add host, This computer, with the install steps | todo | 03, 04 |
-| 07 - automatic update of ahpd, and its checkbox | todo | 03, 04 |
-| 08 - end to end on a clean Windows user | todo | 05, 06, 07 |
+| [01 - check ahpd start, stop and status against the needs of the shell](task-01-check-ahpd-commands.md) | done | - |
+| [02 - find ahpd on PATH or at a set path](task-02-find-ahpd.md) | todo | 01 |
+| [03 - ship Node and install ahpd with the chosen backends](task-03-install-ahpd.md) | todo | 01 |
+| [04 - start, find and stop through ahpd's own commands](task-04-start-find-stop.md) | todo | 02 |
+| [05 - the start and quit settings](task-05-start-quit-settings.md) | todo | 04 |
+| [06 - Add host, This computer, with the install steps](task-06-add-this-computer.md) | todo | 03, 04 |
+| [07 - automatic update of ahpd, and its checkbox](task-07-auto-update.md) | todo | 03, 04 |
+| [08 - end to end on a clean Windows user](task-08-end-to-end.md) | todo | 05, 06, 07 |
 
 ## Risks and tradeoffs
 
-- `ahpd start` may not take every flag that the shell needs. Task 01 checks this, and a change in ahpd comes before task 04.
+- `ahpd stop` is a hard kill on Windows until ahpd changes, so the stop on quit waits for that change.
 - An npm install can fail behind a proxy. The install steps show npm's own output.
 
 ## Resume state
 
-- **Done so far:** nothing.
-- **Next action:** write the task files, then task 01.
-- **Open questions:** none.
+- **Done so far:** the task files, and task 01, 2026-10-13, on `@ahpd/server` 0.11.0.
+- **Next action:** task 02.
+- **Open questions:** none for the desk; a graceful `ahpd stop` on Windows is an ahpd change, taken up in ahpd's own session.
 - **Watch out for:** an ahpd that the shell found and did not start is never stopped by the shell.
 
 ## Final verification checklist

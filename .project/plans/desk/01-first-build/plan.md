@@ -132,7 +132,7 @@ shell starts -> hosts.json + OS keyring -> host list screen
 | --- | --- | --- |
 | [p1 - The shell, the host list and the app window](../01-first-build-p1-shell-and-url-hosts/plan.md) | built | - |
 | [p2 - ahpw on the desk](../01-first-build-p2-ahpw-on-the-desk/plan.md) | built | p1 |
-| [p3 - The local ahpd](../01-first-build-p3-local-ahpd/plan.md) | draft | p1 |
+| [p3 - The local ahpd](../01-first-build-p3-local-ahpd/plan.md) | active | p1 |
 | [p4 - The tray, the updater and the releases](../01-first-build-p4-tray-and-releases/plan.md) | draft | p1 |
 | [p5 - ahpapp in a private build](../01-first-build-p5-ahpapp-on-the-desk/plan.md) | draft | p1, p2 |
 | [p6 - The bot pill](../01-first-build-p6-bot-pill/plan.md) | draft | p1, p4 |
@@ -151,7 +151,7 @@ shell starts -> hosts.json + OS keyring -> host list screen
 ## Resume state
 
 - **Done so far:** decisions and plans written; p1 tasks 01, 02, 03, 05 and 06 done, 2026-10-11. A custom scheme does count as a local origin for IPC on Windows (p1 task 05).
-- **Next action:** [p2 task 09](../01-first-build-p2-ahpw-on-the-desk/task-09-end-to-end.md); then the task files of p3 to p6.
+- **Next action:** [p3 task 02](../01-first-build-p3-local-ahpd/task-02-find-ahpd.md); then the task files of p4 to p6.
 - **Open questions:** the open questions of each child plan are in its own *Resume state*.
 - **Watch out for:** the child plans p2 to p6 are `draft`; write their task files before their first task starts.
 
