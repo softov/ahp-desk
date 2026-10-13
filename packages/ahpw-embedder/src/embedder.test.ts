@@ -14,7 +14,10 @@ vi.mock('@tauri-apps/api/core', () => ({ invoke }));
 vi.mock('@tauri-apps/api/event', () => ({ listen }));
 vi.mock('@tauri-apps/api/window', () => ({ getCurrentWindow: () => current }));
 
-const { createEmbedder, unsubscribe } = await import('./embedder.js');
+const { createEmbedder, hostUrlOf, unsubscribe } = await import('./embedder.js');
+
+/** A page the desk opened on a host. */
+const PAGE = { search: '?host=ws%3A%2F%2F127.0.0.1%3A9187' };
 
 /** The handler the last `listen` call registered for `event`. */
 function delivered(event: string): (event: { payload: unknown }) => void {
@@ -27,9 +30,23 @@ beforeEach(() => {
   listen.mockResolvedValue(vi.fn());
 });
 
+describe('hostUrlOf', () => {
+  it("reads the host address the desk put in the page's address", () => {
+    expect(hostUrlOf(PAGE)).toBe('ws://127.0.0.1:9187');
+  });
+
+  it('stops a page opened with no host', () => {
+    expect(() => hostUrlOf({ search: '' })).toThrow('no ?host= address');
+  });
+});
+
 describe('createEmbedder', () => {
+  it('gives the host address synchronously', () => {
+    expect(createEmbedder(PAGE).hostUrl).toBe('ws://127.0.0.1:9187');
+  });
+
   it("reads the window's host and the host list", async () => {
-    const embedder = createEmbedder();
+    const embedder = createEmbedder(PAGE);
     await embedder.host();
     expect(invoke).toHaveBeenCalledWith('window_host');
     await embedder.hosts();
@@ -40,12 +57,12 @@ describe('createEmbedder', () => {
     invoke.mockImplementation(async (command: string) =>
       command === 'window_host' ? { id: 'home', name: 'Home', url: 'ws://h' } : 'secret',
     );
-    expect(await createEmbedder().token()).toBe('secret');
+    expect(await createEmbedder(PAGE).token()).toBe('secret');
     expect(invoke).toHaveBeenLastCalledWith('host_token', { id: 'home' });
   });
 
   it('follows the host list and the statuses', () => {
-    const embedder = createEmbedder();
+    const embedder = createEmbedder(PAGE);
     const hosts = vi.fn();
     const statuses = vi.fn();
     embedder.onHosts(hosts);
@@ -57,7 +74,7 @@ describe('createEmbedder', () => {
   });
 
   it('switches this window to another host, and shows the host list', async () => {
-    const embedder = createEmbedder();
+    const embedder = createEmbedder(PAGE);
     await embedder.switchHost('work');
     expect(invoke).toHaveBeenCalledWith('open_app_window', { hostId: 'work', replace: true });
     await embedder.manageHosts();
@@ -65,13 +82,13 @@ describe('createEmbedder', () => {
   });
 
   it('shows the host list on its Add form', async () => {
-    await createEmbedder().manageHosts({ add: true });
+    await createEmbedder(PAGE).manageHosts({ add: true });
     expect(invoke).toHaveBeenLastCalledWith('show_host_list', { add: true });
   });
 
   it("drives this window's controls", async () => {
     current.onResized.mockResolvedValue(vi.fn());
-    const controls = createEmbedder().window;
+    const controls = createEmbedder(PAGE).window;
     await controls?.minimize();
     await controls?.toggleMaximize();
     await controls?.close();

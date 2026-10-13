@@ -1,6 +1,6 @@
 ---
 title: ahpw keys a host's pages by the host's address
-status: todo
+status: done
 depends: []
 layer: "ahpw"
 refs:
@@ -29,3 +29,5 @@ On an embedder, ahpw's tabs, layout and added folders are kept under keys that c
 - `pnpm typecheck` and `pnpm test` in ahpw.
 
 ## Resume
+
+- Done 2026-10-13 on ahpw's `desk`, commit `7d9a79f`; 278 tests pass.

@@ -23,10 +23,19 @@ export function unsubscribe(listening: Promise<UnlistenFn>): Unsubscribe {
   };
 }
 
-export function createEmbedder(): Embedder {
+/** The window's host address, which the desk puts in the page's address as `?host=`. */
+export function hostUrlOf(location: { search: string }): string {
+  const url = new URLSearchParams(location.search).get('host');
+  if (url === null || url === '') throw new Error('ahp-desk: this window was opened with no ?host= address');
+  return url;
+}
+
+/** The embedder for the page at `location`. */
+export function createEmbedder(location: { search: string }): Embedder {
   const host = () => invoke<EmbedHost>('window_host');
   return {
     host,
+    hostUrl: hostUrlOf(location),
     // The desk lets a window read only its own host's token.
     token: async () => invoke<string | null>('host_token', { id: (await host()).id }),
     hosts: () => invoke<EmbedHost[]>('hosts'),

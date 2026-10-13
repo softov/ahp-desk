@@ -6,4 +6,4 @@
 import type { Embedder } from '@ahpd/web/embed';
 import { createEmbedder } from './embedder.js';
 
-(globalThis as { ahpwEmbedder?: Embedder }).ahpwEmbedder = createEmbedder();
+(globalThis as { ahpwEmbedder?: Embedder }).ahpwEmbedder = createEmbedder(window.location);

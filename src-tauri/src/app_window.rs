@@ -19,6 +19,16 @@ use crate::SHELL_WINDOW;
 /// the page's own scripts run (decision: ahpw owns its embedding contract).
 const EMBEDDER: &str = include_str!(env!("AHP_DESK_EMBEDDER"));
 
+/// The page an app window loads for `host`: the UI with the host's address as
+/// `?host=`. Every host shares the UI's origin, so the embedder hands ahpw this
+/// address before it runs, and ahpw keeps the host's pages under it (decision:
+/// ahpw keeps a host's pages under the host's address).
+fn page_url(source: &UiSource, host: &HostView) -> Url {
+    let mut url = ui_source::ui_url(source);
+    url.query_pairs_mut().clear().append_pair("host", &host.url);
+    url
+}
+
 /// Which host each app window shows, by window label.
 #[derive(Default)]
 pub struct AppWindows(Mutex<HashMap<String, String>>);
@@ -109,9 +119,11 @@ pub async fn open_app_window(
     let host = store.find(&host_id).ok_or_else(|| format!("no host {host_id}"))?;
 
     if replace && windows.host_of(window.label()).is_some() {
-        windows.lock().insert(window.label().to_string(), host.id);
         window.set_title(&host.name).map_err(|err| err.to_string())?;
-        return window.reload().map_err(|err| err.to_string());
+        // A navigation, not a reload: the page's address names the new host.
+        let page = page_url(source.inner(), &host);
+        windows.lock().insert(window.label().to_string(), host.id);
+        return window.navigate(page).map_err(|err| err.to_string());
     }
 
     if let Some(open) = windows.window_of(&host.id).and_then(|label| app.get_webview_window(&label)) {
@@ -121,9 +133,10 @@ pub async fn open_app_window(
 
     let label = label_for(&app, &host.id);
     let ui = ui_source::ui_url(source.inner());
+    let page = page_url(source.inner(), &host);
     let url = match source.inner() {
-        UiSource::DevServer(url) => WebviewUrl::External(url.clone()),
-        UiSource::Folder(_) => WebviewUrl::CustomProtocol(ui.clone()),
+        UiSource::DevServer(_) => WebviewUrl::External(page),
+        UiSource::Folder(_) => WebviewUrl::CustomProtocol(page),
     };
     let (for_new, for_nav) = (app.clone(), app.clone());
     let opened = WebviewWindowBuilder::new(&app, &label, url)

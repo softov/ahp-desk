@@ -16,7 +16,7 @@ refs:
   - file:///github/ahpw/src/App.tsx - `ahpd-web.layout.v1` at line 15
   - file:///github/ahpw/src/folders/added.ts - `ADDED_KEY` at line 8
   - file:///github/ahpw/README.md - the administration screens, removed while ahpw is AHP only
-  - "[code://src-tauri/src/app_window.rs](../../../../src-tauri/src/app_window.rs) - `initialization_script(EMBEDDER)`, where the window's host goes in first"
+  - "[code://src-tauri/src/app_window.rs](../../../../src-tauri/src/app_window.rs) - `page_url()`, the window's host in the page address"
   - "[code://packages/ahpw-embedder/src/embedder.ts](../../../../packages/ahpw-embedder/src/embedder.ts) - the desk's embedder, which sets `hostUrl`"
   - "[code://packages/ahpw-embedder/package.json](../../../../packages/ahpw-embedder/package.json) - `@ahpd/web` by `link:`, to move to npm"
 ---
@@ -38,7 +38,7 @@ The files read are the `refs` above.
 ### Runtime path
 
 ```
-app_window.rs open_app_window -> init script (host, then embedder) -> ahpw module load -> hostKey(key) -> localStorage
+app_window.rs open_app_window -> page ?host=<address> -> embedder hostUrl -> ahpw module load -> hostKey(key) -> localStorage
 ```
 
 ### Gaps
@@ -60,18 +60,18 @@ app_window.rs open_app_window -> init script (host, then embedder) -> ahpw modul
 
 ## Proposed architecture
 
-- **Data flow** - Rust writes the window's host into the init script before the embedder; the embedder exposes its `url` as `hostUrl`; `hostKey()` appends it to each host key.
-- **Event flow** - none new; `switchHost` already reloads the page.
+- **Data flow** - Rust opens the window on the UI with `?host=<address>`; the embedder exposes it as `hostUrl`; `hostKey()` appends it to each host key.
+- **Event flow** - `switchHost` navigates the window to the new host's page.
 - **State flow** - three `localStorage` entries per host address on the desk; one each in a browser.
-- **Layer responsibilities** - ahpw: the contract and the keys · `packages/ahpw-embedder`: `hostUrl` · `src-tauri`: the host in the init script.
+- **Layer responsibilities** - ahpw: the contract and the keys · `packages/ahpw-embedder`: `hostUrl` · `src-tauri`: the host in the page address.
 - **Source-of-truth files** - ahpw's `src/embed/index.ts` and `src/storage-keys.ts`.
 
 ## Tasks
 
 | Task | Status | Depends on |
 | --- | --- | --- |
-| [01 - ahpw keys a host's pages by its address](task-01-ahpw-host-keys.md) | todo | - |
-| [02 - the desk gives the window's host address](task-02-desk-host-url.md) | todo | 01 |
+| [01 - ahpw keys a host's pages by its address](task-01-ahpw-host-keys.md) | done | - |
+| [02 - the desk gives the window's host address](task-02-desk-host-url.md) | done | 01 |
 | [03 - release @ahpd/web 0.3.1 and move the pins](task-03-release.md) | todo | 01, 02 |
 | [04 - end to end](task-04-end-to-end.md) | todo | 03 |
 
@@ -81,8 +81,8 @@ app_window.rs open_app_window -> init script (host, then embedder) -> ahpw modul
 
 ## Resume state
 
-- **Done so far:** the plan, 2026-10-13.
-- **Next action:** [task-01-ahpw-host-keys.md](task-01-ahpw-host-keys.md).
+- **Done so far:** the plan, tasks 01 and 02, 2026-10-13.
+- **Next action:** [task-03-release.md](task-03-release.md), after Softov says to push ahpw's `desk` and open the PR.
 - **Open questions:** none.
 - **Watch out for:** ahpw's changes go on its branch `desk`, then a PR to `main` that Softov merges; the npm release is approved by Softov.
 

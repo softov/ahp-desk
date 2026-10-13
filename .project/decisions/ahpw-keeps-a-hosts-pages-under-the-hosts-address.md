@@ -19,6 +19,7 @@ A host's open tabs, its layout and its added folders then show on every other ho
 
 On an embedder, ahpw keeps the tabs, the layout and the added folders under a key that carries the address of the page's host, as `ahpd-web.session.v1@ws://127.0.0.1:9187`.
 The embedder gives that address synchronously, as `hostUrl`, because these keys are read when ahpw's modules load.
+The desk carries the address in the page's own address, `?host=<address>`, which changes when a window switches host.
 The theme, the main layout choice and the groupings stay shared: they are the person's, not the host's.
 In a browser the keys do not change, since the origin is already the host.
 Source: Softov, asked whether the key is the host's address (recommended) or the desk's host id: "ok with the recomendation"; and on the leak: "pages saved on one app, should not advertise to another."
