@@ -6,18 +6,24 @@ import { hostId, normalizeUrl } from './url.js';
 
 type TestResult = { ok: true; text: string } | { ok: false; text: string } | null;
 
+/** The host `HostForm` saved, or `null` when it was left. */
+export type Saved = { id: string; name: string } | null;
+
 /**
  * Add host, or Edit host when `host` is given, for the kind URL.
- * In Edit, an empty token keeps the one saved.
+ * In Edit, an empty token keeps the one saved. In the first run, the way out
+ * is Back and saving opens the host.
  */
 export function HostForm({
   host,
   taken,
+  firstRun = false,
   onDone,
 }: {
   host: ShellHost | null;
   taken: readonly string[];
-  onDone: (savedId: string | null) => void;
+  firstRun?: boolean;
+  onDone: (saved: Saved) => void;
 }) {
   const [name, setName] = useState(host?.name ?? '');
   const [address, setAddress] = useState(host?.url ?? '');
@@ -54,7 +60,7 @@ export function HostForm({
         { id, name: name.trim(), kind: 'url', url },
         token === '' ? (host === null ? '' : null) : token,
       );
-      onDone(id);
+      onDone({ id, name: name.trim() });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -110,13 +116,13 @@ export function HostForm({
       {error !== null && <p className="result bad">{error}</p>}
       <footer className="actions">
         <button type="button" onClick={() => onDone(null)}>
-          {t('form.cancel')}
+          {firstRun ? t('form.back') : t('form.cancel')}
         </button>
         <button type="button" onClick={test} disabled={url === '' || testing}>
           {testing ? t('form.testing') : t('form.test')}
         </button>
         <button type="submit" className="primary" disabled={!ready}>
-          {t('form.save')}
+          {firstRun ? t('form.saveAndOpen') : t('form.save')}
         </button>
       </footer>
     </form>

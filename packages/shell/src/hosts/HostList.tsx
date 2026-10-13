@@ -83,68 +83,64 @@ export function HostList({
           {error}
         </p>
       )}
-      {hosts.length === 0 ? (
-        <p className="empty">{t('hosts.empty')}</p>
-      ) : (
-        <ul className="hosts">
-          {hosts.map((host) => {
-            const status = statuses.status(host.id);
-            if (removing === host.id) {
-              return (
-                <li key={host.id} className="host confirm">
-                  <span className="question">{t('hosts.removeQuestion', { name: host.name })}</span>
-                  <button onClick={() => setRemoving(null)}>{t('form.cancel')}</button>
-                  <button
-                    className="danger"
-                    onClick={() => {
-                      setRemoving(null);
-                      void run(removeHost(host.id));
-                    }}
-                  >
-                    {t('hosts.remove')}
-                  </button>
-                </li>
-              );
-            }
+      <ul className="hosts">
+        {hosts.map((host) => {
+          const status = statuses.status(host.id);
+          if (removing === host.id) {
             return (
-              <li key={host.id} className="host">
-                <span
-                  className={`dot ${status.kind}`}
-                  role="img"
-                  aria-label={t(`status.${status.kind}`)}
-                  title={t(`status.${status.kind}`)}
-                />
-                <span className="name">
-                  {host.name}
-                  {host.tokenInFile === true && (
-                    <span className="warn" title={t('hosts.noKeyring')}>
-                      {t('hosts.tokenInFile')}
-                    </span>
-                  )}
-                </span>
-                <span
-                  className="state"
-                  title={status.kind === 'down' ? (status.error ?? undefined) : undefined}
+              <li key={host.id} className="host confirm">
+                <span className="question">{t('hosts.removeQuestion', { name: host.name })}</span>
+                <button onClick={() => setRemoving(null)}>{t('form.cancel')}</button>
+                <button
+                  className="danger"
+                  onClick={() => {
+                    setRemoving(null);
+                    void run(removeHost(host.id));
+                  }}
                 >
-                  {statusText(status)}
-                </span>
-                <span className="address" title={host.url}>
-                  {shortUrl(host.url)}
-                </span>
-                <span className="action">
-                  {status.kind === 'connected' && (
-                    <button onClick={() => void run(openHost(host.id))}>{t('hosts.open')}</button>
-                  )}
-                  {status.kind === 'down' && (
-                    <button onClick={() => void run(statuses.retry(host.id))}>{t('hosts.retry')}</button>
-                  )}
-                </span>
-                <RowMenu onEdit={() => onEdit(host)} onRemove={() => setRemoving(host.id)} />
+                  {t('hosts.remove')}
+                </button>
               </li>
             );
-          })}
-        </ul>
-      )}
+          }
+          return (
+            <li key={host.id} className="host">
+              <span
+                className={`dot ${status.kind}`}
+                role="img"
+                aria-label={t(`status.${status.kind}`)}
+                title={t(`status.${status.kind}`)}
+              />
+              <span className="name">
+                {host.name}
+                {host.tokenInFile === true && (
+                  <span className="warn" title={t('hosts.noKeyring')}>
+                    {t('hosts.tokenInFile')}
+                  </span>
+                )}
+              </span>
+              <span
+                className="state"
+                title={status.kind === 'down' ? (status.error ?? undefined) : undefined}
+              >
+                {statusText(status)}
+              </span>
+              <span className="address" title={host.url}>
+                {shortUrl(host.url)}
+              </span>
+              <span className="action">
+                {status.kind === 'connected' && (
+                  <button onClick={() => void run(openHost(host.id))}>{t('hosts.open')}</button>
+                )}
+                {status.kind === 'down' && (
+                  <button onClick={() => void run(statuses.retry(host.id))}>{t('hosts.retry')}</button>
+                )}
+              </span>
+              <RowMenu onEdit={() => onEdit(host)} onRemove={() => setRemoving(host.id)} />
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

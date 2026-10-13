@@ -26,7 +26,6 @@ const en = {
 
   'hosts.title': 'Hosts',
   'hosts.add': '+ Add host',
-  'hosts.empty': 'No hosts yet. Add an ahpd, or any AHP server, by its address.',
   'hosts.more': 'More',
   'hosts.edit': 'Edit',
   'hosts.remove': 'Remove',
@@ -56,6 +55,20 @@ const en = {
   'form.test': 'Test',
   'form.testing': 'Testing…',
   'form.save': 'Save',
+  'form.back': 'Back',
+  'form.saveAndOpen': 'Save and open',
+
+  'firstRun.welcomeTitle': 'Welcome to ahp-desk',
+  'firstRun.welcomeText': 'ahp-desk opens your Agent Host Protocol hosts, each in a window of its own. Start by adding one.',
+  'firstRun.start': 'Get started',
+  'firstRun.whereTitle': 'Where is your host?',
+  'firstRun.remote': 'On the internet or my network',
+  'firstRun.remoteHint': 'An ahpd, or any AHP server, at an address you know.',
+  'firstRun.local': 'This computer',
+  'firstRun.localHint': 'A host that runs here, with no address to type.',
+  'firstRun.soon': 'Coming soon',
+  'firstRun.opening': 'Opening {name}…',
+  'firstRun.toList': 'Host list',
 };
 
 export type Key = keyof typeof en;
@@ -69,7 +82,6 @@ const ptBR: Record<Key, string> = {
 
   'hosts.title': 'Hosts',
   'hosts.add': '+ Adicionar host',
-  'hosts.empty': 'Nenhum host ainda. Adicione um ahpd, ou qualquer servidor AHP, pelo endereço.',
   'hosts.more': 'Mais',
   'hosts.edit': 'Editar',
   'hosts.remove': 'Remover',
@@ -99,6 +111,20 @@ const ptBR: Record<Key, string> = {
   'form.test': 'Testar',
   'form.testing': 'Testando…',
   'form.save': 'Salvar',
+  'form.back': 'Voltar',
+  'form.saveAndOpen': 'Salvar e abrir',
+
+  'firstRun.welcomeTitle': 'Boas-vindas ao ahp-desk',
+  'firstRun.welcomeText': 'O ahp-desk abre seus hosts do Agent Host Protocol, cada um em uma janela própria. Comece adicionando um.',
+  'firstRun.start': 'Começar',
+  'firstRun.whereTitle': 'Onde está o seu host?',
+  'firstRun.remote': 'Na internet ou na minha rede',
+  'firstRun.remoteHint': 'Um ahpd, ou qualquer servidor AHP, em um endereço que você conhece.',
+  'firstRun.local': 'Este computador',
+  'firstRun.localHint': 'Um host que roda aqui, sem endereço para digitar.',
+  'firstRun.soon': 'Em breve',
+  'firstRun.opening': 'Abrindo {name}…',
+  'firstRun.toList': 'Lista de hosts',
 };
 
 const es: Record<Key, string> = {
@@ -110,7 +136,6 @@ const es: Record<Key, string> = {
 
   'hosts.title': 'Hosts',
   'hosts.add': '+ Añadir host',
-  'hosts.empty': 'Aún no hay hosts. Añade un ahpd, o cualquier servidor AHP, por su dirección.',
   'hosts.more': 'Más',
   'hosts.edit': 'Editar',
   'hosts.remove': 'Quitar',
@@ -140,6 +165,20 @@ const es: Record<Key, string> = {
   'form.test': 'Probar',
   'form.testing': 'Probando…',
   'form.save': 'Guardar',
+  'form.back': 'Volver',
+  'form.saveAndOpen': 'Guardar y abrir',
+
+  'firstRun.welcomeTitle': 'Te damos la bienvenida a ahp-desk',
+  'firstRun.welcomeText': 'ahp-desk abre tus hosts del Agent Host Protocol, cada uno en su propia ventana. Empieza añadiendo uno.',
+  'firstRun.start': 'Empezar',
+  'firstRun.whereTitle': '¿Dónde está tu host?',
+  'firstRun.remote': 'En internet o en mi red',
+  'firstRun.remoteHint': 'Un ahpd, o cualquier servidor AHP, en una dirección que conoces.',
+  'firstRun.local': 'Este equipo',
+  'firstRun.localHint': 'Un host que se ejecuta aquí, sin dirección que escribir.',
+  'firstRun.soon': 'Próximamente',
+  'firstRun.opening': 'Abriendo {name}…',
+  'firstRun.toList': 'Lista de hosts',
 };
 
 export const DICTIONARIES: Record<Lang, Record<Key, string>> = { en, 'pt-BR': ptBR, es };
