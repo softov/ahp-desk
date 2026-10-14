@@ -1,13 +1,13 @@
 ---
 title: How the desk can reach VS Code's agent host
-date: 2026-10-14
+date: 2026-10-13
 refs:
   - https://github.com/microsoft/vscode/blob/832cf23c588/src/vs/platform/agentHost/common/agentHostEndpointRegistry.ts - the endpoint registry `code agent endpoints` prints
   - https://github.com/microsoft/vscode/blob/832cf23c588/src/vs/platform/agentHost/node/sshRemoteAgentHostHelpers.ts#L286-L291 - a remote command prints `ws://127.0.0.1:PORT[?tkn=TOKEN]`
   - file:///github/ahpd/.project/research/how-vscode-offers-a-dev-container.md - VS Code's SSH, Tunnel and WSL entries, read by ahpd
 ---
 
-Checked on Softov's Windows machine with VS Code 1.141.0, on 2026-10-14.
+Checked on Softov's Windows machine with VS Code 1.141.0, on 2026-10-13.
 
 ## The CLI
 

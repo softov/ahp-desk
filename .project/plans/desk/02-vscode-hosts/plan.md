@@ -3,8 +3,8 @@ title: VS Code as a host
 domain: desk
 status: draft
 priority: medium
-created: 2026-10-14
-revalidated: 2026-10-14
+created: 2026-10-13
+revalidated: 2026-10-13
 requires:
   - plans/desk/01-first-build-p3-local-ahpd/plan.md
   - plans/desk/01-first-build-p10-ssh-install/plan.md
@@ -55,7 +55,7 @@ No decision is locked yet; the open questions below come first.
 
 | What | Source | Task |
 | --- | --- | --- |
-| The scope is VS Code on this computer, the open editor's host and a desk-started one, and VS Code on a remote machine. | Softov, 2026-10-14: "all as a new plan" | - |
+| The scope is VS Code on this computer, the open editor's host and a desk-started one, and VS Code on a remote machine. | Softov, 2026-10-13: "all as a new plan" | - |
 | The editor's pipe speaks WebSocket, so the bridge relays bytes and translates nothing. | research/vscode-agent-host-endpoints.md | - |
 
 ## Proposed architecture
@@ -88,7 +88,7 @@ These task files are written when this plan moves to `planned`.
 
 ## Resume state
 
-- **Done so far:** the plan and its research, 2026-10-14.
+- **Done so far:** the plan and its research, 2026-10-13.
 - **Next action:** answer the open questions, then write the task files.
 - **Open questions:**
   1. When VS Code is closed, what does the editor's host do? - proposed: it shows down until VS Code runs again; the desk does not start anything in its place.
