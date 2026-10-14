@@ -6,7 +6,7 @@ mod statuses;
 mod tokens;
 mod ui_source;
 
-use tauri::{Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
 use crate::app_window::AppWindows;
 use crate::hosts::HostStore;
@@ -62,6 +62,8 @@ pub fn run() {
                     }
                 }
             });
+            // After the host list window, so its rows show each host as it comes up.
+            local_ahpd::start_on_launch(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -80,6 +82,11 @@ pub fn run() {
             statuses::publish_host_statuses,
             statuses::host_statuses,
         ])
-        .run(tauri::generate_context!())
-        .expect("ahp-desk failed to start");
+        .build(tauri::generate_context!())
+        .expect("ahp-desk failed to start")
+        .run(|app, event| {
+            if let RunEvent::Exit = event {
+                local_ahpd::stop_on_quit(app);
+            }
+        });
 }

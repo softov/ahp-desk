@@ -614,42 +614,71 @@ pub async fn local_ahpd_status(app: AppHandle, id: String) -> Result<LocalState,
 }
 
 /// Starts the local host's ahpd, or takes the one already on, which the desk
-/// then did not start.
-#[tauri::command]
-pub async fn start_local_ahpd(app: AppHandle, id: String) -> Result<LocalState, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let (ahpd_path, started) = app.state::<HostStore>().local(&id)?;
-        let local = app.state::<LocalAhpd>();
-        let launcher = launcher_for(&local, ahpd_path.as_deref())?;
-        let config = this_config_dir()?;
-        if let Some(running) = status(&launcher, &config)? {
-            return publish(&app, &id, Some(&running), started);
-        }
-        let token_file = local.prefix.join("connection-token");
-        let running = start(&launcher, &config, &home_folder()?, &token_file)?;
-        publish(&app, &id, Some(&running), true)
-    })
-    .await
-    .map_err(|err| err.to_string())?
+/// then did not start. Blocks while ahpd starts.
+pub fn start_host(app: &AppHandle, id: &str) -> Result<LocalState, String> {
+    let (ahpd_path, started) = app.state::<HostStore>().local(id)?;
+    let local = app.state::<LocalAhpd>();
+    let launcher = launcher_for(&local, ahpd_path.as_deref())?;
+    let config = this_config_dir()?;
+    if let Some(running) = status(&launcher, &config)? {
+        return publish(app, id, Some(&running), started);
+    }
+    let token_file = local.prefix.join("connection-token");
+    let running = start(&launcher, &config, &home_folder()?, &token_file)?;
+    publish(app, id, Some(&running), true)
 }
 
-/// Stops the local host's ahpd, only when the desk started it.
+/// Stops the local host's ahpd, only when the desk started it. Blocks while
+/// ahpd stops.
+pub fn stop_host(app: &AppHandle, id: &str) -> Result<LocalState, String> {
+    let (ahpd_path, started) = app.state::<HostStore>().local(id)?;
+    let launcher = launcher_for(&app.state::<LocalAhpd>(), ahpd_path.as_deref())?;
+    if !started {
+        return match status(&launcher, &this_config_dir()?)? {
+            None => publish(app, id, None, false),
+            Some(_) => Err("the desk did not start this ahpd, so it leaves it on".to_string()),
+        };
+    }
+    stop(&launcher)?;
+    publish(app, id, None, false)
+}
+
+#[tauri::command]
+pub async fn start_local_ahpd(app: AppHandle, id: String) -> Result<LocalState, String> {
+    tauri::async_runtime::spawn_blocking(move || start_host(&app, &id))
+        .await
+        .map_err(|err| err.to_string())?
+}
+
 #[tauri::command]
 pub async fn stop_local_ahpd(app: AppHandle, id: String) -> Result<LocalState, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        let (ahpd_path, started) = app.state::<HostStore>().local(&id)?;
-        let launcher = launcher_for(&app.state::<LocalAhpd>(), ahpd_path.as_deref())?;
-        if !started {
-            return match status(&launcher, &this_config_dir()?)? {
-                None => publish(&app, &id, None, false),
-                Some(_) => Err("the desk did not start this ahpd, so it leaves it on".to_string()),
-            };
+    tauri::async_runtime::spawn_blocking(move || stop_host(&app, &id))
+        .await
+        .map_err(|err| err.to_string())?
+}
+
+/// At launch: starts each local host's ahpd set to start, off the main thread,
+/// so the host list opens while they come up. A start that fails leaves the
+/// host down, which its row shows.
+pub fn start_on_launch(app: &AppHandle) {
+    for id in app.state::<HostStore>().to_start_on_launch() {
+        let app = app.clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            if let Err(err) = start_host(&app, &id) {
+                eprintln!("ahp-desk: could not start the ahpd of {id}: {err}");
+            }
+        });
+    }
+}
+
+/// At quit: stops each local host's ahpd set to stop that the desk started,
+/// before the process ends (decision 3).
+pub fn stop_on_quit(app: &AppHandle) {
+    for id in app.state::<HostStore>().to_stop_on_quit() {
+        if let Err(err) = stop_host(app, &id) {
+            eprintln!("ahp-desk: could not stop the ahpd of {id}: {err}");
         }
-        stop(&launcher)?;
-        publish(&app, &id, None, false)
-    })
-    .await
-    .map_err(|err| err.to_string())?
+    }
 }
 
 /// One step of an install, as the shell shows it.

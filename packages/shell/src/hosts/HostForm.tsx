@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { hostToken, saveHost, type ShellHost } from './ipc.js';
+import { hostToken, saveHost, type OnDesk, type ShellHost } from './ipc.js';
 import { t } from '../i18n.js';
 import { explain, testHost } from './status.js';
 import { hostId, normalizeUrl } from './url.js';
@@ -10,9 +10,10 @@ type TestResult = { ok: true; text: string } | { ok: false; text: string } | nul
 export type Saved = { id: string; name: string } | null;
 
 /**
- * Add host, or Edit host when `host` is given, for the kind URL.
- * In Edit, an empty token keeps the one saved. In the first run, the way out
- * is Back and saving opens the host.
+ * Add host, or Edit host when `host` is given. A URL host has an address and
+ * a token; a local host, whose address and token come from its ahpd, has the
+ * start and quit settings instead. In Edit, an empty token keeps the one
+ * saved. In the first run, the way out is Back and saving opens the host.
  */
 export function HostForm({
   host,
@@ -31,8 +32,10 @@ export function HostForm({
   const [testing, setTesting] = useState(false);
   const [result, setResult] = useState<TestResult>(null);
   const [error, setError] = useState<string | null>(null);
+  const local = host?.kind === 'local';
+  const [onDesk, setOnDesk] = useState<OnDesk>(host?.onDesk ?? { startOnLaunch: true, stopOnQuit: false });
 
-  const url = normalizeUrl(address);
+  const url = local ? (host?.url ?? '') : normalizeUrl(address);
   const ready = name.trim() !== '' && url !== '';
 
   /** The token to use: the one typed, or in Edit the one saved. */
@@ -56,10 +59,14 @@ export function HostForm({
     if (!ready) return;
     const id = host?.id ?? hostId(name, taken);
     try {
-      await saveHost(
-        { id, name: name.trim(), kind: 'url', url },
-        token === '' ? (host === null ? '' : null) : token,
-      );
+      if (local) {
+        await saveHost({ id, name: name.trim(), kind: 'local', url, ahpdPath: host?.ahpdPath, onDesk }, null);
+      } else {
+        await saveHost(
+          { id, name: name.trim(), kind: 'url', url },
+          token === '' ? (host === null ? '' : null) : token,
+        );
+      }
       onDone({ id, name: name.trim() });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -81,32 +88,56 @@ export function HostForm({
             autoFocus
           />
         </label>
-        <label>
-          <span>{t('form.address')}</span>
-          <input
-            value={address}
-            onChange={(event) => {
-              setAddress(event.target.value);
-              setResult(null);
-            }}
-            placeholder="wss://host.example:9187"
-            spellCheck={false}
-          />
-        </label>
-        <label>
-          <span>{t('form.token')}</span>
-          <input
-            type="password"
-            value={token}
-            onChange={(event) => {
-              setToken(event.target.value);
-              setResult(null);
-            }}
-            placeholder={host === null ? '' : t('form.tokenUnchanged')}
-            autoComplete="off"
-          />
-        </label>
-        <p className="hint">{t('form.tokenHint')}</p>
+        {local ? (
+          <>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={onDesk.startOnLaunch}
+                onChange={(event) => setOnDesk({ ...onDesk, startOnLaunch: event.target.checked })}
+              />
+              <span>{t('form.startOnLaunch')}</span>
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={onDesk.stopOnQuit}
+                onChange={(event) => setOnDesk({ ...onDesk, stopOnQuit: event.target.checked })}
+              />
+              <span>{t('form.stopOnQuit')}</span>
+            </label>
+            <p className="hint">{t('form.stopOnQuitHint')}</p>
+          </>
+        ) : (
+          <>
+            <label>
+              <span>{t('form.address')}</span>
+              <input
+                value={address}
+                onChange={(event) => {
+                  setAddress(event.target.value);
+                  setResult(null);
+                }}
+                placeholder="wss://host.example:9187"
+                spellCheck={false}
+              />
+            </label>
+            <label>
+              <span>{t('form.token')}</span>
+              <input
+                type="password"
+                value={token}
+                onChange={(event) => {
+                  setToken(event.target.value);
+                  setResult(null);
+                }}
+                placeholder={host === null ? '' : t('form.tokenUnchanged')}
+                autoComplete="off"
+              />
+            </label>
+            <p className="hint">{t('form.tokenHint')}</p>
+          </>
+        )}
       </div>
       {result !== null && (
         <p className={result.ok ? 'result ok' : 'result bad'}>
@@ -118,9 +149,11 @@ export function HostForm({
         <button type="button" onClick={() => onDone(null)}>
           {firstRun ? t('form.back') : t('form.cancel')}
         </button>
-        <button type="button" onClick={test} disabled={url === '' || testing}>
-          {testing ? t('form.testing') : t('form.test')}
-        </button>
+        {!local && (
+          <button type="button" onClick={test} disabled={url === '' || testing}>
+            {testing ? t('form.testing') : t('form.test')}
+          </button>
+        )}
         <button type="submit" className="primary" disabled={!ready}>
           {firstRun ? t('form.saveAndOpen') : t('form.save')}
         </button>

@@ -12,6 +12,14 @@ export interface Host {
   url: string;
   /** The ahpd a `local` host uses, when one is set instead of the one found. */
   ahpdPath?: string;
+  /** A `local` host's two settings; a `url` host has none. */
+  onDesk?: OnDesk;
+}
+
+/** What a `local` host's ahpd does when the desk starts and quits. */
+export interface OnDesk {
+  startOnLaunch: boolean;
+  stopOnQuit: boolean;
 }
 
 /** A host as the host list sees it: with the flag for a token kept in the plain file. */

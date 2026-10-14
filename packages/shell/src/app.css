@@ -451,6 +451,23 @@ button.choice:hover:not(:disabled) {
   font-size: var(--oo-font-size-sm);
 }
 
+/* A checkbox sits under the inputs, its words after it. */
+.fields label.check {
+  display: flex;
+  gap: 8px;
+  margin-left: 92px;
+}
+
+.fields label.check span {
+  color: inherit;
+}
+
+input[type='checkbox'] {
+  margin: 0;
+  padding: 0;
+  accent-color: var(--oo-color-accent);
+}
+
 /* Inputs as ahpw's filter box. */
 input {
   font: inherit;

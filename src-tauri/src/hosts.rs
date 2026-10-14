@@ -40,6 +40,37 @@ pub struct Host {
     /// desk may stop it; one it only found it never stops.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub started_by_desk: bool,
+    #[serde(flatten)]
+    pub on_desk: OnDesk,
+}
+
+/// What a `local` host's ahpd does when the desk starts and quits (decision 3).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OnDesk {
+    /// "Start when the desktop app starts", on by default.
+    #[serde(default = "on", skip_serializing_if = "is_on")]
+    pub start_on_launch: bool,
+    /// "Stop when the desktop app quits", off by default.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub stop_on_quit: bool,
+}
+
+impl Default for OnDesk {
+    fn default() -> Self {
+        OnDesk {
+            start_on_launch: true,
+            stop_on_quit: false,
+        }
+    }
+}
+
+fn on() -> bool {
+    true
+}
+
+fn is_on(value: &bool) -> bool {
+    *value
 }
 
 /// A host as the shell sends it to `save_host`; its token comes apart.
@@ -51,8 +82,28 @@ pub struct HostInput {
     pub kind: HostKind,
     pub url: String,
     /// The ahpd a `local` host uses, when one is set instead of the one found.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub ahpd_path: Option<String>,
+    /// A `local` host's two settings; absent keeps what the host has.
+    #[serde(default)]
+    pub on_desk: Option<OnDeskView>,
+}
+
+/// `OnDesk` as the shell reads and sends it: both settings, always.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OnDeskView {
+    pub start_on_launch: bool,
+    pub stop_on_quit: bool,
+}
+
+impl From<OnDeskView> for OnDesk {
+    fn from(view: OnDeskView) -> Self {
+        OnDesk {
+            start_on_launch: view.start_on_launch,
+            stop_on_quit: view.stop_on_quit,
+        }
+    }
 }
 
 /// A host as a window sees it: never the token, only whether it sits in the plain file.
@@ -68,6 +119,9 @@ pub struct HostView {
     pub ahpd_path: Option<String>,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub token_in_file: bool,
+    /// A `local` host's two settings; none on a `url` host.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub on_desk: Option<OnDeskView>,
 }
 
 impl From<&Host> for HostView {
@@ -79,6 +133,10 @@ impl From<&Host> for HostView {
             url: host.url.clone(),
             ahpd_path: host.ahpd_path.clone(),
             token_in_file: host.token.is_some(),
+            on_desk: (host.kind == HostKind::Local).then_some(OnDeskView {
+                start_on_launch: host.on_desk.start_on_launch,
+                stop_on_quit: host.on_desk.stop_on_quit,
+            }),
         }
     }
 }
@@ -115,7 +173,9 @@ impl HostStore {
 
     fn lock(&self) -> MutexGuard<'_, Vec<Host>> {
         // A panic while the list was held leaves it whole: each change is one push or remove.
-        self.hosts.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.hosts
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     pub fn list(&self) -> Vec<HostView> {
@@ -123,13 +183,20 @@ impl HostStore {
     }
 
     pub fn find(&self, id: &str) -> Option<HostView> {
-        self.lock().iter().find(|host| host.id == id).map(HostView::from)
+        self.lock()
+            .iter()
+            .find(|host| host.id == id)
+            .map(HostView::from)
     }
 
     /// Adds the host, or replaces the one with its id. `token`: `None` keeps the
     /// token there is, `Some("")` deletes it, anything else replaces it.
     pub fn save(&self, input: HostInput, token: Option<String>) -> Result<Vec<HostView>, String> {
-        for (field, value) in [("id", &input.id), ("name", &input.name), ("url", &input.url)] {
+        for (field, value) in [
+            ("id", &input.id),
+            ("name", &input.name),
+            ("url", &input.url),
+        ] {
             if value.trim().is_empty() {
                 return Err(format!("a host needs a {field}"));
             }
@@ -145,6 +212,10 @@ impl HostStore {
             kind: input.kind,
             url: input.url,
             ahpd_path: input.ahpd_path,
+            on_desk: match input.on_desk {
+                Some(view) => view.into(),
+                None => index.map(|i| hosts[i].on_desk).unwrap_or_default(),
+            },
         };
         if let Some(token) = token {
             tokens::set(self.vault.as_ref(), &mut host, &token);
@@ -177,6 +248,27 @@ impl HostStore {
             .find(|host| host.id == id)
             .ok_or_else(|| format!("no host {id}"))?;
         Ok(tokens::get(self.vault.as_ref(), host))
+    }
+
+    /// The `local` hosts whose ahpd the desk starts when it starts.
+    pub fn to_start_on_launch(&self) -> Vec<String> {
+        self.lock()
+            .iter()
+            .filter(|host| host.kind == HostKind::Local && host.on_desk.start_on_launch)
+            .map(|host| host.id.clone())
+            .collect()
+    }
+
+    /// The `local` hosts whose ahpd the desk stops when it quits: set to, and
+    /// started by the desk (decision 3).
+    pub fn to_stop_on_quit(&self) -> Vec<String> {
+        self.lock()
+            .iter()
+            .filter(|host| {
+                host.kind == HostKind::Local && host.on_desk.stop_on_quit && host.started_by_desk
+            })
+            .map(|host| host.id.clone())
+            .collect()
     }
 
     /// A `local` host as the desk drives it: its set ahpd path, and whether
@@ -268,7 +360,10 @@ pub fn host_token(
     id: String,
 ) -> Result<Option<String>, String> {
     if !windows.may_read(window.label(), &id) {
-        return Err(format!("window {} may not read the token of {id}", window.label()));
+        return Err(format!(
+            "window {} may not read the token of {id}",
+            window.label()
+        ));
     }
     store.token(&id)
 }
@@ -312,6 +407,7 @@ mod tests {
             kind: HostKind::Url,
             url: "ws://127.0.0.1:9187".into(),
             ahpd_path: None,
+            on_desk: None,
         }
     }
 
@@ -326,7 +422,9 @@ mod tests {
     fn hosts_save_keeps_the_token_in_the_vault_and_out_of_the_file() {
         let scratch = Scratch::new();
         let store = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
-        let list = store.save(input("home", "Home"), Some("secret".into())).unwrap();
+        let list = store
+            .save(input("home", "Home"), Some("secret".into()))
+            .unwrap();
         assert_eq!(list.len(), 1);
         assert!(!list[0].token_in_file);
         assert!(!scratch.text().contains("secret"));
@@ -337,7 +435,9 @@ mod tests {
     fn hosts_save_replaces_by_id_and_keeps_the_token_when_none_is_given() {
         let scratch = Scratch::new();
         let store = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
-        store.save(input("home", "Home"), Some("secret".into())).unwrap();
+        store
+            .save(input("home", "Home"), Some("secret".into()))
+            .unwrap();
         let list = store.save(input("home", "Home desk"), None).unwrap();
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].name, "Home desk");
@@ -348,8 +448,12 @@ mod tests {
     fn hosts_an_empty_token_deletes_it() {
         let scratch = Scratch::new();
         let store = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
-        store.save(input("home", "Home"), Some("secret".into())).unwrap();
-        store.save(input("home", "Home"), Some(String::new())).unwrap();
+        store
+            .save(input("home", "Home"), Some("secret".into()))
+            .unwrap();
+        store
+            .save(input("home", "Home"), Some(String::new()))
+            .unwrap();
         assert_eq!(store.token("home").unwrap(), None);
     }
 
@@ -357,7 +461,9 @@ mod tests {
     fn hosts_remove_deletes_the_host_and_its_token() {
         let scratch = Scratch::new();
         let store = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
-        store.save(input("home", "Home"), Some("secret".into())).unwrap();
+        store
+            .save(input("home", "Home"), Some("secret".into()))
+            .unwrap();
         assert!(store.remove("home").unwrap().is_empty());
         assert!(store.token("home").is_err());
         assert!(store.remove("home").is_err());
@@ -369,7 +475,9 @@ mod tests {
     fn hosts_with_no_keyring_the_token_is_in_the_file_and_flagged() {
         let scratch = Scratch::new();
         let store = HostStore::load(scratch.file(), Box::new(Broken)).unwrap();
-        let list = store.save(input("home", "Home"), Some("secret".into())).unwrap();
+        let list = store
+            .save(input("home", "Home"), Some("secret".into()))
+            .unwrap();
         assert!(list[0].token_in_file);
         assert!(scratch.text().contains("\"token\": \"secret\""));
         assert_eq!(store.token("home").unwrap().as_deref(), Some("secret"));
@@ -401,6 +509,7 @@ mod tests {
             ahpd_path: None,
             token: Some("from-file".into()),
             started_by_desk: false,
+            on_desk: OnDesk::default(),
         };
         assert_eq!(tokens::get(&vault, &host).as_deref(), Some("from-vault"));
         assert_eq!(tokens::get(&Broken, &host).as_deref(), Some("from-file"));
@@ -411,14 +520,22 @@ mod tests {
         let scratch = Scratch::new();
         let store = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
         store.save(input("home", "Home"), None).unwrap();
-        assert!(store.local("home").is_err(), "a url host is not this computer");
+        assert!(
+            store.local("home").is_err(),
+            "a url host is not this computer"
+        );
         let mut local = input("pc", "This computer");
         local.kind = HostKind::Local;
         local.ahpd_path = Some("C:/tools/ahpd.cmd".into());
         store.save(local.clone(), None).unwrap();
-        assert_eq!(store.local("pc").unwrap(), (Some("C:/tools/ahpd.cmd".into()), false));
+        assert_eq!(
+            store.local("pc").unwrap(),
+            (Some("C:/tools/ahpd.cmd".into()), false)
+        );
 
-        let list = store.set_local("pc", Some(("ws://127.0.0.1:9200", Some("t"))), true).unwrap();
+        let list = store
+            .set_local("pc", Some(("ws://127.0.0.1:9200", Some("t"))), true)
+            .unwrap();
         assert_eq!(list[1].url, "ws://127.0.0.1:9200");
         assert_eq!(store.token("pc").unwrap().as_deref(), Some("t"));
         assert!(store.local("pc").unwrap().1);
@@ -428,9 +545,64 @@ mod tests {
         store.save(local, None).unwrap();
         assert!(store.local("pc").unwrap().1);
 
-        store.set_local("pc", Some(("ws://127.0.0.1:9200", None)), false).unwrap();
+        store
+            .set_local("pc", Some(("ws://127.0.0.1:9200", None)), false)
+            .unwrap();
         assert_eq!(store.token("pc").unwrap(), None, "an ahpd with no token");
         assert!(!scratch.text().contains("startedByDesk"));
+    }
+
+    #[test]
+    fn hosts_the_start_and_quit_settings_pick_the_hosts() {
+        let scratch = Scratch::new();
+        let store = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
+        let local = |id: &str, start_on_launch: bool, stop_on_quit: bool| {
+            let mut host = input(id, id);
+            host.kind = HostKind::Local;
+            host.on_desk = Some(OnDeskView {
+                start_on_launch,
+                stop_on_quit,
+            });
+            host
+        };
+        store.save(input("url", "url"), None).unwrap();
+        store.save(local("plain", true, false), None).unwrap();
+        store.save(local("off", false, true), None).unwrap();
+        store.save(local("ours", true, true), None).unwrap();
+        assert_eq!(store.to_start_on_launch(), ["plain", "ours"]);
+        assert!(store.to_stop_on_quit().is_empty(), "the desk started none");
+        store
+            .set_local("off", Some(("ws://h", None)), true)
+            .unwrap();
+        store
+            .set_local("ours", Some(("ws://h", None)), true)
+            .unwrap();
+        store
+            .set_local("plain", Some(("ws://h", None)), true)
+            .unwrap();
+        assert_eq!(store.to_stop_on_quit(), ["off", "ours"]);
+
+        // The defaults are not written, and a host read with none gets them.
+        assert!(!scratch.text().contains("startOnLaunch\": true"));
+        assert!(scratch.text().contains("\"startOnLaunch\": false"));
+        let view = store
+            .list()
+            .into_iter()
+            .find(|host| host.id == "plain")
+            .unwrap();
+        assert_eq!(
+            view.on_desk,
+            Some(OnDeskView {
+                start_on_launch: true,
+                stop_on_quit: false
+            })
+        );
+        assert_eq!(store.list()[0].on_desk, None, "a url host has none");
+        // A save with no settings keeps them.
+        let mut kept = local("off", true, true);
+        kept.on_desk = None;
+        store.save(kept, None).unwrap();
+        assert_eq!(store.to_start_on_launch(), ["plain", "ours"]);
     }
 
     #[test]
