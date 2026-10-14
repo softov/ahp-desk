@@ -44,7 +44,7 @@ An open port: ahpd listens on 0.0.0.0 with its token, and the host is kind `url`
    A sign-in that needs the person, or a key refused, is not retried until they act.
 7. `open_on_launch(app)` opens every `ssh` host's tunnel off the main thread, after the host list window, as `start_on_launch` does; on `RunEvent::Exit` each tunnel's listener and session are closed, and `Secrets` goes with the process.
 8. An open port is a `url` host at `ws://<server>:<remotePort>`, with the token `install_ssh_ahpd` read; once saved, the desk connects to it from the desk, and a failure says the port may be closed by a firewall on the server or between, and leaves the host saved and down.
-   For an ahpd found on the server and not installed by the desk, which reach is offered follows open question 2 in the plan.
+   For an ahpd found on the server and not installed by the desk, the reach follows how it listens (decision 21): the tunnel, to its own port, is always offered; the open port only when its `ahpd status --json` address is beyond 127.0.0.1, and then the host's `url` is that address with the server's name.
 9. The words: the tunnel's note "Reachable while the desk is open." (plan's Risks), and the open port's "The token travels unencrypted unless the server is behind TLS." (decision 5), shown in task 07's form; the row's tunnel errors and "Sign in" here.
 
 ## Validation

@@ -28,12 +28,14 @@ dev02 is the only server used; never dev01 or any other host (the plan's Risks).
 5. Folder: one install with a folder other than the home serves it: `ahpd status --json` on dev02 names it in `paths`, and the app window's explorer opens on it (decision 14).
 6. The server key: the first connection is refused and shows the same fingerprint as step 1, and Trust connects (decision 9); with `known_keys.json` edited to another key, the next connection is refused and names both fingerprints, and "Forget the old key" leads back to the trust question (decision 10).
 7. A found ahpd (decision 16): with an install from step 3 left in place, a second Add host on dev02 finds it, offers only the backends it lacks, and connects with nothing installed beside it.
-   With an ahpd installed by hand on dev02 instead, if Softov allowed it in step 1, Add host finds it, shows its version, adds a backend ticked through its own `plugin install`, and connects as open questions 1 and 2 in the plan settled.
+   With an ahpd installed by hand on dev02 instead, if Softov allowed it in step 1, Add host finds it, shows its version, adds a backend ticked through its own `plugin install`, and connects through a tunnel on its own port (decision 21); with that ahpd stopped first, Add host says it will not survive a reboot, starts it with no unit written, and connects (decision 20).
 8. Node: on dev02 as it is (its own Node, or none), the install uses it or downloads the newest Node 22 from `latest-v22.x` into `~/.local/share/ahpd/node` and shows its version (decision 17); the other case is covered by task 04's ignored test `ssh_a_real_node_download`, run again on the release build's code.
 9. Lingering: with lingering off, the form warns and gives the command; with it on, ahpd is still active after the SSH session ends and the desk quits (`systemctl --user is-active ahpd` from a new login).
 10. Update: with `@ahpd/server` pinned one release back, `update_ssh_ahpd` installs the newer one and the host comes back connected, with the same token, port and local port.
 11. Remove (decision 19): "Remove and uninstall" runs the steps, and dev02 has no unit, no `~/.local/share/ahpd` and nothing listening on the ahpd port; "Remove from the desk only" leaves the server's ahpd running, which is then removed by hand.
-    A host whose ahpd the desk did not install behaves as open question 3 in the plan settled.
+    Remove on a host whose ahpd the desk did not install offers no uninstall, says the server's ahpd stays, and leaves it running (decision 22).
+    With dev02's SSH port blocked from this machine, "Remove and uninstall" shows why, with "Remove from the desk only" and Cancel, and Cancel keeps the host (decision 24).
+    After any uninstall, `~/.config/ahpd` on dev02 is as it was (decision 23).
 12. The first run on an empty host list reaches an open app window on dev02.
 13. The window in en, pt-BR and es at its smallest size, with nothing cut or overlapping, including the trust question, the changed-key refusal, the Remember checkbox's two wordings and the Remove question.
 14. After: remove what the run installed on dev02 (step 2's list), the scratch host list, and the run's keyring entries.

@@ -25,5 +25,5 @@ What exists today: [00-desk.md](desk/00-desk.md).
 | [01 p7 - Desk polish before the first release](desk/01-first-build-p7-desk-polish/plan.md) | built | - |
 | [01 p8 - Each host keeps its own pages on the desk](desk/01-first-build-p8-host-scoped-storage/plan.md) | built | - |
 | [01 p9 - The desk says what can be updated, and updates it](desk/01-first-build-p9-update-alerts/plan.md) | planned | task 03 to the ahpd repository; then task 01 |
-| [01 p10 - Install ahpd on a Linux server over SSH](desk/01-first-build-p10-ssh-install/plan.md) | planned | answer its 5 open questions on a found ahpd and uninstall, then task 01 |
+| [01 p10 - Install ahpd on a Linux server over SSH](desk/01-first-build-p10-ssh-install/plan.md) | planned | task 01 |
 | [02 - VS Code as a host](desk/02-vscode-hosts/plan.md) | draft | answer its four questions |

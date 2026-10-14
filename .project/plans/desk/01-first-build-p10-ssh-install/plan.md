@@ -27,6 +27,11 @@ decisions:
   - decisions/the-remote-node-download-is-the-newest-22.md
   - decisions/a-tunnels-local-port-is-chosen-once-and-kept.md
   - decisions/removing-an-ssh-host-offers-to-uninstall-its-ahpd.md
+  - decisions/a-found-ahpd-not-running-on-the-server-is-started-with-its-own-start.md
+  - decisions/a-found-ahpd-on-the-server-is-reached-on-its-own-port.md
+  - decisions/removing-a-host-whose-ahpd-the-desk-did-not-install-leaves-the-server-alone.md
+  - decisions/the-uninstall-leaves-the-servers-config-ahpd.md
+  - decisions/an-uninstall-that-cannot-reach-the-server-offers-remove-only.md
 refs:
   - file:///github/opendoop/packages/tauri/src-tauri/src/ssh/mod.rs - doop's `russh` session, agent then key-file sign-in, `exec_capture`
   - file:///github/opendoop/packages/tauri/src-tauri/src/ssh/push.rs - doop's file push over SSH
@@ -55,20 +60,22 @@ The files read and the pattern reused are the `refs` above: doop installs its da
 Add host "A server over SSH" -> address, SSH port, user, sign-in (agent | key file | password), folder, ahpd port
   -> server key: known_hosts or confirmed passes; new or changed refuses with its fingerprints -> Trust (or Forget the old key) -> connect again
   -> probe: Linux, CPU, systemctl --user, lingering, node -v, an ahpd already there
-  -> ahpd found: its version (too old shown, not replaced), the backends it lacks through its own plugin install -> connect
+  -> ahpd found: its version (too old shown, not replaced), the backends it lacks through its own plugin install, its own ahpd start when it is off (no unit) -> its port and token from status --json and daemon.json -> connect
   -> none found: Node 22+ there, or latest-v22.x downloaded into ~/.local/share/ahpd/node
      -> npm install @ahpd/server into ~/.local/share/ahpd; backends through ahpd plugin install with AHPD_PLUGIN_ROOT=~/.local/share/ahpd; config in ~/.config/ahpd; the folder as paths
      -> ~/.config/systemd/user/ahpd.service on the ahpd port; systemctl --user enable, restart
   -> reach: tunnel (127.0.0.1, a local port kept on the host) | open port (0.0.0.0 + token)
   -> Host { kind: ssh | url, ssh details } -> hosts-changed -> connect
-Remove on a host the desk installed -> offer to uninstall: disable --now, the unit, ~/.local/share/ahpd -> forget the host
+Remove on a host the desk installed -> offer to uninstall: disable --now, the unit, ~/.local/share/ahpd (~/.config/ahpd left) -> forget the host
+  | server unreachable -> why, with "Remove from the desk only" and Cancel
+Remove on a host the desk did not install -> nothing on the server, and the question says so -> forget the host
 ```
 
 ### Gaps
 
 - `Not found: an SSH client in the desk - doop's is in another repository, to be brought in.`
 - A user service stops at logout without lingering, which needs an administrator to turn on.
-- `Not found: the ahpd command that sets paths with no terminal - the SSH install's folder waits for it, as p3's does.`
+- `ahpd paths add <folder>` sets the served folders with no terminal on ahpd main (git://54e4ef26), not yet released; the SSH install's folder step needs the release after 0.11.0.
 
 ## Decisions locked in
 
@@ -93,6 +100,11 @@ Remove on a host the desk installed -> offer to uninstall: disable --now, the un
 | 17 | [The Node downloaded on a server is the newest 22, from latest-v22.x, checked against its SHASUMS256.txt](../../../decisions/the-remote-node-download-is-the-newest-22.md) | Softov, 2026-10-14 |
 | 18 | [A tunnelled host's local port is chosen once and kept on the host](../../../decisions/a-tunnels-local-port-is-chosen-once-and-kept.md) | Softov, 2026-10-14 |
 | 19 | [Removing an SSH host offers to stop and uninstall its ahpd on the server](../../../decisions/removing-an-ssh-host-offers-to-uninstall-its-ahpd.md) | Softov, 2026-10-14 |
+| 20 | [A found ahpd not running on the server is started with its own ahpd start, with no unit, and the form says it will not survive a reboot](../../../decisions/a-found-ahpd-not-running-on-the-server-is-started-with-its-own-start.md) | Softov, 2026-10-14 |
+| 21 | [A found ahpd on the server is reached on its own port, through a tunnel, or through an open port only when it already listens beyond loopback](../../../decisions/a-found-ahpd-on-the-server-is-reached-on-its-own-port.md) | Softov, 2026-10-14 |
+| 22 | [Removing an SSH host whose ahpd the desk did not install does nothing on the server, and says so](../../../decisions/removing-a-host-whose-ahpd-the-desk-did-not-install-leaves-the-server-alone.md) | Softov, 2026-10-14 |
+| 23 | [Uninstalling the desk's ahpd leaves the server's ~/.config/ahpd](../../../decisions/the-uninstall-leaves-the-servers-config-ahpd.md) | Softov, 2026-10-14 |
+| 24 | [An uninstall that cannot reach the server shows why, with Remove from the desk only and Cancel](../../../decisions/an-uninstall-that-cannot-reach-the-server-offers-remove-only.md) | Softov, 2026-10-14 |
 
 | What | Source | Task |
 | --- | --- | --- |
@@ -132,25 +144,9 @@ Remove on a host the desk installed -> offer to uninstall: disable --now, the un
 
 ## Resume state
 
-- **Done so far:** the plan and decisions 1 to 7, 2026-10-13; the task files and decisions 8 to 19, 2026-10-14.
+- **Done so far:** the plan and decisions 1 to 7, 2026-10-13; the task files and decisions 8 to 24, 2026-10-14.
 - **Next action:** task 01.
-- **Open questions:** each has a proposed answer.
-  None is decided until Softov answers it and it is written as a decision file.
-  1. A found ahpd on the server (decision 16) that is not running: does the desk start it with that ahpd's own `ahpd start`, or write its user unit to run it?
-     Proposed: its own `ahpd start --port <ahpd port> --connection-token-file`, as p3 starts a found ahpd on this computer; the desk writes no unit for an ahpd it did not install, and the probe's answer says it will not come back after the server restarts.
-     Tasks 05, 07.
-  2. How a found ahpd on the server is reached: the reach and the ahpd port when it already runs.
-     Proposed: its address and token from its `ahpd status --json` and `daemon.json`, as p3 reads a found ahpd's; the ahpd port field shows its port, fixed; the tunnel is always offered, and the open port only when it already listens beyond 127.0.0.1.
-     Tasks 05, 06, 07.
-  3. Remove on an SSH host whose ahpd the desk found and did not install (decision 16): offer only a stop, or nothing on the server?
-     Proposed: nothing; Remove says the server's ahpd stays as it is because the desk did not install it, and forgets the host.
-     Task 10.
-  4. The server's `~/.config/ahpd` on uninstall: left, or removed with the desk's install?
-     Proposed: left, since it is ahpd's usual config folder (decision 12) and may serve an ahpd the person installs later; Remove's question says it stays.
-     Task 10.
-  5. Uninstall when the server cannot be reached: the host stays, or is removed from the desk anyway?
-     Proposed: the uninstall's error is shown with "Remove from the desk only", which forgets the host and leaves the server as it is.
-     Task 10.
+- **Open questions:** none.
 - **Watch out for:** doop's `AcceptAllHandler` must not be copied; decision 2 replaces it.
   The end to end and every real SSH test run against dev02 only.
   Task 10 runs before task 09, the end to end, which covers it.
@@ -161,5 +157,6 @@ Remove on a host the desk installed -> offer to uninstall: disable --now, the un
 - [ ] A new server key is refused until Trust; a changed one is refused with both fingerprints and forgotten from the refusal.
 - [ ] An ahpd already on dev02 is used, with the backends it lacks offered, and nothing installed beside it.
 - [ ] Update over SSH installs the newer ahpd and the host comes back.
-- [ ] Remove with uninstall leaves no unit, no install and no token of the desk's on dev02.
+- [ ] Remove with uninstall leaves no unit, no install and no token of the desk's on dev02, and `~/.config/ahpd` as it was.
+- [ ] A found ahpd that was off is started with no unit, and Remove leaves it running.
 - [ ] `plans/index.md` updated.

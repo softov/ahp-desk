@@ -37,7 +37,7 @@ refs:
 8. When an ahpd is found, `found_ahpd()` runs its `plugin list --json` and `status --json` in one more `exec_capture`, the desk's own install with `AHPD_PLUGIN_ROOT=<home>/.local/share/ahpd` (decision 12), and `Probe.found` is `FoundOnServer { path, version, supported, plugins, running, url, byDesk }`: `supported` is its version against `OLDEST_SUPPORTED`, `plugins` the ready ones, `running` and `url` from `status --json`, and `byDesk` true for the desk's own install with the desk's unit (decision 16).
    A found ahpd is used, never installed over; one older than `OLDEST_SUPPORTED` is shown with the version needed and is not replaced (decision 16).
    With a found ahpd, the refusals of step 4 that concern the install (no `systemctl --user`, a CPU with no Node build) and `NodeOnServer` do not apply, since the desk installs nothing; not Linux still refuses (decision 1).
-   How a found ahpd that is not running is started, and how it is reached, are open questions 1 and 2 in the plan.
+   A found ahpd that is not running is started by task 05 with its own `ahpd start`, and the probe's answer says it will not come back after the server restarts (decision 20); a found ahpd is reached on its own port (decision 21).
 
 ## Validation
 
