@@ -1,10 +1,10 @@
 ---
 title: The desk says what can be updated, and updates it
 domain: desk
-status: draft
+status: planned
 priority: high
 created: 2026-10-13
-revalidated: 2026-10-13
+revalidated: 2026-10-14
 requires:
   - plans/desk/01-first-build-p4-tray-and-releases/plan.md
   - plans/desk/01-first-build-p3-local-ahpd/plan.md
@@ -72,18 +72,16 @@ host connected -> initialize serverInfo (ahpd version) -> npm latest @ahpd/serve
 
 ## Tasks
 
-These task files are written when this plan moves to `planned`.
-
 | Task | Status | Depends on |
 | --- | --- | --- |
-| 01 - npm's latest @ahpd/server, checked and kept | todo | - |
-| 02 - the host row's notice and Update | todo | 01 |
-| 03 - ahpd: an update command for an administrator, over HTTP and AHP (in the ahpd repository) | todo | - |
-| 04 - Update through ahpd's command | todo | 02, 03 |
-| 05 - Update over SSH for an SSH-installed host | todo | 02, p10 |
-| 06 - the desk's own update notice, in the host list and the tray | todo | p4 task 03 |
-| 07 - the release steps: an ahpw release is followed by a desk release | todo | - |
-| 08 - end to end | todo | 01 to 07 |
+| [01 - npm's latest @ahpd/server, checked and kept](task-01-npm-latest-ahpd.md) | todo | - |
+| [02 - the host row's notice and Update](task-02-host-row-notice-and-update.md) | todo | 01 |
+| [03 - ahpd: an update command for an administrator, over HTTP and AHP (in the ahpd repository)](task-03-ahpd-update-command.md) | todo | - |
+| [04 - Update through ahpd's command](task-04-update-through-ahpd.md) | todo | 02, 03 |
+| [05 - Update over SSH for an SSH-installed host](task-05-update-over-ssh.md) | todo | 02, p10 task 08 |
+| [06 - the desk's own update notice, in the host list and the tray](task-06-desk-update-notice.md) | todo | 01, p4 tasks 01 and 03 |
+| [07 - the release steps: an ahpw release is followed by a desk release](task-07-release-steps.md) | todo | - |
+| [08 - end to end](task-08-end-to-end.md) | todo | 01 to 07 |
 
 ## Risks and tradeoffs
 
@@ -92,10 +90,25 @@ These task files are written when this plan moves to `planned`.
 
 ## Resume state
 
-- **Done so far:** the plan and its decisions, 2026-10-13.
-- **Next action:** hand task 03 to the ahpd repository as a plan; write this plan's task files.
-- **Open questions:** none.
-- **Watch out for:** the local ahpd follows decision 4, not the host-row Update.
+- **Done so far:** the plan, its decisions and its task files, 2026-10-14.
+- **Next action:** answer the open questions below; hand task 03 to the ahpd repository as its own plan; then task 01, and task 07, which waits on nothing.
+- **Open questions:**
+  1. Task 01: how `updates.rs` asks npm.
+     Proposed: `reqwest` with `rustls-tls` and `json`, the client `tauri-plugin-updater` (p4 task 03) already brings.
+     Other ways: `npm view @ahpd/server version` run with the bundled Node; the ask made from the host list's webview with `fetch`.
+  2. Tasks 03 and 04: how the desk knows, before it shows Update, that ahpd's command will take its token.
+     Proposed: the command takes `check` and answers `{ current, latest, may }`, or the refusal a real update would get.
+     Other ways: Update on every ahpd that has the command, and a refusal said on the click; ahpd saying it in its `initialize` answer.
+  3. Task 04: which of ahpd's surfaces the desk calls.
+     Proposed: the AHP method `x-ahpd/update`, over the connection the host list already holds.
+     Other way: `POST /api/update`, which needs ahpd's `/api` on and an HTTP address beside the host's `ws://` one.
+  4. Tasks 03, 04 and 05: which version Update installs.
+     Proposed: the version the row named, passed by the desk.
+     Other way: npm's latest at the moment ahpd or the SSH update runs.
+  5. Task 06: the tray's form of "ahp-desk X is ready. Restart to update."
+     Proposed: the first item of the tray menu, which installs on a click.
+     Other ways: an OS notification; the tray icon's tooltip or a badge.
+- **Watch out for:** the local ahpd follows decision 4 (p3 task 07), not the host-row Update.
 
 ## Final verification checklist
 

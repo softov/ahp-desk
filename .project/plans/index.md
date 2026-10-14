@@ -19,11 +19,11 @@ What exists today: [00-desk.md](desk/00-desk.md).
 | [01 p1 - The shell, the host list and the app window](desk/01-first-build-p1-shell-and-url-hosts/plan.md) | built | - |
 | [01 p2 - ahpw on the desk](desk/01-first-build-p2-ahpw-on-the-desk/plan.md) | built | - |
 | [01 p3 - The local ahpd](desk/01-first-build-p3-local-ahpd/plan.md) | active | task 07; tasks 03 and 06 wait on the next ahpd release |
-| [01 p4 - The tray, the updater and the releases](desk/01-first-build-p4-tray-and-releases/plan.md) | draft | write the tasks |
+| [01 p4 - The tray, the updater and the releases](desk/01-first-build-p4-tray-and-releases/plan.md) | planned | answer its 8 open questions, then task 01 |
 | [01 p5 - ahpapp in a private build](desk/01-first-build-p5-ahpapp-on-the-desk/plan.md) | draft | name and release channel |
 | [01 p6 - The bot pill](desk/01-first-build-p6-bot-pill/plan.md) | draft | write the tasks |
 | [01 p7 - Desk polish before the first release](desk/01-first-build-p7-desk-polish/plan.md) | built | - |
 | [01 p8 - Each host keeps its own pages on the desk](desk/01-first-build-p8-host-scoped-storage/plan.md) | built | - |
-| [01 p9 - The desk says what can be updated, and updates it](desk/01-first-build-p9-update-alerts/plan.md) | draft | task 03 to the ahpd repository; write the tasks |
-| [01 p10 - Install ahpd on a Linux server over SSH](desk/01-first-build-p10-ssh-install/plan.md) | draft | write the tasks |
+| [01 p9 - The desk says what can be updated, and updates it](desk/01-first-build-p9-update-alerts/plan.md) | planned | answer its 5 open questions; task 03 to the ahpd repository |
+| [01 p10 - Install ahpd on a Linux server over SSH](desk/01-first-build-p10-ssh-install/plan.md) | planned | answer its 11 open questions, then task 01 |
 | [02 - VS Code as a host](desk/02-vscode-hosts/plan.md) | draft | answer its four questions |
