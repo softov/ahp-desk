@@ -1,6 +1,6 @@
 /** The desk's commands and events as the host list calls them; a UI in an app window reaches them through its embedder. */
 
-import { invoke } from '@tauri-apps/api/core';
+import { Channel, invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 /** One host in the desk's host list. A token is never part of it; ask `hostToken`. */
@@ -31,6 +31,16 @@ export interface FoundAhpd {
 /** The ahpd the desk would use for a `local` host, or null when there is none. */
 export function findLocalAhpd(ahpdPath: string | null): Promise<FoundAhpd | null> {
   return invoke<FoundAhpd | null>('find_local_ahpd', { ahpdPath });
+}
+
+/** One step of an install: a line npm or ahpd wrote. */
+export type InstallEvent = { kind: 'line'; text: string };
+
+/** Installs ahpd and the `backends` with the desk's Node, calling `onEvent` as it goes, and answers the ahpd now used. */
+export function installLocalAhpd(backends: string[], onEvent: (event: InstallEvent) => void): Promise<FoundAhpd | null> {
+  const events = new Channel<InstallEvent>();
+  events.onmessage = onEvent;
+  return invoke<FoundAhpd | null>('install_local_ahpd', { backends, events });
 }
 
 /** A host's state, as the host list publishes it to the app windows. */

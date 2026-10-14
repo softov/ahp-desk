@@ -154,12 +154,15 @@ impl LocalAhpd {
         })
     }
 
-    /// Installs `@ahpd/server` into the prefix with the bundled npm, sending
-    /// each line npm writes to `line`.
+    /// Installs `@ahpd/server` into the prefix with the bundled npm, then the
+    /// `backends` through its `plugin install` (decision 8), sending each line
+    /// npm and ahpd write to `line`.
     pub fn install(
         &self,
+        backends: &[String],
         line: impl Fn(String) + Send + Sync + Clone + 'static,
     ) -> Result<(), String> {
+        check_backends(backends)?;
         let node = self
             .node
             .as_ref()
@@ -186,13 +189,38 @@ impl LocalAhpd {
             .arg("--prefix")
             .arg(&self.prefix)
             .arg("@ahpd/server@latest");
-        run_streaming(command, line)
+        run_streaming("npm install", command, line.clone())?;
+        let ahpd = self
+            .installed()
+            .ok_or("npm finished, but @ahpd/server is not in the prefix")?;
+        let mut command = ahpd.command();
+        command.arg("plugin").arg("install").args(backends);
+        run_streaming("ahpd plugin install", command, line)
     }
 }
 
-/// Runs `command`, sending each line of its stdout and stderr as it comes,
-/// and fails with its last lines when it exits non-zero.
+/// The backends Add host offers are `@ahpd/` packages, and ahpd does not start
+/// with none (decision 2).
+fn check_backends(backends: &[String]) -> Result<(), String> {
+    if backends.is_empty() {
+        return Err("pick at least one backend; ahpd does not start without one".into());
+    }
+    for name in backends {
+        let bare = name.strip_prefix("@ahpd/").unwrap_or_default();
+        let plain = bare
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-');
+        if bare.is_empty() || !plain {
+            return Err(format!("{name} is not an @ahpd/ package name"));
+        }
+    }
+    Ok(())
+}
+
+/// Runs `command`, the step `what`, sending each line of its stdout and
+/// stderr as it comes, and fails with its last lines when it exits non-zero.
 fn run_streaming(
+    what: &str,
     mut command: Command,
     line: impl Fn(String) + Send + Sync + Clone + 'static,
 ) -> Result<(), String> {
@@ -231,7 +259,7 @@ fn run_streaming(
         return Ok(());
     }
     let kept = last.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-    Err(format!("npm exited with {status}:\n{}", kept.join("\n")))
+    Err(format!("{what} exited with {status}:\n{}", kept.join("\n")))
 }
 
 /// `<prefix>/node_modules/@ahpd/server`'s `bin.ahpd`, when it is installed there.
@@ -378,19 +406,21 @@ pub async fn find_local_ahpd(
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum InstallEvent {
-    /// A line npm wrote.
+    /// A line npm or ahpd wrote.
     Line { text: String },
 }
 
-/// Installs ahpd with the bundled Node, then answers the ahpd the desk now uses.
+/// Installs ahpd and `backends` with the bundled Node, then answers the ahpd
+/// the desk now uses.
 #[tauri::command]
 pub async fn install_local_ahpd(
     app: AppHandle,
+    backends: Vec<String>,
     events: Channel<InstallEvent>,
 ) -> Result<Option<FoundView>, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let local = app.state::<LocalAhpd>();
-        local.install(move |text| {
+        local.install(&backends, move |text| {
             // A shell that went away mid-install does not stop npm.
             let _ = events.send(InstallEvent::Line { text });
         })?;
@@ -612,8 +642,27 @@ mod tests {
     #[test]
     fn local_ahpd_an_install_with_no_node_says_so() {
         let local = LocalAhpd::at(std::env::temp_dir().join("never-made"), None);
-        let error = local.install(|_| {}).unwrap_err();
+        let error = local
+            .install(&["@ahpd/agent-claude".into()], |_| {})
+            .unwrap_err();
         assert!(error.contains("no Node"), "{error}");
+    }
+
+    #[test]
+    fn local_ahpd_backends_are_ahpd_packages_and_at_least_one() {
+        let names = |list: &[&str]| list.iter().map(|one| one.to_string()).collect::<Vec<_>>();
+        assert!(check_backends(&names(&["@ahpd/agent-claude", "@ahpd/bot"])).is_ok());
+        assert!(check_backends(&[]).is_err());
+        for bad in [
+            "agent-claude",
+            "@ahpd/",
+            "@other/agent",
+            "@ahpd/agent claude",
+            "@ahpd/../x",
+            "--registry=x",
+        ] {
+            assert!(check_backends(&names(&[bad])).is_err(), "{bad}");
+        }
     }
 
     #[test]
@@ -629,7 +678,7 @@ mod tests {
         };
         let heard = Arc::new(Mutex::new(Vec::new()));
         let sink = heard.clone();
-        let error = run_streaming(command, move |text| {
+        let error = run_streaming("the test", command, move |text| {
             sink.lock().unwrap().push(text.trim().to_string())
         })
         .unwrap_err();
@@ -640,20 +689,30 @@ mod tests {
     }
 
     /// A real install from npm, with the Node `pnpm stage:node` put in
-    /// `resources/node`, into a scratch prefix.
+    /// `resources/node`, into a scratch prefix and a scratch config folder.
+    /// On Windows it needs an ahpd whose `plugin install` runs npm there.
     #[test]
     #[ignore = "needs the network and a staged Node"]
     fn local_ahpd_a_real_install() {
         let scratch = Scratch::new();
+        // ahpd's config folder is $XDG_CONFIG_HOME/ahpd: never the user's own here.
+        std::env::set_var("XDG_CONFIG_HOME", scratch.0.join("config"));
         let resources = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/node");
         let local = LocalAhpd::at(scratch.0.join("ahpd"), BundledNode::in_dir(&resources));
-        local.install(|text| println!("npm: {text}")).unwrap();
+        local
+            .install(&["@ahpd/agent-claude".into()], |text| println!("| {text}"))
+            .unwrap();
         let found = find(None, local.installed(), None, version)
             .unwrap()
             .unwrap();
-        println!("{found:?}");
         assert_eq!(found.origin, Origin::Installed);
         assert!(found.supported());
+        let backend = scratch
+            .0
+            .join("ahpd/node_modules/@ahpd/agent-claude/package.json");
+        assert!(backend.is_file(), "the backend is under the prefix");
+        let config = fs::read_to_string(scratch.0.join("config/ahpd/config.json")).unwrap();
+        assert!(config.contains("@ahpd/agent-claude"), "{config}");
     }
 
     /// Runs the real `ahpd --version` of the first ahpd on this machine's `PATH`.

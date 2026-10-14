@@ -15,6 +15,7 @@ decisions:
   - decisions/the-local-ahpd-uses-a-token-file.md
   - decisions/ahpd-updates-itself-when-the-first-install-says-so.md
   - decisions/the-installed-ahpd-keeps-the-usual-config-folder.md
+  - decisions/the-desk-adds-backends-through-ahpd-plugin-install.md
 refs:
   - file:///github/ahpd/packages/server/src/daemon.ts - `ahpd start`, `stop` and `status`, with daemon.json, at lines 10-37, 189-196 and 436-439
   - file:///github/ahpd/packages/server/src/commands/options.ts - the token from `--connection-token-file`, at lines 1051-1085
@@ -65,6 +66,7 @@ quit -> stop setting on -> ahpd stop
 | 5 | [The local ahpd uses a token file](../../../decisions/the-local-ahpd-uses-a-token-file.md) | Softov, 2026-10-11 |
 | 6 | [ahpd updates itself when the first install says so](../../../decisions/ahpd-updates-itself-when-the-first-install-says-so.md) | Softov, 2026-10-11 |
 | 7 | [An ahpd the desk installs keeps the usual config folder, with its backends under AHPD_PLUGIN_ROOT](../../../decisions/the-installed-ahpd-keeps-the-usual-config-folder.md) | Softov, 2026-10-13 |
+| 8 | [The desk adds backends through ahpd plugin install](../../../decisions/the-desk-adds-backends-through-ahpd-plugin-install.md) | Softov, 2026-10-13 |
 
 | What | Source | Task |
 | --- | --- | --- |
@@ -100,8 +102,8 @@ quit -> stop setting on -> ahpd stop
 ## Resume state
 
 - **Done so far:** the task files; task 01 on `@ahpd/server` 0.11.0; task 02, `local_ahpd::find()`; task 03 but its backends; 2026-10-13.
-- **Next action:** task 03, the backends.
-- **Open questions:** how task 03 adds the backends while `ahpd plugin install` fails on Windows; what Add host does with an ahpd on `PATH` older than 0.8.0, before task 06; a graceful `ahpd stop` on Windows is an ahpd change, taken up in ahpd's own session.
+- **Next action:** task 04; task 03 closes when the real install with a backend passes on the ahpd release that fixes `plugin install` on Windows.
+- **Open questions:** what Add host does with an ahpd on `PATH` older than 0.8.0, before task 06; ahpd changes in its own session: a graceful `ahpd stop` on Windows, and `plugin install` running npm on Windows.
 - **Watch out for:** an ahpd that the shell found and did not start is never stopped by the shell.
 
 ## Final verification checklist
