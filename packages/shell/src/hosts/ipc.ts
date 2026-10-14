@@ -33,6 +33,27 @@ export function findLocalAhpd(ahpdPath: string | null): Promise<FoundAhpd | null
   return invoke<FoundAhpd | null>('find_local_ahpd', { ahpdPath });
 }
 
+/** A local host's ahpd: on or off, and whether the desk started it, which is the only one it stops. */
+export interface LocalState {
+  on: boolean;
+  startedByDesk: boolean;
+}
+
+/** Whether the local host's ahpd is on; its address and token are saved on the host. */
+export function localAhpdStatus(id: string): Promise<LocalState> {
+  return invoke<LocalState>('local_ahpd_status', { id });
+}
+
+/** Starts the local host's ahpd, or takes the one already on. */
+export function startLocalAhpd(id: string): Promise<LocalState> {
+  return invoke<LocalState>('start_local_ahpd', { id });
+}
+
+/** Stops the local host's ahpd; refused for one the desk did not start. */
+export function stopLocalAhpd(id: string): Promise<LocalState> {
+  return invoke<LocalState>('stop_local_ahpd', { id });
+}
+
 /** One step of an install: a line npm or ahpd wrote. */
 export type InstallEvent = { kind: 'line'; text: string };
 

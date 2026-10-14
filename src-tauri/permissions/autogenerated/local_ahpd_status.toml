@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-local-ahpd-status"
+description = "Enables the local_ahpd_status command without any pre-configured scope."
+commands.allow = ["local_ahpd_status"]
+
+[[permission]]
+identifier = "deny-local-ahpd-status"
+description = "Denies the local_ahpd_status command without any pre-configured scope."
+commands.deny = ["local_ahpd_status"]

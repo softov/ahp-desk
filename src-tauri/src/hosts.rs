@@ -36,6 +36,10 @@ pub struct Host {
     /// The token, only when the keyring could not keep it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
+    /// A `local` host's ahpd that is on because the desk started it, so the
+    /// desk may stop it; one it only found it never stops.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub started_by_desk: bool,
 }
 
 /// A host as the shell sends it to `save_host`; its token comes apart.
@@ -134,6 +138,8 @@ impl HostStore {
         let index = hosts.iter().position(|host| host.id == input.id);
         let mut host = Host {
             token: index.and_then(|i| hosts[i].token.clone()),
+            // The form never says whether the desk started an ahpd; the desk does.
+            started_by_desk: index.is_some_and(|i| hosts[i].started_by_desk),
             id: input.id,
             name: input.name,
             kind: input.kind,
@@ -171,6 +177,42 @@ impl HostStore {
             .find(|host| host.id == id)
             .ok_or_else(|| format!("no host {id}"))?;
         Ok(tokens::get(self.vault.as_ref(), host))
+    }
+
+    /// A `local` host as the desk drives it: its set ahpd path, and whether
+    /// the desk started the ahpd that is on.
+    pub fn local(&self, id: &str) -> Result<(Option<String>, bool), String> {
+        let hosts = self.lock();
+        let host = hosts
+            .iter()
+            .find(|host| host.id == id)
+            .ok_or_else(|| format!("no host {id}"))?;
+        if host.kind != HostKind::Local {
+            return Err(format!("{id} is not this computer"));
+        }
+        Ok((host.ahpd_path.clone(), host.started_by_desk))
+    }
+
+    /// Saves what the local ahpd says of itself (decision 4): its address,
+    /// its token when it has one, and whether the desk started it.
+    pub fn set_local(
+        &self,
+        id: &str,
+        on: Option<(&str, Option<&str>)>,
+        started_by_desk: bool,
+    ) -> Result<Vec<HostView>, String> {
+        let mut hosts = self.lock();
+        let host = hosts
+            .iter_mut()
+            .find(|host| host.id == id)
+            .ok_or_else(|| format!("no host {id}"))?;
+        if let Some((url, token)) = on {
+            host.url = url.to_string();
+            tokens::set(self.vault.as_ref(), host, token.unwrap_or_default());
+        }
+        host.started_by_desk = started_by_desk;
+        write(&self.path, &hosts)?;
+        Ok(hosts.iter().map(HostView::from).collect())
     }
 }
 
@@ -358,9 +400,37 @@ mod tests {
             url: "ws://h".into(),
             ahpd_path: None,
             token: Some("from-file".into()),
+            started_by_desk: false,
         };
         assert_eq!(tokens::get(&vault, &host).as_deref(), Some("from-vault"));
         assert_eq!(tokens::get(&Broken, &host).as_deref(), Some("from-file"));
+    }
+
+    #[test]
+    fn hosts_a_local_host_takes_what_its_ahpd_says() {
+        let scratch = Scratch::new();
+        let store = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
+        store.save(input("home", "Home"), None).unwrap();
+        assert!(store.local("home").is_err(), "a url host is not this computer");
+        let mut local = input("pc", "This computer");
+        local.kind = HostKind::Local;
+        local.ahpd_path = Some("C:/tools/ahpd.cmd".into());
+        store.save(local.clone(), None).unwrap();
+        assert_eq!(store.local("pc").unwrap(), (Some("C:/tools/ahpd.cmd".into()), false));
+
+        let list = store.set_local("pc", Some(("ws://127.0.0.1:9200", Some("t"))), true).unwrap();
+        assert_eq!(list[1].url, "ws://127.0.0.1:9200");
+        assert_eq!(store.token("pc").unwrap().as_deref(), Some("t"));
+        assert!(store.local("pc").unwrap().1);
+        assert!(scratch.text().contains("\"startedByDesk\": true"));
+
+        // A save from the form keeps what the desk knows.
+        store.save(local, None).unwrap();
+        assert!(store.local("pc").unwrap().1);
+
+        store.set_local("pc", Some(("ws://127.0.0.1:9200", None)), false).unwrap();
+        assert_eq!(store.token("pc").unwrap(), None, "an ahpd with no token");
+        assert!(!scratch.text().contains("startedByDesk"));
     }
 
     #[test]

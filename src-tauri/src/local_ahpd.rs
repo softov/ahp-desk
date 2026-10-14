@@ -10,7 +10,9 @@ use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
 use tauri::ipc::Channel;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
+
+use crate::hosts::{HostStore, HOSTS_CHANGED};
 
 /// npm's settings for an install the desk shows: no update notice, no funding
 /// or audit summary.
@@ -368,6 +370,135 @@ fn version_of_text(text: &str) -> Option<(u64, u64, u64)> {
     parts.next().is_none().then_some(version)
 }
 
+/// A local ahpd that is on, as `ahpd status --json` and its record give it.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Running {
+    pub pid: u32,
+    /// Where it listens, with no token.
+    pub url: String,
+    /// The token its record's `connectUrl` carries; none when it takes none.
+    pub token: Option<String>,
+}
+
+/// ahpd's config folder, as ahpd reads it: `$XDG_CONFIG_HOME/ahpd`, else
+/// `<home>/.config/ahpd` (decision 7).
+pub fn config_dir(xdg: Option<OsString>, home: Option<OsString>) -> Option<PathBuf> {
+    let base = match xdg.filter(|dir| !dir.is_empty()) {
+        Some(dir) => PathBuf::from(dir),
+        None => PathBuf::from(home.filter(|dir| !dir.is_empty())?).join(".config"),
+    };
+    Some(base.join("ahpd"))
+}
+
+/// The config folder of the ahpd the desk runs, from the desk's environment.
+fn this_config_dir() -> Result<PathBuf, String> {
+    let home = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" });
+    config_dir(std::env::var_os("XDG_CONFIG_HOME"), home)
+        .ok_or_else(|| "no home folder to find ahpd's config folder in".to_string())
+}
+
+/// `ahpd status --json`: `None` for `{"running":false}`, which ahpd answers
+/// with exit 1. The token is read from the record in `config`, and only when
+/// the record names the same process.
+pub fn status(launcher: &Launcher, config: &Path) -> Result<Option<Running>, String> {
+    let output = launcher
+        .command()
+        .args(["status", "--json"])
+        .stdin(Stdio::null())
+        .output()
+        .map_err(|err| format!("cannot run {}: {err}", launcher.program.display()))?;
+    let text = String::from_utf8_lossy(&output.stdout);
+    let answer: serde_json::Value = serde_json::from_str(text.trim())
+        .map_err(|_| format!("ahpd status --json did not answer JSON: {}", said(&output)))?;
+    if answer["running"] == serde_json::Value::Bool(false) {
+        return Ok(None);
+    }
+    let (Some(pid), Some(url)) = (answer["pid"].as_u64(), answer["url"].as_str()) else {
+        return Err(format!(
+            "ahpd status --json gave no pid and url: {}",
+            text.trim()
+        ));
+    };
+    let pid = u32::try_from(pid).map_err(|_| format!("ahpd status --json gave pid {pid}"))?;
+    Ok(Some(Running {
+        pid,
+        url: url.to_string(),
+        token: token_in_record(&config.join("daemon.json"), pid),
+    }))
+}
+
+/// The `tkn` of the record's `connectUrl`, when the record is that process's.
+fn token_in_record(record: &Path, pid: u32) -> Option<String> {
+    let text = std::fs::read_to_string(record).ok()?;
+    let record: serde_json::Value = serde_json::from_str(&text).ok()?;
+    if record["pid"].as_u64() != Some(u64::from(pid)) {
+        return None;
+    }
+    let url = tauri::Url::parse(record["connectUrl"].as_str()?).ok()?;
+    let token = url.query_pairs().find(|(key, _)| key == "tkn")?.1;
+    Some(token.into_owned())
+}
+
+/// `ahpd start` in `folder`, the folder it serves when its config names none,
+/// with the desk's token file (decision 5); then what is on.
+pub fn start(
+    launcher: &Launcher,
+    config: &Path,
+    folder: &Path,
+    token_file: &Path,
+) -> Result<Running, String> {
+    // ahpd writes a missing token file, but not the folder it goes in.
+    if let Some(folder) = token_file.parent() {
+        std::fs::create_dir_all(folder)
+            .map_err(|err| format!("cannot make {}: {err}", folder.display()))?;
+    }
+    let output = launcher
+        .command()
+        .arg("start")
+        .arg("--connection-token-file")
+        .arg(token_file)
+        .current_dir(folder)
+        .stdin(Stdio::null())
+        .output()
+        .map_err(|err| format!("cannot run {}: {err}", launcher.program.display()))?;
+    if !output.status.success() {
+        // ahpd names its log; its last lines say why, so they come with it.
+        let log = std::fs::read_to_string(config.join("daemon.log")).unwrap_or_default();
+        let tail: Vec<&str> = log.lines().rev().take(8).collect();
+        let tail: Vec<&str> = tail.into_iter().rev().collect();
+        return Err(format!("{}\n{}", said(&output), tail.join("\n"))
+            .trim()
+            .to_string());
+    }
+    status(launcher, config)?.ok_or_else(|| "ahpd start said it began, but none is on".to_string())
+}
+
+/// `ahpd stop`, which on Windows reaches the daemon through its control pipe
+/// from the first ahpd release after 0.11.0.
+pub fn stop(launcher: &Launcher) -> Result<(), String> {
+    let output = launcher
+        .command()
+        .arg("stop")
+        .stdin(Stdio::null())
+        .output()
+        .map_err(|err| format!("cannot run {}: {err}", launcher.program.display()))?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(said(&output))
+    }
+}
+
+/// What a command wrote, stderr first, for an error.
+fn said(output: &std::process::Output) -> String {
+    let both = [&output.stderr, &output.stdout]
+        .map(|bytes| String::from_utf8_lossy(bytes).trim().to_string());
+    both.into_iter()
+        .filter(|text| !text.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 /// The ahpd as the shell sees it.
 #[derive(Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -406,6 +537,116 @@ pub async fn find_local_ahpd(
     tauri::async_runtime::spawn_blocking(move || {
         find(ahpd_path.as_deref(), installed, path_var, version)
             .map(|found| found.as_ref().map(FoundView::from))
+    })
+    .await
+    .map_err(|err| err.to_string())?
+}
+
+/// A local host's ahpd as the shell shows it.
+#[derive(Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalState {
+    pub on: bool,
+    pub started_by_desk: bool,
+}
+
+/// The ahpd a local host uses: its set path, else the desk's install, else
+/// `PATH`; refused when there is none or it is too old (decision 9).
+fn launcher_for(local: &LocalAhpd, ahpd_path: Option<&str>) -> Result<Launcher, String> {
+    let found = find(
+        ahpd_path.map(Path::new),
+        local.installed(),
+        std::env::var_os("PATH"),
+        version,
+    )?
+    .ok_or("there is no ahpd on this computer")?;
+    if !found.supported() {
+        let (major, minor, patch) = OLDEST_SUPPORTED;
+        return Err(format!(
+            "ahpd {} is older than {major}.{minor}.{patch}, the oldest the desk runs",
+            found.version
+        ));
+    }
+    Ok(found.launcher)
+}
+
+/// The folder an ahpd whose config names none serves (decision 10).
+fn home_folder() -> Result<PathBuf, String> {
+    std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
+        .filter(|home| !home.is_empty())
+        .map(PathBuf::from)
+        .ok_or_else(|| "no home folder to start ahpd in".to_string())
+}
+
+/// Saves what the local ahpd says and tells every window.
+fn publish(
+    app: &AppHandle,
+    id: &str,
+    on: Option<&Running>,
+    started_by_desk: bool,
+) -> Result<LocalState, String> {
+    let store = app.state::<HostStore>();
+    let list = store.set_local(
+        id,
+        on.map(|on| (on.url.as_str(), on.token.as_deref())),
+        on.is_some() && started_by_desk,
+    )?;
+    app.emit(HOSTS_CHANGED, list)
+        .map_err(|err| err.to_string())?;
+    Ok(LocalState {
+        on: on.is_some(),
+        started_by_desk: on.is_some() && started_by_desk,
+    })
+}
+
+/// Whether the local host's ahpd is on, taking its address and token from its
+/// record (decision 4).
+#[tauri::command]
+pub async fn local_ahpd_status(app: AppHandle, id: String) -> Result<LocalState, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let (ahpd_path, started) = app.state::<HostStore>().local(&id)?;
+        let launcher = launcher_for(&app.state::<LocalAhpd>(), ahpd_path.as_deref())?;
+        let running = status(&launcher, &this_config_dir()?)?;
+        publish(&app, &id, running.as_ref(), started)
+    })
+    .await
+    .map_err(|err| err.to_string())?
+}
+
+/// Starts the local host's ahpd, or takes the one already on, which the desk
+/// then did not start.
+#[tauri::command]
+pub async fn start_local_ahpd(app: AppHandle, id: String) -> Result<LocalState, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let (ahpd_path, started) = app.state::<HostStore>().local(&id)?;
+        let local = app.state::<LocalAhpd>();
+        let launcher = launcher_for(&local, ahpd_path.as_deref())?;
+        let config = this_config_dir()?;
+        if let Some(running) = status(&launcher, &config)? {
+            return publish(&app, &id, Some(&running), started);
+        }
+        let token_file = local.prefix.join("connection-token");
+        let running = start(&launcher, &config, &home_folder()?, &token_file)?;
+        publish(&app, &id, Some(&running), true)
+    })
+    .await
+    .map_err(|err| err.to_string())?
+}
+
+/// Stops the local host's ahpd, only when the desk started it.
+#[tauri::command]
+pub async fn stop_local_ahpd(app: AppHandle, id: String) -> Result<LocalState, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let (ahpd_path, started) = app.state::<HostStore>().local(&id)?;
+        let launcher = launcher_for(&app.state::<LocalAhpd>(), ahpd_path.as_deref())?;
+        if !started {
+            return match status(&launcher, &this_config_dir()?)? {
+                None => publish(&app, &id, None, false),
+                Some(_) => Err("the desk did not start this ahpd, so it leaves it on".to_string()),
+            };
+        }
+        stop(&launcher)?;
+        publish(&app, &id, None, false)
     })
     .await
     .map_err(|err| err.to_string())?
@@ -722,6 +963,140 @@ mod tests {
         assert!(backend.is_file(), "the backend is under the prefix");
         let config = fs::read_to_string(scratch.0.join("config/ahpd/config.json")).unwrap();
         assert!(config.contains("@ahpd/agent-claude"), "{config}");
+    }
+
+    #[test]
+    fn local_ahpd_the_config_folder_is_ahpds() {
+        let dir = |xdg: Option<&str>, home: Option<&str>| {
+            config_dir(xdg.map(Into::into), home.map(Into::into))
+        };
+        assert_eq!(
+            dir(Some("/x"), Some("/h")),
+            Some(PathBuf::from("/x").join("ahpd"))
+        );
+        assert_eq!(
+            dir(Some(""), Some("/h")),
+            Some(PathBuf::from("/h").join(".config").join("ahpd"))
+        );
+        assert_eq!(
+            dir(None, Some("/h")),
+            Some(PathBuf::from("/h").join(".config").join("ahpd"))
+        );
+        assert_eq!(dir(None, None), None);
+    }
+
+    #[test]
+    fn local_ahpd_the_token_is_the_records_for_that_process() {
+        let scratch = Scratch::new();
+        let record = scratch.file(
+            "daemon.json",
+            r#"{"pid":42,"url":"ws://127.0.0.1:9187","connectUrl":"ws://127.0.0.1:9187/?tkn=a%2Bb%3D"}"#,
+        );
+        assert_eq!(token_in_record(&record, 42).as_deref(), Some("a+b="));
+        assert_eq!(
+            token_in_record(&record, 43),
+            None,
+            "another process's record"
+        );
+        assert_eq!(token_in_record(&scratch.0.join("gone.json"), 42), None);
+        let record = scratch.file(
+            "open.json",
+            r#"{"pid":42,"connectUrl":"ws://127.0.0.1:9187/"}"#,
+        );
+        assert_eq!(token_in_record(&record, 42), None, "an ahpd with no token");
+    }
+
+    /// The bundled Node running a script that answers `status --json` with
+    /// `FAKE_STATUS` and exits with `FAKE_CODE`.
+    fn fake_ahpd(scratch: &Scratch, status: &str, code: i32) -> Launcher {
+        let node = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/node");
+        let node = BundledNode::in_dir(&node).expect("pnpm stage:node first");
+        let script = scratch.file(
+            "fake-ahpd.js",
+            "process.stdout.write(process.env.FAKE_STATUS + '\\n'); process.exit(Number(process.env.FAKE_CODE));",
+        );
+        Launcher {
+            program: node.node,
+            before: vec![script.into_os_string()],
+            env: vec![
+                ("FAKE_STATUS".into(), status.into()),
+                ("FAKE_CODE".into(), code.to_string().into()),
+            ],
+        }
+    }
+
+    #[test]
+    fn local_ahpd_status_reads_on_and_off() {
+        let scratch = Scratch::new();
+        scratch.file(
+            "daemon.json",
+            r#"{"pid":7,"url":"ws://127.0.0.1:9187","connectUrl":"ws://127.0.0.1:9187/?tkn=secret"}"#,
+        );
+        let off = fake_ahpd(&scratch, r#"{"running":false}"#, 1);
+        assert_eq!(status(&off, &scratch.0).unwrap(), None);
+        let on = fake_ahpd(
+            &scratch,
+            r#"{"pid":7,"url":"ws://127.0.0.1:9187","paths":[]}"#,
+            0,
+        );
+        assert_eq!(
+            status(&on, &scratch.0).unwrap(),
+            Some(Running {
+                pid: 7,
+                url: "ws://127.0.0.1:9187".into(),
+                token: Some("secret".into())
+            })
+        );
+        let broken = fake_ahpd(&scratch, "ahpd: something", 2);
+        assert!(status(&broken, &scratch.0)
+            .unwrap_err()
+            .contains("did not answer JSON"));
+    }
+
+    /// Starts, reads and stops a real ahpd in a scratch config folder:
+    /// `AHP_DESK_TEST_AHPD` is its `dist/main.js`, `AHP_DESK_TEST_PLUGINS` a
+    /// plugin root holding `@ahpd/agent-claude`.
+    #[test]
+    #[ignore = "needs an ahpd build and its backend"]
+    fn local_ahpd_a_real_start_and_stop() {
+        let scratch = Scratch::new();
+        let main = std::env::var_os("AHP_DESK_TEST_AHPD").expect("AHP_DESK_TEST_AHPD");
+        let plugins = std::env::var_os("AHP_DESK_TEST_PLUGINS").expect("AHP_DESK_TEST_PLUGINS");
+        let resources = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/node");
+        let node = BundledNode::in_dir(&resources).expect("pnpm stage:node first");
+        let config = scratch.0.join("config/ahpd");
+        scratch.file(
+            "config/ahpd/config.json",
+            r#"{"port":9324,"plugins":["@ahpd/agent-claude"]}"#,
+        );
+        let folder = scratch.0.join("work");
+        fs::create_dir_all(&folder).unwrap();
+        let ahpd = Launcher {
+            program: node.node.clone(),
+            before: vec![main],
+            env: vec![
+                (
+                    "XDG_CONFIG_HOME".into(),
+                    scratch.0.join("config").into_os_string(),
+                ),
+                ("AHPD_PLUGIN_ROOT".into(), plugins),
+                ("PATH".into(), node.path_var()),
+            ],
+        };
+        assert_eq!(status(&ahpd, &config).unwrap(), None);
+        let token_file = scratch.0.join("not-made-yet").join("token");
+        let on = start(&ahpd, &config, &folder, &token_file).unwrap();
+        println!("{on:?}");
+        assert_eq!(on.url, "ws://127.0.0.1:9324");
+        let written = fs::read_to_string(&token_file).unwrap();
+        assert_eq!(
+            on.token.as_deref(),
+            Some(written.trim()),
+            "the record's token is the file's"
+        );
+        assert_eq!(status(&ahpd, &config).unwrap(), Some(on));
+        stop(&ahpd).unwrap();
+        assert_eq!(status(&ahpd, &config).unwrap(), None);
     }
 
     /// Runs the real `ahpd --version` of the first ahpd on this machine's `PATH`.

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-stop-local-ahpd"
+description = "Enables the stop_local_ahpd command without any pre-configured scope."
+commands.allow = ["stop_local_ahpd"]
+
+[[permission]]
+identifier = "deny-stop-local-ahpd"
+description = "Denies the stop_local_ahpd command without any pre-configured scope."
+commands.deny = ["stop_local_ahpd"]

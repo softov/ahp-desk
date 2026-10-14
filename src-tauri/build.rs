@@ -61,6 +61,9 @@ fn main() {
             "host_statuses",
             "find_local_ahpd",
             "install_local_ahpd",
+            "local_ahpd_status",
+            "start_local_ahpd",
+            "stop_local_ahpd",
         ]),
     ))
     .expect("the Tauri build failed");

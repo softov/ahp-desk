@@ -18,6 +18,9 @@
     "allow-host-statuses",
     "allow-find-local-ahpd",
     "allow-install-local-ahpd",
+    "allow-local-ahpd-status",
+    "allow-start-local-ahpd",
+    "allow-stop-local-ahpd",
     {
       "identifier": "opener:allow-open-url",
       "allow": [{ "url": "https://ahpio.com" }]

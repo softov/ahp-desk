@@ -17,6 +17,7 @@ decisions:
   - decisions/the-installed-ahpd-keeps-the-usual-config-folder.md
   - decisions/the-desk-adds-backends-through-ahpd-plugin-install.md
   - decisions/an-ahpd-too-old-on-path-is-shown-not-replaced.md
+  - decisions/the-local-ahpd-serves-the-folder-asked-in-add-host-else-home.md
 refs:
   - file:///github/ahpd/packages/server/src/daemon.ts - `ahpd start`, `stop` and `status`, with daemon.json, at lines 10-37, 189-196 and 436-439
   - file:///github/ahpd/packages/server/src/commands/options.ts - the token from `--connection-token-file`, at lines 1051-1085
@@ -69,6 +70,7 @@ quit -> stop setting on -> ahpd stop
 | 7 | [An ahpd the desk installs keeps the usual config folder, with its backends under AHPD_PLUGIN_ROOT](../../../decisions/the-installed-ahpd-keeps-the-usual-config-folder.md) | Softov, 2026-10-13 |
 | 8 | [The desk adds backends through ahpd plugin install](../../../decisions/the-desk-adds-backends-through-ahpd-plugin-install.md) | Softov, 2026-10-13 |
 | 9 | [An ahpd on PATH too old for the desk is shown, not replaced](../../../decisions/an-ahpd-too-old-on-path-is-shown-not-replaced.md) | Softov, 2026-10-14 |
+| 10 | [The local ahpd serves the folder asked in Add host, else the home folder](../../../decisions/the-local-ahpd-serves-the-folder-asked-in-add-host-else-home.md) | Softov, 2026-10-14 |
 
 | What | Source | Task |
 | --- | --- | --- |
@@ -90,7 +92,7 @@ quit -> stop setting on -> ahpd stop
 | [01 - check ahpd start, stop and status against the needs of the shell](task-01-check-ahpd-commands.md) | done | - |
 | [02 - find ahpd on PATH or at a set path](task-02-find-ahpd.md) | done | 01 |
 | [03 - ship Node and install ahpd with the chosen backends](task-03-install-ahpd.md) | doing | 01 |
-| [04 - start, find and stop through ahpd's own commands](task-04-start-find-stop.md) | todo | 02 |
+| [04 - start, find and stop through ahpd's own commands](task-04-start-find-stop.md) | done | 02 |
 | [05 - the start and quit settings](task-05-start-quit-settings.md) | todo | 04 |
 | [06 - Add host, This computer, with the install steps](task-06-add-this-computer.md) | todo | 03, 04 |
 | [07 - automatic update of ahpd, and its checkbox](task-07-auto-update.md) | todo | 03, 04 |
@@ -103,8 +105,8 @@ quit -> stop setting on -> ahpd stop
 
 ## Resume state
 
-- **Done so far:** the task files; task 01 on `@ahpd/server` 0.11.0; task 02, `local_ahpd::find()`; task 03 but its backends; 2026-10-13.
-- **Next action:** task 04; task 03 closes, and task 04 checks its stop, on the first ahpd release after 0.11.0.
+- **Done so far:** tasks 01, 02 and 04; task 03 but its real install on a released ahpd; 2026-10-14.
+- **Next action:** task 05; task 03 closes on the first ahpd release after 0.11.0.
 - **Open questions:** none.
 - **Watch out for:** an ahpd that the shell found and did not start is never stopped by the shell.
 
