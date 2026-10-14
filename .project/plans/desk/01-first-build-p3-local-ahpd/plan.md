@@ -102,8 +102,8 @@ quit -> stop setting on -> ahpd stop
 ## Resume state
 
 - **Done so far:** the task files; task 01 on `@ahpd/server` 0.11.0; task 02, `local_ahpd::find()`; task 03 but its backends; 2026-10-13.
-- **Next action:** task 04; task 03 closes when the real install with a backend passes on the ahpd release that fixes `plugin install` on Windows.
-- **Open questions:** what Add host does with an ahpd on `PATH` older than 0.8.0, before task 06; ahpd changes in its own session: a graceful `ahpd stop` on Windows, and `plugin install` running npm on Windows.
+- **Next action:** task 04; task 03 closes, and task 04 checks its stop, on the first ahpd release after 0.11.0.
+- **Open questions:** what Add host does with an ahpd on `PATH` older than 0.8.0, before task 06.
 - **Watch out for:** an ahpd that the shell found and did not start is never stopped by the shell.
 
 ## Final verification checklist

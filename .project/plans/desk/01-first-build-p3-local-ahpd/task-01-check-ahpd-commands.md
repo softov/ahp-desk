@@ -49,3 +49,11 @@ Done 2026-10-13 on `@ahpd/server` 0.11.0.
 - **Plugins resolve from the config folder.**
   A bare plugin name is looked up in `<config folder>/node_modules`, then in `$AHPD_PLUGIN_ROOT/node_modules`, and `ahpd plugin install` writes to `AHPD_PLUGIN_ROOT` when it is set.
   So an ahpd the desk installs into its own folder finds its backends only with `AHPD_PLUGIN_ROOT` set to that folder, or with a config folder of its own.
+
+Checked again 2026-10-14 on ahpd main 69ed7790, packed (`@ahpd/sdk` and `@ahpd/server`, still 0.11.0) and installed with the desk's own Node and npm:
+
+- daemon/20: `ahpd stop` reaches a detached daemon through its control pipe, `--json` says `"killed": false`, and the record is gone; `ahpd restart` logs `restart: stopping (SIGHUP)` and brings a successor up on the same port.
+- daemon/21: the AHP `shutdown` method answers `{}` and the daemon exits; it leaves `daemon.json` behind, which `status` reads as none running.
+- daemon/23: `ahpd plugin install`, `plugin remove --yes` and `configure` install and remove backends on Windows.
+- Not seen: a graceful stop writes nothing to `daemon.log` when no session is open, so the log does not show the way down without one.
+- Found: `ahpd configure` on a config folder that does not exist yet fails with ENOENT writing `connection-token`; it writes the file before making the folder.

@@ -12,6 +12,14 @@ use serde::Serialize;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager, State};
 
+/// npm's settings for an install the desk shows: no update notice, no funding
+/// or audit summary.
+const QUIET_NPM: [(&str, &str); 3] = [
+    ("npm_config_update_notifier", "false"),
+    ("npm_config_fund", "false"),
+    ("npm_config_audit", "false"),
+];
+
 /// The oldest ahpd the desk drives: `status --json` came in 0.8.0.
 pub const OLDEST_SUPPORTED: (u64, u64, u64) = (0, 8, 0);
 
@@ -176,25 +184,26 @@ impl LocalAhpd {
         let npm = Launcher {
             program: node.node.clone(),
             before: vec![node.npm_cli.clone().into_os_string()],
-            env: vec![
-                ("PATH".into(), node.path_var()),
-                ("npm_config_update_notifier".into(), "false".into()),
-                ("npm_config_fund".into(), "false".into()),
-                ("npm_config_audit".into(), "false".into()),
-            ],
+            env: vec![("PATH".into(), node.path_var())],
         };
         let mut command = npm.command();
         command
             .arg("install")
             .arg("--prefix")
             .arg(&self.prefix)
-            .arg("@ahpd/server@latest");
+            .arg("@ahpd/server@latest")
+            .envs(QUIET_NPM);
         run_streaming("npm install", command, line.clone())?;
         let ahpd = self
             .installed()
             .ok_or("npm finished, but @ahpd/server is not in the prefix")?;
         let mut command = ahpd.command();
-        command.arg("plugin").arg("install").args(backends);
+        // ahpd runs npm here, and the same settings keep its lines to the install's own.
+        command
+            .arg("plugin")
+            .arg("install")
+            .args(backends)
+            .envs(QUIET_NPM);
         run_streaming("ahpd plugin install", command, line)
     }
 }
