@@ -18,6 +18,7 @@ decisions:
   - decisions/the-desk-adds-backends-through-ahpd-plugin-install.md
   - decisions/an-ahpd-too-old-on-path-is-shown-not-replaced.md
   - decisions/the-local-ahpd-serves-the-folder-asked-in-add-host-else-home.md
+  - decisions/the-folder-is-written-by-an-ahpd-command.md
 refs:
   - file:///github/ahpd/packages/server/src/daemon.ts - `ahpd start`, `stop` and `status`, with daemon.json, at lines 10-37, 189-196 and 436-439
   - file:///github/ahpd/packages/server/src/commands/options.ts - the token from `--connection-token-file`, at lines 1051-1085
@@ -71,6 +72,7 @@ quit -> stop setting on -> ahpd stop
 | 8 | [The desk adds backends through ahpd plugin install](../../../decisions/the-desk-adds-backends-through-ahpd-plugin-install.md) | Softov, 2026-10-13 |
 | 9 | [An ahpd on PATH too old for the desk is shown, not replaced](../../../decisions/an-ahpd-too-old-on-path-is-shown-not-replaced.md) | Softov, 2026-10-14 |
 | 10 | [The local ahpd serves the folder asked in Add host, else the home folder](../../../decisions/the-local-ahpd-serves-the-folder-asked-in-add-host-else-home.md) | Softov, 2026-10-14 |
+| 11 | [The folder Add host asks for is written by an ahpd command](../../../decisions/the-folder-is-written-by-an-ahpd-command.md) | Softov, 2026-10-14 |
 
 | What | Source | Task |
 | --- | --- | --- |
