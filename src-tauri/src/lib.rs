@@ -75,6 +75,7 @@ pub fn run() {
             hosts::host_token,
             local_ahpd::find_local_ahpd,
             local_ahpd::install_local_ahpd,
+            local_ahpd::add_local_backends,
             local_ahpd::local_ahpd_status,
             local_ahpd::start_local_ahpd,
             local_ahpd::stop_local_ahpd,

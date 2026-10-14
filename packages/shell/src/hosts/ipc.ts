@@ -34,11 +34,24 @@ export interface FoundAhpd {
   version: string;
   /** False for an ahpd older than the oldest the desk drives. */
   supported: boolean;
+  /** The plugins it has ready; none asked of one too old. */
+  plugins: string[];
 }
 
 /** The ahpd the desk would use for a `local` host, or null when there is none. */
 export function findLocalAhpd(ahpdPath: string | null): Promise<FoundAhpd | null> {
   return invoke<FoundAhpd | null>('find_local_ahpd', { ahpdPath });
+}
+
+/** Adds `backends` to the ahpd a local host would use, calling `onEvent` with each line ahpd writes. */
+export function addLocalBackends(
+  ahpdPath: string | null,
+  backends: string[],
+  onEvent: (event: InstallEvent) => void,
+): Promise<void> {
+  const events = new Channel<InstallEvent>();
+  events.onmessage = onEvent;
+  return invoke('add_local_backends', { ahpdPath, backends, events });
 }
 
 /** A local host's ahpd: on or off, and whether the desk started it, which is the only one it stops. */

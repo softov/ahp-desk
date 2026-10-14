@@ -18,6 +18,7 @@
     "allow-host-statuses",
     "allow-find-local-ahpd",
     "allow-install-local-ahpd",
+    "allow-add-local-backends",
     "allow-local-ahpd-status",
     "allow-start-local-ahpd",
     "allow-stop-local-ahpd",

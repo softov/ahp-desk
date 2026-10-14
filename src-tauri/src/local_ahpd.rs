@@ -201,15 +201,48 @@ impl LocalAhpd {
         let ahpd = self
             .installed()
             .ok_or("npm finished, but @ahpd/server is not in the prefix")?;
-        let mut command = ahpd.command();
-        // ahpd runs npm here, and the same settings keep its lines to the install's own.
-        command
-            .arg("plugin")
-            .arg("install")
-            .args(backends)
-            .envs(QUIET_NPM);
-        run_streaming("ahpd plugin install", command, line)
+        add_backends(&ahpd, backends, line)
     }
+}
+
+/// `ahpd plugin install <backends>` on `ahpd`, which installs them where it
+/// loads plugins from and names them in its config (decision 8), sending each
+/// line it writes to `line`.
+pub fn add_backends(
+    ahpd: &Launcher,
+    backends: &[String],
+    line: impl Fn(String) + Send + Sync + Clone + 'static,
+) -> Result<(), String> {
+    check_backends(backends)?;
+    let mut command = ahpd.command();
+    // ahpd runs npm here, and the same settings keep its lines to the install's own.
+    command
+        .arg("plugin")
+        .arg("install")
+        .args(backends)
+        .envs(QUIET_NPM);
+    run_streaming("ahpd plugin install", command, line)
+}
+
+/// The plugins `ahpd plugin list --json` has ready, by name.
+pub fn ready_plugins(ahpd: &Launcher) -> Result<Vec<String>, String> {
+    let output = ahpd
+        .command()
+        .args(["plugin", "list", "--json"])
+        .stdin(Stdio::null())
+        .output()
+        .map_err(|err| format!("cannot run {}: {err}", ahpd.program.display()))?;
+    let list: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).map_err(|_| {
+        format!(
+            "ahpd plugin list --json did not answer a list: {}",
+            said(&output)
+        )
+    })?;
+    Ok(list
+        .iter()
+        .filter(|plugin| plugin["state"] == "ready")
+        .filter_map(|plugin| plugin["name"].as_str().map(str::to_string))
+        .collect())
 }
 
 /// The backends Add host offers are `@ahpd/` packages, and ahpd does not start
@@ -524,6 +557,8 @@ pub struct FoundView {
     pub origin: Origin,
     pub version: String,
     pub supported: bool,
+    /// The plugins it has ready (decision 12); none asked of one too old.
+    pub plugins: Vec<String>,
 }
 
 impl From<&Found> for FoundView {
@@ -539,6 +574,7 @@ impl From<&Found> for FoundView {
             origin: found.origin,
             version: found.version.clone(),
             supported: found.supported(),
+            plugins: Vec::new(),
         }
     }
 }
@@ -552,8 +588,34 @@ pub async fn find_local_ahpd(
     let installed = local.installed();
     let path_var = std::env::var_os("PATH");
     tauri::async_runtime::spawn_blocking(move || {
-        find(ahpd_path.as_deref(), installed, path_var, version)
-            .map(|found| found.as_ref().map(FoundView::from))
+        let Some(found) = find(ahpd_path.as_deref(), installed, path_var, version)? else {
+            return Ok(None);
+        };
+        let mut view = FoundView::from(&found);
+        if found.supported() {
+            view.plugins = ready_plugins(&found.launcher)?;
+        }
+        Ok(Some(view))
+    })
+    .await
+    .map_err(|err| err.to_string())?
+}
+
+/// Adds `backends` to the ahpd a local host would use (decision 12), then
+/// answers it again.
+#[tauri::command]
+pub async fn add_local_backends(
+    app: AppHandle,
+    ahpd_path: Option<String>,
+    backends: Vec<String>,
+    events: Channel<InstallEvent>,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let launcher = launcher_for(&app.state::<LocalAhpd>(), ahpd_path.as_deref())?;
+        add_backends(&launcher, &backends, move |text| {
+            // A shell that went away mid-install does not stop npm.
+            let _ = events.send(InstallEvent::Line { text });
+        })
     })
     .await
     .map_err(|err| err.to_string())?
@@ -1103,6 +1165,20 @@ mod tests {
                 ("FAKE_CODE".into(), code.to_string().into()),
             ],
         }
+    }
+
+    #[test]
+    fn local_ahpd_only_ready_plugins_count() {
+        let scratch = Scratch::new();
+        let list = r#"[{"name":"@ahpd/agent-claude","state":"ready"},{"name":"@ahpd/agent-pi","state":"missing"},{"name":"x","state":"ready"}]"#;
+        assert_eq!(
+            ready_plugins(&fake_ahpd(&scratch, list, 0)).unwrap(),
+            ["@ahpd/agent-claude", "x"]
+        );
+        assert!(ready_plugins(&fake_ahpd(&scratch, "[]", 0))
+            .unwrap()
+            .is_empty());
+        assert!(ready_plugins(&fake_ahpd(&scratch, "ahpd: no", 2)).is_err());
     }
 
     #[test]

@@ -45,4 +45,6 @@ Started 2026-10-14.
 - Done: the form fits the window at its smallest; the shell's scrollbars are thin, with no arrows, on the window's own background, as ahpw's.
 - Found and fixed: Tauri gives the resource folder as a `\?\` path, through which Node cannot load a script (EISDIR on the drive); the desk strips the prefix from a drive path.
 - Verified on the debug desk over CDP: found on `PATH` (0.11.0), Save and start, ahpw connected on the local host; a fake 0.7.0 first on `PATH`, the note in en, pt-BR and es; none found, the install of `@ahpd/server` with the desk's Node into its prefix, then `ahpd plugin install` failing on 0.11.0 as task 03 records.
+- Done (decision 12): a found ahpd shows the backends too, those it has ready ticked and fixed; those ticked here are added with its own `plugin install` before the start. Checked on ahpd main 69ed7790+daemon/24 (6768d19f) first on `PATH` with a config naming no backend: Claude was added, ahpd started, and ahpw connected.
+- Done: a failed start shows only the lines it added to `daemon.log`, in a box under the error; "Back to the list" goes to the list, in the first run too.
 - Left: the folder to serve (step 4), which waits for the ahpd command of decision 11; a whole install, which waits for the ahpd release that fixes `plugin install` on Windows.

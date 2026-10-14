@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNod
 import { open as pickFile } from '@tauri-apps/plugin-dialog';
 import {
   findLocalAhpd,
+  addLocalBackends,
   installLocalAhpd,
   saveHost,
   startLocalAhpd,
   type FoundAhpd,
+  type InstallEvent,
   type OnDesk,
 } from './ipc.js';
 import { t } from '../i18n.js';
@@ -28,7 +30,7 @@ const NEEDED = '0.8.0';
 type Search = { kind: 'looking' } | { kind: 'done'; found: FoundAhpd | null } | { kind: 'failed'; error: string };
 
 /** What the form is doing: asking, or one of the steps of a save. */
-type Phase = 'form' | 'installing' | 'starting';
+type Phase = 'form' | 'installing' | 'adding' | 'starting';
 
 /** An error's first line, and what ahpd wrote under it, such as its log, in a box. */
 function ErrorText({ text }: { text: string }) {
@@ -110,8 +112,22 @@ export function LocalForm({
   const found = search.kind === 'done' ? search.found : null;
   const install = retryInstall || (search.kind === 'done' && found === null);
   const usable = found?.supported === true || install;
-  const anyBackend = BACKENDS.some((one) => backends.has(one.pkg));
-  const ready = phase === 'form' && saved === null && name.trim() !== '' && usable && (!install || anyBackend);
+  // What the found ahpd has ready, ticked and fixed (decision 12); the desk's own install starts with none.
+  const has = new Set(install ? [] : (found?.plugins ?? []));
+  const added = [...backends].filter((pkg) => !has.has(pkg));
+  // A ready plugin the desk does not offer counts, as the list cannot tell a backend from another plugin.
+  const hasBackend =
+    BACKENDS.some((one) => backends.has(one.pkg) || has.has(one.pkg)) ||
+    [...has].some((pkg) => pkg !== BOT && !BACKENDS.some((one) => one.pkg === pkg));
+  const ready = phase === 'form' && saved === null && name.trim() !== '' && usable && hasBackend;
+
+  // A found ahpd that already has a backend gets nothing ticked for it; one with none starts on Claude.
+  const foundPlugins = found?.plugins.join(' ');
+  useEffect(() => {
+    if (foundPlugins === undefined) return;
+    const ready = foundPlugins.split(' ').filter((pkg) => pkg !== '' && pkg !== BOT);
+    setBackends(new Set(ready.length > 0 ? [] : ['@ahpd/agent-claude']));
+  }, [foundPlugins]);
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
@@ -119,10 +135,15 @@ export function LocalForm({
     setError(null);
     const id = hostId(name, taken);
     try {
+      const heard = (step: InstallEvent) => setLines((all) => [...all, step.text]);
       if (install) {
         setPhase('installing');
         setLines([]);
-        await installLocalAhpd([...backends], (step) => setLines((all) => [...all, step.text]));
+        await installLocalAhpd([...backends], heard);
+      } else if (added.length > 0) {
+        setPhase('adding');
+        setLines([]);
+        await addLocalBackends(ahpdPath, added, heard);
       }
       setPhase('starting');
       // The address is ahpd's, read when it starts; until then the default port stands in.
@@ -178,32 +199,22 @@ export function LocalForm({
             </div>
           </div>
         </div>
-        {install && (
+        {usable && (
           <div className="field">
             <span>{t('local.backends')}</span>
             <div className="checks">
-              {BACKENDS.map((one) => (
+              {[...BACKENDS, { name: t('local.bot'), pkg: BOT }].map((one) => (
                 <label className="check" key={one.pkg}>
                   <input
                     type="checkbox"
-                    checked={backends.has(one.pkg)}
+                    checked={has.has(one.pkg) || backends.has(one.pkg)}
                     onChange={(event) => toggle(one.pkg, event.target.checked)}
-                    disabled={phase !== 'form'}
+                    disabled={phase !== 'form' || has.has(one.pkg)}
                   />
                   <span>{one.name}</span>
-                  <small>{one.pkg}</small>
+                  <small>{has.has(one.pkg) ? t('local.installed') : one.pkg}</small>
                 </label>
               ))}
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={backends.has(BOT)}
-                  onChange={(event) => toggle(BOT, event.target.checked)}
-                  disabled={phase !== 'form'}
-                />
-                <span>{t('local.bot')}</span>
-                <small>{BOT}</small>
-              </label>
             </div>
           </div>
         )}
@@ -227,6 +238,7 @@ export function LocalForm({
         </label>
       </div>
       {phase === 'installing' && <p className="result">{t('local.installing')}</p>}
+      {phase === 'adding' && <p className="result">{t('local.adding')}</p>}
       {phase === 'starting' && <p className="result">{t('local.starting')}</p>}
       {lines.length > 0 && <InstallSteps lines={lines} />}
       {error !== null && <ErrorText text={error} />}

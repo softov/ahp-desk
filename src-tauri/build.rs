@@ -61,6 +61,7 @@ fn main() {
             "host_statuses",
             "find_local_ahpd",
             "install_local_ahpd",
+            "add_local_backends",
             "local_ahpd_status",
             "start_local_ahpd",
             "stop_local_ahpd",
