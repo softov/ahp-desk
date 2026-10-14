@@ -24,6 +24,7 @@ Add host and the first run offer "This computer": the ahpd found or the install,
 
 1. `@ahpd/agent-claude` is on by default, and `@ahpd/bot` is offered.
 2. The host is saved as `kind: local` once ahpd is on.
+3. An ahpd found older than 0.8.0 (`supported: false`) is shown with its version, the version needed, `npm i -g @ahpd/server` and Check again, and nothing is installed (decision 9).
 
 ## Validation
 
