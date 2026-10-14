@@ -96,7 +96,7 @@ quit -> stop setting on -> ahpd stop
 | [03 - ship Node and install ahpd with the chosen backends](task-03-install-ahpd.md) | doing | 01 |
 | [04 - start, find and stop through ahpd's own commands](task-04-start-find-stop.md) | done | 02 |
 | [05 - the start and quit settings](task-05-start-quit-settings.md) | done | 04 |
-| [06 - Add host, This computer, with the install steps](task-06-add-this-computer.md) | todo | 03, 04 |
+| [06 - Add host, This computer, with the install steps](task-06-add-this-computer.md) | doing | 03, 04 |
 | [07 - automatic update of ahpd, and its checkbox](task-07-auto-update.md) | todo | 03, 04 |
 | [08 - end to end on a clean Windows user](task-08-end-to-end.md) | todo | 05, 06, 07 |
 
@@ -107,8 +107,8 @@ quit -> stop setting on -> ahpd stop
 
 ## Resume state
 
-- **Done so far:** tasks 01, 02, 04 and 05; task 03 but its real install on a released ahpd; 2026-10-14.
-- **Next action:** task 06; task 03 closes on the first ahpd release after 0.11.0.
+- **Done so far:** tasks 01, 02, 04 and 05; task 06 but its folder step; task 03 but its real install on a released ahpd; 2026-10-14.
+- **Next action:** task 07; tasks 03 and 06 close on the ahpd release with the Windows fixes and the command of decision 11.
 - **Open questions:** none.
 - **Watch out for:** an ahpd that the shell found and did not start is never stopped by the shell.
 

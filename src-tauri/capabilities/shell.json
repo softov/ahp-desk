@@ -21,6 +21,7 @@
     "allow-local-ahpd-status",
     "allow-start-local-ahpd",
     "allow-stop-local-ahpd",
+    "dialog:allow-open",
     {
       "identifier": "opener:allow-open-url",
       "allow": [{ "url": "https://ahpio.com" }]

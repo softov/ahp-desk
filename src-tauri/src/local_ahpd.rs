@@ -6,7 +6,7 @@ use std::ffi::OsString;
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
 use serde::Serialize;
 use tauri::ipc::Channel;
@@ -127,12 +127,14 @@ impl LocalAhpd {
         let prefix = app
             .path()
             .app_local_data_dir()
+            .map(without_verbatim)
             .map_err(|err| err.to_string())?
             .join("ahpd");
         let node = app
             .path()
             .resource_dir()
             .ok()
+            .map(without_verbatim)
             .and_then(|dir| BundledNode::in_dir(&dir.join("node")));
         Ok(LocalAhpd::at(prefix, node))
     }
@@ -229,7 +231,8 @@ fn check_backends(backends: &[String]) -> Result<(), String> {
 }
 
 /// Runs `command`, the step `what`, sending each line of its stdout and
-/// stderr as it comes, and fails with its last lines when it exits non-zero.
+/// stderr as it comes, and fails naming the step when it exits non-zero: what
+/// it said has gone to `line`, where the person reads it.
 fn run_streaming(
     what: &str,
     mut command: Command,
@@ -242,17 +245,10 @@ fn run_streaming(
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|err| format!("cannot run {program}: {err}"))?;
-    let last = Arc::new(Mutex::new(Vec::<String>::new()));
     let pump = |pipe: Box<dyn Read + Send>| {
-        let (line, last) = (line.clone(), last.clone());
+        let line = line.clone();
         std::thread::spawn(move || {
             for text in BufReader::new(pipe).lines().map_while(Result::ok) {
-                let mut kept = last.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-                kept.push(text.clone());
-                if kept.len() > 20 {
-                    kept.remove(0);
-                }
-                drop(kept);
                 line(text);
             }
         })
@@ -267,10 +263,22 @@ fn run_streaming(
         let _ = reader.join();
     }
     if status.success() {
-        return Ok(());
+        Ok(())
+    } else {
+        Err(format!("{what} exited with {status}"))
     }
-    let kept = last.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-    Err(format!("{what} exited with {status}:\n{}", kept.join("\n")))
+}
+
+/// `path` without Windows' `\\?\` prefix on a drive path, which Tauri's
+/// folders carry and through which Node cannot resolve a script (EISDIR on
+/// the drive). A UNC path keeps it.
+fn without_verbatim(path: PathBuf) -> PathBuf {
+    let drive = path
+        .to_str()
+        .and_then(|text| text.strip_prefix(r"\\?\"))
+        .filter(|rest| rest.as_bytes().get(1) == Some(&b':'))
+        .map(PathBuf::from);
+    drive.unwrap_or(path)
 }
 
 /// `<prefix>/node_modules/@ahpd/server`'s `bin.ahpd`, when it is installed there.
@@ -717,6 +725,7 @@ mod tests {
     use super::*;
     use std::fs;
     use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
 
     /// A folder of its own, gone at the end of the test.
     struct Scratch(PathBuf);
@@ -945,7 +954,7 @@ mod tests {
     }
 
     #[test]
-    fn local_ahpd_a_failed_command_answers_its_last_lines() {
+    fn local_ahpd_a_streamed_step_sends_its_lines_and_names_itself() {
         let command = if cfg!(windows) {
             let mut command = Command::new("cmd");
             command.args(["/C", "echo one && echo two 1>&2 && exit 3"]);
@@ -964,7 +973,21 @@ mod tests {
         let mut heard = heard.lock().unwrap().clone();
         heard.sort();
         assert_eq!(heard, ["one", "two"]);
-        assert!(error.contains("one") && error.contains("two"), "{error}");
+        assert!(error.starts_with("the test exited with"), "{error}");
+    }
+
+    #[test]
+    fn local_ahpd_a_verbatim_drive_path_is_made_plain() {
+        let plain = without_verbatim(PathBuf::from(r"\\?\F:\github\desk\target\debug"));
+        assert_eq!(plain, PathBuf::from(r"F:\github\desk\target\debug"));
+        let unc = PathBuf::from(r"\\?\UNC\server\share\desk");
+        assert_eq!(
+            without_verbatim(unc.clone()),
+            unc,
+            "a UNC path keeps its prefix"
+        );
+        let already = PathBuf::from(r"C:\Users\me");
+        assert_eq!(without_verbatim(already.clone()), already);
     }
 
     /// A real install from npm, with the Node `pnpm stage:node` put in

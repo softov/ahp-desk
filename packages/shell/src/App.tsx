@@ -2,6 +2,8 @@ import { useEffect, useReducer, useState } from 'react';
 import { FirstRun } from './FirstRun.js';
 import { HostForm } from './hosts/HostForm.js';
 import { HostList } from './hosts/HostList.js';
+import { KindField, type AddKind } from './hosts/KindField.js';
+import { LocalForm } from './hosts/LocalForm.js';
 import { listHosts, onAddAsked, onHostsChanged, type ShellHost } from './hosts/ipc.js';
 import { createHostStatuses, type HostStatuses } from './hosts/status.js';
 import { Footer } from './Footer.js';
@@ -16,6 +18,13 @@ export function App() {
   // `null` until the list is read, so a desk with hosts never shows the first run.
   const [hosts, setHosts] = useState<ShellHost[] | null>(null);
   const [screen, setScreen] = useState<Screen>({ kind: 'list' });
+  // Add host opens on This computer while the list has none (decision: one local host).
+  const [addKind, setAddKind] = useState<AddKind>('local');
+  const localTaken = hosts?.some((host) => host.kind === 'local') ?? false;
+  const add = () => {
+    setAddKind(localTaken ? 'url' : 'local');
+    setScreen({ kind: 'form', host: null });
+  };
   // With no host the desk is on its first run, which ends when the new host
   // opens, not when it is saved; removing the last host starts it again.
   const [firstRun, setFirstRun] = useState(false);
@@ -57,12 +66,23 @@ export function App() {
           <HostList
             hosts={hosts}
             statuses={statuses}
-            onAdd={() => setScreen({ kind: 'form', host: null })}
+            onAdd={add}
             onEdit={(host) => setScreen({ kind: 'form', host })}
+          />
+        ) : screen.host === null && addKind === 'local' && !localTaken ? (
+          <LocalForm
+            taken={hosts.map((host) => host.id)}
+            kindField={<KindField kind={addKind} localTaken={localTaken} onKind={setAddKind} />}
+            onDone={() => setScreen({ kind: 'list' })}
           />
         ) : (
           <HostForm
             host={screen.host}
+            kindField={
+              screen.host === null ? (
+                <KindField kind="url" localTaken={localTaken} onKind={setAddKind} />
+              ) : undefined
+            }
             taken={hosts.map((host) => host.id)}
             onDone={(saved) => {
               setScreen({ kind: 'list' });

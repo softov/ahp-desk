@@ -21,6 +21,8 @@ pub fn run() {
     tauri::Builder::default()
         // The host list's footer opens ahpio.com in the browser; its capability allows that one site.
         .plugin(tauri_plugin_opener::init())
+        // Change, in Add host "This computer", picks the ahpd to use.
+        .plugin(tauri_plugin_dialog::init())
         .register_asynchronous_uri_scheme_protocol(ui_source::UI, |ctx, request, responder| {
             let source = ctx.app_handle().state::<ui_source::UiSource>().inner().clone();
             ui_source::handle(source, ctx, request, responder);

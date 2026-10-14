@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { hostToken, saveHost, type OnDesk, type ShellHost } from './ipc.js';
 import { t } from '../i18n.js';
 import { explain, testHost } from './status.js';
@@ -19,11 +19,14 @@ export function HostForm({
   host,
   taken,
   firstRun = false,
+  kindField,
   onDone,
 }: {
   host: ShellHost | null;
   taken: readonly string[];
   firstRun?: boolean;
+  /** Add host's Kind, first among the fields. */
+  kindField?: ReactNode;
   onDone: (saved: Saved) => void;
 }) {
   const [name, setName] = useState(host?.name ?? '');
@@ -79,6 +82,7 @@ export function HostForm({
         <h1>{host === null ? t('form.addTitle') : t('form.editTitle', { name: host.name })}</h1>
       </header>
       <div className="fields">
+        {kindField}
         <label>
           <span>{t('form.name')}</span>
           <input

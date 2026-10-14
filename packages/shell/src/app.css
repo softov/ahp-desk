@@ -162,6 +162,13 @@ html.is-maximized #root {
   padding: 14px 22px;
 }
 
+/* Scrollbars as ahpw's: thin, no arrows, the track the window's own. */
+.shell,
+.steps {
+  scrollbar-width: thin;
+  scrollbar-color: var(--oo-color-border) transparent;
+}
+
 /* ahpio's logo and the site, centred at the bottom. */
 .footer {
   display: flex;
@@ -466,6 +473,111 @@ input[type='checkbox'] {
   margin: 0;
   padding: 0;
   accent-color: var(--oo-color-accent);
+}
+
+/* A field that is not one input: its name, then what it holds. */
+.fields .field {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: start;
+  gap: 12px;
+}
+
+.fields .field > span {
+  padding-top: 5px;
+}
+
+/* Add host's Kind, as two joined buttons. */
+.segmented {
+  display: inline-flex;
+  justify-self: start;
+}
+
+.segmented button {
+  border-radius: 0;
+}
+
+.segmented button:first-child {
+  border-radius: var(--oo-radius-sm) 0 0 var(--oo-radius-sm);
+}
+
+.segmented button:last-child {
+  margin-left: -1px;
+  border-radius: 0 var(--oo-radius-sm) var(--oo-radius-sm) 0;
+}
+
+.segmented button[aria-checked='true'] {
+  position: relative;
+  border-color: var(--oo-color-accent);
+  color: var(--oo-color-accent);
+}
+
+/* The ahpd found, or why there is none, with its buttons under it. */
+.found {
+  display: grid;
+  gap: 6px;
+  font-size: var(--oo-font-size-sm);
+}
+
+.found p {
+  margin: 5px 0 0;
+}
+
+.found--line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.found--line p {
+  margin: 0;
+}
+
+.found code {
+  justify-self: start;
+  padding: 3px 6px;
+  border: 1px solid var(--oo-color-border);
+  border-radius: var(--oo-radius-sm);
+  font-size: var(--oo-font-size-xs);
+  user-select: all;
+}
+
+.found-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Two columns, so the form fits the window at its smallest. */
+.checks {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: 6px 28px;
+  padding-top: 4px;
+}
+
+.fields .checks label.check {
+  margin-left: 0;
+}
+
+.check small {
+  color: var(--oo-color-muted);
+  font-size: var(--oo-font-size-xs);
+}
+
+/* npm's lines during an install, at the last one. */
+.steps {
+  max-width: 520px;
+  max-height: 120px;
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border: 1px solid var(--oo-color-border);
+  border-radius: var(--oo-radius-sm);
+  background: var(--oo-color-canvas);
+  color: var(--oo-color-muted);
+  font-size: var(--oo-font-size-xs);
+  white-space: pre-wrap;
+  word-break: break-all;
 }
 
 /* Inputs as ahpw's filter box. */

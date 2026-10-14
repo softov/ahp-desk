@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { HostForm } from './hosts/HostForm.js';
+import { LocalForm } from './hosts/LocalForm.js';
 import { openHost } from './hosts/ipc.js';
 import { t } from './i18n.js';
 import { Mark } from './Mark.js';
@@ -8,11 +9,13 @@ type Step =
   | { kind: 'welcome' }
   | { kind: 'where' }
   | { kind: 'form' }
+  | { kind: 'local' }
   | { kind: 'opening'; id: string; name: string; error: string | null };
 
 /**
  * The first run, for a desk with no host (decision: the first run adds a URL
- * host): a welcome, where the host is, the host form with Test, and Open.
+ * host, and This computer once p3 brings it): a welcome, where the host is,
+ * the host form with Test or This computer's install and start, and Open.
  * It ends when the new host's window opens; the desk then shows the host list.
  */
 export function FirstRun({ onFinished }: { onFinished: () => void }) {
@@ -48,11 +51,8 @@ export function FirstRun({ onFinished }: { onFinished: () => void }) {
               <strong>{t('firstRun.remote')}</strong>
               <span>{t('firstRun.remoteHint')}</span>
             </button>
-            <button className="choice" disabled>
-              <strong>
-                {t('firstRun.local')}
-                <span className="badge">{t('firstRun.soon')}</span>
-              </strong>
+            <button className="choice" onClick={() => setStep({ kind: 'local' })}>
+              <strong>{t('firstRun.local')}</strong>
               <span>{t('firstRun.localHint')}</span>
             </button>
           </div>
@@ -67,6 +67,14 @@ export function FirstRun({ onFinished }: { onFinished: () => void }) {
       return (
         <HostForm
           host={null}
+          taken={[]}
+          firstRun
+          onDone={(saved) => (saved === null ? setStep({ kind: 'where' }) : open(saved.id, saved.name))}
+        />
+      );
+    case 'local':
+      return (
+        <LocalForm
           taken={[]}
           firstRun
           onDone={(saved) => (saved === null ? setStep({ kind: 'where' }) : open(saved.id, saved.name))}
