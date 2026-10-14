@@ -11,6 +11,14 @@ decisions:
   - decisions/the-desk-starts-with-the-os-by-default.md
   - decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md
   - decisions/the-desk-asks-before-installing-its-update.md
+  - decisions/the-desk-update-notice-is-built-in-p4-task-03.md
+  - decisions/a-left-click-on-the-tray-icon-shows-the-host-list.md
+  - decisions/the-tray-menu-gets-show-pill-with-the-pill.md
+  - decisions/the-host-list-opens-settings-from-a-gear-in-its-title-bar.md
+  - decisions/a-start-at-login-shows-only-the-tray.md
+  - decisions/the-release-workflow-builds-with-tauri-action.md
+  - decisions/the-linux-release-builds-on-ubuntu-22-04.md
+  - decisions/updater-artifacts-are-made-only-in-the-release-build.md
 refs:
   - file:///github/opendoop/packages/tauri/src-tauri/src/tray.rs - the tray menu and the left click, at lines 8-62
   - file:///github/opendoop/packages/tauri/src-tauri/src/shell_settings.rs - closeBehavior, minimize to tray or quit
@@ -36,9 +44,11 @@ The files read and the patterns to reuse are the `refs` above, each with its not
 ### Runtime path
 
 ```
-tray icon -> menu (Hosts, Settings, Show pill, Quit) -> shell commands
-start -> updater check -> https://github.com/softov/ahp-desk/releases/latest/download/latest.json -> download -> install
-git tag v* -> GitHub Actions -> tauri build on windows-latest and ubuntu-latest -> release with latest.json
+tray icon -> left click (Windows) -> host list
+tray icon -> menu (Hosts, Settings, Quit) -> shell commands
+start at login (--autostart) -> host list hidden, tray icon only
+start -> updater check -> https://github.com/softov/ahp-desk/releases/latest/download/latest.json -> download -> notice in the host list and the tray -> Restart click -> install
+git tag v* -> GitHub Actions -> tauri-action with --config src-tauri/tauri.release.conf.json on windows-latest and ubuntu-22.04 -> release with latest.json
 ```
 
 ### Gaps
@@ -52,6 +62,14 @@ git tag v* -> GitHub Actions -> tauri build on windows-latest and ubuntu-latest 
 | 1 | [The desk starts with the OS by default](../../../decisions/the-desk-starts-with-the-os-by-default.md) | Softov, 2026-10-11 |
 | 2 | [ahp-desk is MIT, and ahpapp stays private](../../../decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md) | Softov, 2026-10-11 |
 | 3 | [The desk asks before it installs its own update](../../../decisions/the-desk-asks-before-installing-its-update.md) | Softov, 2026-10-13 |
+| 4 | [The desk's update notice, its install and its tray item are built in p4 task 03](../../../decisions/the-desk-update-notice-is-built-in-p4-task-03.md) | Softov, 2026-10-14 |
+| 5 | [A left click on the tray icon shows the host list, and the right click opens the menu](../../../decisions/a-left-click-on-the-tray-icon-shows-the-host-list.md) | Softov, 2026-10-14 |
+| 6 | [The tray menu gets "Show pill" with the pill, in plan p6](../../../decisions/the-tray-menu-gets-show-pill-with-the-pill.md) | Softov, 2026-10-14 |
+| 7 | [The host list opens Settings from a gear in its title bar, before the language picker](../../../decisions/the-host-list-opens-settings-from-a-gear-in-its-title-bar.md) | Softov, 2026-10-14 |
+| 8 | [A start at login shows only the tray, not the host list](../../../decisions/a-start-at-login-shows-only-the-tray.md) | Softov, 2026-10-14 |
+| 9 | [The release workflow builds and publishes with tauri-apps/tauri-action](../../../decisions/the-release-workflow-builds-with-tauri-action.md) | Softov, 2026-10-14 |
+| 10 | [The Linux release builds on ubuntu-22.04](../../../decisions/the-linux-release-builds-on-ubuntu-22-04.md) | Softov, 2026-10-14 |
+| 11 | [The updater artifacts are made only in the release build](../../../decisions/updater-artifacts-are-made-only-in-the-release-build.md) | Softov, 2026-10-14 |
 
 | What | Source | Task |
 | --- | --- | --- |
@@ -87,18 +105,10 @@ git tag v* -> GitHub Actions -> tauri build on windows-latest and ubuntu-latest 
 
 ## Resume state
 
-- **Done so far:** the task files, 2026-10-14.
+- **Done so far:** the task files, and decisions 4 to 11 from Softov's answers, 2026-10-14.
 - **Next action:** [task 01](task-01-tray-icon-and-menu.md). Before task 03, the user makes the updater key pair; before task 04's first tag, the user adds the two CI secrets.
-- **Open questions:** each has a proposed answer, which the task files follow until it is answered.
-  1. Which task shows the desk's update notice and its Restart click: p4 task 03, or [p9 task 06](../01-first-build-p9-update-alerts/task-06-desk-update-notice.md), whose file has it too? Proposed: p4 task 03, with the line in the host list and the item in the tray, since this plan's goal and checklist ask for an update a user can install; p9 task 06 then keeps only the check every 6 hours, moved into its loop. With the other answer, task 03 keeps its steps 1 to 4, and task 06 here waits for p9 task 06.
-  2. What does a left click on the tray icon do on Windows? Proposed: show the host list, and the right click opens the menu, as doop's left click shows its pill; on Linux the menu is the only way in.
-  3. Is "Show pill" in this plan's menu, before the pill exists? Proposed: no; p4's menu is Hosts, Settings and Quit, and p6 task 01 adds Show pill.
-  4. Where does the host list open Settings, besides the tray? Proposed: a gear button in the host list's title bar, before the language picker.
-  5. When the OS starts the desk at login, does the host list show? Proposed: no; the desk starts in the tray, as decision 1's "the pill and the tray are there after a login" reads, and the host list shows on a start by hand.
-  6. Does the release workflow build with `tauri-apps/tauri-action`, or with its own steps and a script for `latest.json`? Proposed: `tauri-action`, which signs, uploads and merges `latest.json` per platform.
-  7. Which Linux runner builds the release: `ubuntu-latest` (24.04), as the runtime path says, or `ubuntu-22.04`? Proposed: `ubuntu-22.04`, so the AppImage runs on distributions with an older glibc.
-  8. Is `createUpdaterArtifacts: true` in `tauri.conf.json`, or only in the release build? Proposed: only in the release build, through `src-tauri/tauri.release.conf.json` and `--config`, so a clone of this MIT repository builds an installer with no key.
-- **Watch out for:** the release build needs `createUpdaterArtifacts: true`, or no `.sig` file is made; an update must not remove the login entry that the uninstaller hook removes (task 05).
+- **Open questions:** none.
+- **Watch out for:** the release build needs `--config src-tauri/tauri.release.conf.json`, which turns on `createUpdaterArtifacts` (decision 11), or no `.sig` file is made; an update must not remove the login entry that the uninstaller hook removes (task 05).
 
 ## Final verification checklist
 

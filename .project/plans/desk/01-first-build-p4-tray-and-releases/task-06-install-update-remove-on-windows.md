@@ -23,8 +23,8 @@ Every item of the plan's checklist holds on the released installers, the way a u
    SmartScreen warns, since the installer has no code signature (plan risk); "Run anyway" goes on.
 3. Install: no admin prompt (`installMode: currentUser`); the files land under `%LOCALAPPDATA%`; the Start menu has ahp-desk.
 4. First run: "Start with the OS" is checked; Get started; add a URL host and open it; the tray icon is there.
-5. Close the host list: the desk stays in the tray; Hosts, Settings and Quit work, in the three languages.
-6. Sign out and in: the desk starts in the tray (task 05).
+5. Close the host list: the desk stays in the tray; a left click on the icon shows the host list; the right click opens the menu, whose Hosts, Settings and Quit work, in the three languages.
+6. Sign out and in: the desk starts in the tray, and the host list does not show (task 05).
 7. Release B: bump the version, tag it; wait for its release.
 8. Start A, or restart it: within a minute the host list and the tray say "ahp-desk B is ready. Restart to update."; nothing restarts until the click (decision 3).
 9. Click Restart: the installer runs passively, the desk comes back as B, with the same hosts, tokens, settings and login entry; a local ahpd with "Stop when the desktop app quits" on was stopped first.

@@ -33,7 +33,7 @@ It waits for p10 task 08, which writes the update over SSH as a function; this t
 2. `update_ssh_ahpd(app: AppHandle, id: String, version: String, events: Channel<InstallEvent>) -> Result<(), String>`, async:
    - reads the host from `HostStore` and refuses one with no SSH details;
    - signs in as p10 does (the agent, a key file, or the password in the keyring; the confirmed server key);
-   - runs p10 task 08's update with `@ahpd/server@<version>`, the version the row named (plan Resume state, open question 4): `npm install` into the host's `~/.local/share/ahpd` with its own Node, `systemctl --user restart ahpd`, and the health wait;
+   - runs p10 task 08's update with `@ahpd/server@<version>`, the version the row named (decision 8): `npm install` into the host's `~/.local/share/ahpd` with its own Node, `systemctl --user restart ahpd`, and the health wait;
    - sends each line npm and systemctl write as `InstallEvent::Line`, as `install_local_ahpd` does;
    - keeps running when the host list window goes away, as an install does.
 3. `ipc.ts`:

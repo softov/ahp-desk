@@ -44,13 +44,13 @@ The menu's words are in the language the host list shows, and change with a pick
    Keep the order in one pure function, `fn entries(words: &TrayWords) -> Vec<(&'static str, String)>`, so a test reads it.
 5. `on_menu_event`: Hosts calls `crate::app_window::show_host_list(app.clone(), None)`; Quit calls `app.exit(0)`, which reaches `RunEvent::Exit` and `local_ahpd::stop_on_quit` (lib.rs:90-94).
    An error from `show_host_list` is written with `eprintln!`, as `open_outside` does in app_window.rs.
-6. `on_tray_icon_event`: a left click, `MouseButton::Left` with `MouseButtonState::Up`, shows the host list, and the right click opens the menu (open question 2 in plan.md; doop's left click toggles its pill).
+6. `on_tray_icon_event`: a left click, `MouseButton::Left` with `MouseButtonState::Up`, shows the host list, and the right click opens the menu (decision 5 in plan.md; doop's left click toggles its pill).
    On Linux the tray is an appindicator, which sends no click events; there the menu is the only way in.
 7. In `ipc.ts`: `export interface TrayWords { hosts: string; quit: string }` and `export function setTrayWords(words: TrayWords): Promise<void>` invoking `set_tray_words` with `{ words }`.
 8. In `App.tsx`: `const lang = useLanguage();` and `useEffect(() => { setTrayWords({ hosts: t('tray.hosts'), quit: t('tray.quit') }).catch(...) }, [lang])`, logging a failure as the status sync does at line 51.
    The host list window is built at start and only ever hidden, so it is there to send the words.
 9. English words: `tray.hosts` "Hosts", `tray.quit` "Quit ahp-desk"; Portuguese and Spanish in the same keys.
-10. The menu has no "Show pill" yet: the pill is plan p6 (open question 3 in plan.md).
+10. The menu has no "Show pill": plan p6 adds it with the pill (decision 6 in plan.md).
 
 ## Validation
 

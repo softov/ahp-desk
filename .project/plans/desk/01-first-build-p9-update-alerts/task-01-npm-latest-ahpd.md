@@ -10,25 +10,27 @@ refs:
   - "[code://src-tauri/src/statuses.rs](../../../../src-tauri/src/statuses.rs) - the pattern for state kept in Rust and sent to every window with an event"
   - "[code://src-tauri/build.rs#L237-L255](../../../../src-tauri/build.rs#L237-L255) - each command is declared, which makes it a permission"
   - "[code://src-tauri/capabilities/shell.json](../../../../src-tauri/capabilities/shell.json) - the host list window's permissions"
-  - "[code://src-tauri/Cargo.toml](../../../../src-tauri/Cargo.toml) - the dependencies; the desk has no HTTP client yet"
+  - "[code://src-tauri/Cargo.toml](../../../../src-tauri/Cargo.toml) - the dependencies; the desk names no HTTP client yet"
+  - "[code://src-tauri/Cargo.lock#L2810-L2811](../../../../src-tauri/Cargo.lock#L2810-L2811) - the `reqwest` the build already holds through tauri"
   - "[code://packages/shell/src/hosts/ipc.ts](../../../../packages/shell/src/hosts/ipc.ts) - the desk's commands and events as the host list calls them"
 ---
 
 ## Objective
 
 `src-tauri/src/updates.rs` asks npm for the latest `@ahpd/server` when its last answer is older than 6 hours, at start and then every 6 hours, through `npm_config_registry` when set, as ahpd's `update.ts` does.
+It asks with `reqwest` in Rust, over rustls (decision 5).
 It keeps the answer in `updates.json` beside `hosts.json`, and sends `updates-changed` to every window when it changes; the host list reads it with `updates()`.
 
 ## Files
 
-- `CREATE: src-tauri/src/updates.rs` - the check, the file and the command (below).
-- `UPDATE: src-tauri/src/lib.rs:1-7` - `mod updates;`.
+- `UPDATE: src-tauri/src/updates.rs` (made by p4 task 03, which this plan requires) - the check, the file and the command (below), beside p4's `DeskUpdate`.
+- `UPDATE: src-tauri/src/lib.rs:1-7` - `mod updates;`, unless p4 task 03 has already added it.
 - `UPDATE: src-tauri/src/lib.rs:33-41` - `app.manage(Updates::load(config.join("updates.json")));`, with the same `config` folder as `hosts.json`, so `AHP_DESK_CONFIG_DIR` covers it.
 - `UPDATE: src-tauri/src/lib.rs:67-68` - `updates::watch(app.handle());` after `local_ahpd::start_on_launch`.
 - `UPDATE: src-tauri/src/lib.rs:71-87` - `updates::updates` in `generate_handler!`.
 - `UPDATE: src-tauri/build.rs:238-254` - `"updates"` in the command list.
 - `UPDATE: src-tauri/capabilities/shell.json` - `"allow-updates"`.
-- `UPDATE: src-tauri/Cargo.toml` - the HTTP client the check needs (plan Resume state, open question 1).
+- `UPDATE: src-tauri/Cargo.toml` - `reqwest` with `default-features = false` and its rustls and `json` features, in the version `Cargo.lock` already holds through tauri (0.13 today, whose rustls feature is named for that version) (decision 5).
 - `UPDATE: packages/shell/src/hosts/ipc.ts` - `NpmLatest`, `Updates`, `updates()` and `onUpdatesChanged()`.
 
 ## Steps
@@ -48,7 +50,7 @@ It keeps the answer in `updates.json` beside `hosts.json`, and sends `updates-ch
    #[serde(rename_all = "camelCase")]
    pub struct NpmLatest { pub name: String, pub latest: String, pub checked_at: u64 }
 
-   /// What the desk knows can be updated. Task 06 adds the desk's own update.
+   /// What the desk knows can be updated on its hosts. The desk's own update stays in p4's `DeskUpdate`.
    #[derive(Clone, Debug, Default, PartialEq, Serialize)]
    #[serde(rename_all = "camelCase")]
    pub struct UpdatesView { pub ahpd: Option<NpmLatest> }
@@ -61,7 +63,7 @@ It keeps the answer in `updates.json` beside `hosts.json`, and sends `updates-ch
    `Updates::set_ahpd(&self, found: NpmLatest) -> Result<bool, String>` writes the file and answers whether the view changed.
 3. `pub fn registry(named: Option<String>) -> String`: `npm_config_registry` without its trailing slashes, else `https://registry.npmjs.org`, as ahpd's `registry()`.
 4. `pub fn stale(found: Option<&NpmLatest>, now: u64, max_age: Duration) -> bool`: no answer, or one older than `max_age`, as ahpd's `stale()`.
-5. `pub async fn ask_npm(registry: &str, name: &str) -> Option<String>`: one GET of `<registry>/-/package/<name>/dist-tags` with `accept: application/json` and a 5 second timeout, answering its `latest` when it is a string.
+5. `pub async fn ask_npm(registry: &str, name: &str) -> Option<String>`: one `reqwest` GET of `<registry>/-/package/<name>/dist-tags` with `accept: application/json` and a 5 second timeout, answering its `latest` when it is a string.
    Every failure is `None`: offline, a timeout, an answer that is not `ok`, a body that is not JSON, as ahpd's `askRegistry()`.
 6. `pub fn watch(app: &AppHandle)` spawns one loop on `tauri::async_runtime`: when `stale`, ask; on an answer, `set_ahpd`, and on a change emit `UPDATES_CHANGED` with the view; then sleep `MAX_AGE` and go round.
    A failed ask leaves the file as it was and is asked again on the next round, as ahpd's `setInterval`.

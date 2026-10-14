@@ -31,7 +31,8 @@ None, unless a run finds a defect; each fix goes in the task that owns the code,
    - each Update ends with the row connected on the newer version and no notice;
    - the local host row shows only p3's own notice.
 3. The desk: an installed older signed release, with a newer one published (p4 task 06's pair):
-   - the notice appears in the host list and the tray once downloaded, and nothing installs while it is left;
+   - the notice appears in the host list and as the tray menu's first item once downloaded, and nothing installs while it is left;
+   - a release published while the desk runs is found by task 06's check within 6 hours, with no restart;
    - a click restarts the desk on the newer version, with the new `@ahpd/web` in its app windows when the pin moved (task 07).
 4. Look at every row and notice in both the light and the dark theme, at the list's smallest size (480 by 300): nothing overlaps, nothing is cut, and the Update button lines up with the row's other buttons.
 5. Tick the plan's final verification checklist.

@@ -11,8 +11,8 @@ refs:
 
 ## Objective
 
-For a host the desk did not install over SSH, the row's Update runs ahpd's `x-ahpd/update` (task 03) over the host's open AHP connection, and ahpd installs the newer version and restarts itself (decision 3).
-Update shows only when ahpd says, with `check`, that this token may update it; a host whose ahpd has no such command, or refuses the token, keeps the notice without the button.
+For a host the desk did not install over SSH, the row's Update runs ahpd's `x-ahpd/update` (task 03) over the host's open AHP connection (decision 7), and ahpd installs the version the row named and restarts itself (decisions 3 and 8).
+Update shows only when ahpd says, with `check`, that this token may update it; a host whose ahpd has no such command, or refuses the token, keeps the notice without the button (decision 6).
 
 ## Files
 
@@ -40,7 +40,7 @@ Update shows only when ahpd says, with `check`, that this token may update it; a
    - asks `requestUpdate(client, { check: true })` once per connection, through `multi.client(id)?.rawClient()`, only when task 02 shows the notice for that host;
    - keeps the answer until the host reconnects, so a row redraw asks nothing;
    - answers `{ kind: 'ahpd' }` when `mayUpdate(answer)`, else `null`.
-4. `updateThroughAhpd(id, version, force)` sends `requestUpdate(client, { version, force })` with the version the row named (plan Resume state, open question 4).
+4. `updateThroughAhpd(id, version, force)` sends `requestUpdate(client, { version, force })` with the version the row named (decision 8).
    The connection dropping after the answer is the restart, not a failure; an RPC error before it is shown with `t('hosts.updateFailed', { error })`.
 5. `hosts.updateFailed`: "ahpd could not update: {error}" / "O ahpd não conseguiu atualizar: {error}" / "ahpd no pudo actualizarse: {error}".
 

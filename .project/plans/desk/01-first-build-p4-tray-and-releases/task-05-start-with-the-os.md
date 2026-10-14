@@ -22,7 +22,7 @@ Removing the desk on Windows removes its login entry too.
 
 - `UPDATE: src-tauri/Cargo.toml:17-24` - `tauri-plugin-autostart = "2"`.
 - `UPDATE: src-tauri/src/lib.rs:20-25` - `.plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--autostart"])))`.
-- `UPDATE: src-tauri/src/lib.rs:44-51` - the host list window is built with `.visible(false)` when the desk was started by the OS (open question 5 in plan.md).
+- `UPDATE: src-tauri/src/lib.rs:44-51` - the host list window is built with `.visible(false)` when the desk was started by the OS (decision 8 in plan.md).
 - `UPDATE: src-tauri/src/settings.rs` - `start_with_os_asked: bool` in `Settings`, and the commands `start_with_os` and `set_start_with_os`.
 - `UPDATE: src-tauri/src/lib.rs:71-87`, `src-tauri/build.rs:52-68` and `src-tauri/capabilities/shell.json:6-30` - `start_with_os`, `set_start_with_os`.
 - `CREATE: src-tauri/windows/hooks.nsh` - `NSIS_HOOK_POSTUNINSTALL`, which deletes the login entry.
@@ -41,7 +41,7 @@ Removing the desk on Windows removes its login entry too.
 4. `FirstRun` welcome step: a checkbox "Start with the OS", checked when `asked` is false, else as `on` says, so a first run that comes back after the last host is removed does not turn on again what the user turned off; "Get started" calls `setStartWithOs(checked)` and goes on to the next step.
 5. `SettingsScreen`: the checkbox shows `on` and calls `setStartWithOs` on each change; a failure shows its message.
 6. The plugin starts the desk with `--autostart`; `run()` reads `std::env::args()` for it in the setup.
-   With it, the host list is built hidden and the desk is in the tray, as decision 1 says "the pill and the tray are there after a login" (open question 5 asks whether that is right before the pill exists).
+   With it, the host list is built hidden and the desk shows only its tray icon (decision 8 in plan.md).
    The single-instance callback of task 02 ignores the flag: a start by hand always shows the host list.
 7. `hooks.nsh`: `!macro NSIS_HOOK_POSTUNINSTALL` deletes the value from `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` that the plugin wrote.
    Read the value's name in the plugin's source, not from memory (the app's name, `ahp-desk`, is the expected one), and check it with `reg query` after an enable.

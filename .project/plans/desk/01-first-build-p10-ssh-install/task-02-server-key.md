@@ -1,5 +1,5 @@
 ---
-title: A server's key is checked against known_hosts and the desk's confirmed keys, confirmed once, and a changed one refused
+title: A server's key is checked against known_hosts and the desk's confirmed keys; a new one is refused until Trust, and a changed one refused with Forget
 status: todo
 depends: [task-01-ssh-session.md]
 layer: "src-tauri"
@@ -11,7 +11,9 @@ refs:
 
 ## Objective
 
-Every SSH connection checks the server's key, as decision 2 says: a key in `~/.ssh/known_hosts` for that host, or one the person confirmed before, passes; a new one is shown by its fingerprint to confirm; a different one is refused with both fingerprints.
+Every SSH connection checks the server's key, as decision 2 says: a key in `~/.ssh/known_hosts` for that host, or one the person confirmed before, passes.
+A new one refuses the connection with its fingerprint, and once the person trusts it the desk connects again (decision 9).
+A different one is refused with both fingerprints, and the refusal can forget the desk's old key (decision 10).
 
 ## Files
 
@@ -27,17 +29,18 @@ Every SSH connection checks the server's key, as decision 2 says: a key in `~/.s
 2. `KnownKeys` is `known_keys.json` in the desk's config folder: one entry per `host:port` with the key type, the key in OpenSSH form, the fingerprint and the date confirmed.
 3. `KnownKeys::check(address, port, key)` answers `KeyCheck::Known` when `~/.ssh/known_hosts` (`%USERPROFILE%\.ssh\known_hosts` on Windows) holds that key for the host, read with `russh`'s known_hosts functions (check their 0.61 names first), or when `known_keys.json` holds it.
    It answers `KeyCheck::Changed { known, offered }` when either holds a different key for the host, and `KeyCheck::New { offered }` when neither holds one.
-4. `ServerKeyHandler`, the `client::Handler` that task 01's `connect()` uses, answers `check_server_key` from `KnownKeys::check`: `Known` passes; `New` and `Changed` refuse, and the handler keeps what it saw so `connect()` answers `ConnectError::NewKey { fingerprint }` or `ConnectError::ChangedKey { known, offered }`.
-   How the person's confirmation reaches a connection is open question 2 in the plan; the steps here follow its proposed answer: the shell asks, `confirm_ssh_key` records the key, and the connection is made again.
-5. `confirm_ssh_key(address, port, fingerprint)` records the key that the refused connection saw, only when its fingerprint equals the one the person was shown.
-6. `forget_ssh_key(address, port)` removes the desk's entry, so the next connection asks again (decision 2's consequence); it never edits `~/.ssh/known_hosts`, and a changed key found there is refused with a hint to run `ssh-keygen -R <host>`.
-   Where the shell offers Forget is open question 3 in the plan.
-7. The words for the confirmation and the refusal, in the shell, are task 07's; this task answers the errors with both fingerprints.
+4. `ServerKeyHandler`, the `client::Handler` that task 01's `connect()` uses, answers `check_server_key` from `KnownKeys::check` at once, never waiting on the person: `Known` passes; `New` and `Changed` refuse, and the handler keeps what it saw so `connect()` answers `ConnectError::NewKey { fingerprint, key }` or `ConnectError::ChangedKey { known, offered, inKnownHosts }`.
+   The refusal comes before any sign-in, so nothing is asked of the person on a refused connection (decision 9).
+5. `KnownKeys` holds the last key refused per `host:port`, in memory; `confirm_ssh_key(address, port, fingerprint)` records that key, only when its fingerprint equals the one the person was shown.
+   The shell then connects again, and that connection passes as `Known` (decision 9).
+6. `forget_ssh_key(address, port)` removes the desk's entry for that server, so the next connection answers `NewKey` and asks to trust the new key as a first one (decision 10).
+   It never edits `~/.ssh/known_hosts`: `ChangedKey` carries `inKnownHosts: true` when the old key came from there, and the refusal then names `ssh-keygen -R <host>` instead of a Forget button.
+7. The words for the confirmation and the refusal, with its "Forget the old key" button, are task 07's; this task answers the errors with both fingerprints and where the old key came from.
 
 ## Validation
 
-- Cargo tests in `known_keys.rs`: a key in a scratch `known_hosts` passes; a key in `known_keys.json` passes; a new key answers `New`; a different key in either answers `Changed` with both fingerprints; `confirm` with a fingerprint that is not the one seen is refused; `forget` makes the next check `New`; a missing `known_hosts` is not an error.
-- Cargo tests against task 01's `test_server.rs`: the first connection answers `NewKey`; after `confirm_ssh_key` it signs in; with the server restarted on another host key it answers `ChangedKey` with both fingerprints.
+- Cargo tests in `known_keys.rs`: a key in a scratch `known_hosts` passes; a key in `known_keys.json` passes; a new key answers `New`; a different key in either answers `Changed` with both fingerprints, and says which file held the old one; `confirm` with a fingerprint that is not the one seen is refused; `forget` makes the next check `New`; a missing `known_hosts` is not an error.
+- Cargo tests against task 01's `test_server.rs`: the first connection answers `NewKey` and the server sees no sign-in attempt; after `confirm_ssh_key` a second connection signs in; with the server restarted on another host key it answers `ChangedKey` with both fingerprints; after `forget_ssh_key` the next connection answers `NewKey`, and after Trust it signs in.
 - `pnpm test` and `pnpm lint` pass.
 
 ## Resume

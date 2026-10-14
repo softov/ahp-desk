@@ -30,7 +30,7 @@ The desk never fetches a UI at run time; this section is how a new ahpw reaches 
    2. Run `pnpm test` and `pnpm lint`, then `pnpm tauri dev` and open a host to see the new ahpw in an app window.
    3. Raise the desk's version in `package.json`, `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`, the same in all three; the updater compares `tauri.conf.json`'s.
    4. Commit, tag `v<version>`, and push the tag; CI builds the installers and publishes them with `latest.json` (p4 task 04).
-   5. An installed desk finds the release within 6 hours, downloads it, and asks before it restarts (task 06).
+   5. An installed desk finds the release within 6 hours, downloads it, and asks before it restarts (p4 task 03, with task 06's check every 6 hours).
 2. Say in the section that an ahpw fix reaches people only through these steps, and that a desk release is made for every ahpw release the desk needs.
 3. If p4 task 04 has already written a release section, add these steps to it rather than a second one.
 4. ahpw's own release steps live in the ahpw repository; a line there naming this follow-up is handed to that repository, not written from here.

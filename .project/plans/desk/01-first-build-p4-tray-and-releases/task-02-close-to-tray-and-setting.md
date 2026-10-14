@@ -38,7 +38,7 @@ A second start of the desk shows the running desk's host list instead of startin
 - `CREATE: packages/shell/src/settings/ipc.ts` - `CloseBehavior`, `Settings`, `getSettings()`, `saveSettings()`, `onSettingsAsked()`.
 - `CREATE: packages/shell/src/settings/SettingsScreen.tsx` - the Settings screen.
 - `UPDATE: packages/shell/src/App.tsx:13` - `{ kind: 'settings' }` in `Screen`, its branch in the render, and `onSettingsAsked` with the listeners at line 42.
-- `UPDATE: packages/shell/src/TitleBar.tsx:76-77` - a Settings button before the language picker (open question 4 in plan.md).
+- `UPDATE: packages/shell/src/TitleBar.tsx:76-77` - a gear button that opens Settings, before the language picker (decision 7 in plan.md).
 - `UPDATE: packages/shell/src/i18n.ts` - the new keys in the three dictionaries.
 - `UPDATE: packages/shell/src/hosts/ipc.ts` - `settings` in `TrayWords`; `App.tsx` sends `t('tray.settings')`.
 

@@ -32,7 +32,7 @@ Nothing in the workflow prints them, and no task file or log holds them.
 ## Files
 
 - `CREATE: .github/workflows/release.yml` - the release workflow.
-- `CREATE: src-tauri/tauri.release.conf.json` - `{ "bundle": { "createUpdaterArtifacts": true } }`, merged in by the workflow with `--config` (open question 8 in plan.md).
+- `CREATE: src-tauri/tauri.release.conf.json` - `{ "bundle": { "createUpdaterArtifacts": true } }`, merged in by the workflow with `--config` (decision 11 in plan.md).
 - `UPDATE: DEVELOPER.md:119-134` - "Signing keys" names the two CI secrets; a new section "Releases" after it says how to cut one.
 
 ## Steps
@@ -40,14 +40,14 @@ Nothing in the workflow prints them, and no task file or log holds them.
 1. `on: push: tags: ['v*']`, and `permissions: contents: write`.
 2. Job `version`, on `ubuntu-latest`: fails unless the tag without its `v` equals `version` in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `package.json`; a release is cut from the version the files say.
 3. Job `draft`, needs `version`: `gh release create "$GITHUB_REF_NAME" --draft --title "ahp-desk $VERSION" --notes "ahp-desk $VERSION"`, with `GH_TOKEN: ${{ github.token }}`, and outputs the release id.
-4. Job `build`, needs `draft`, with `strategy.matrix.os` the Windows runner `windows-latest` and the Linux runner (open question 7 in plan.md: `ubuntu-latest` as the runtime path says, or `ubuntu-22.04` for an AppImage that runs on an older glibc), and `fail-fast: false`.
+4. Job `build`, needs `draft`, with `strategy.matrix.os` the Windows runner `windows-latest` and the Linux runner `ubuntu-22.04`, so the AppImage runs on an older glibc (decision 10 in plan.md), and `fail-fast: false`.
    - `actions/checkout@v4`.
    - On Linux: `sudo apt-get update` and the packages of DEVELOPER.md line 19 but `build-essential curl wget file`, which the runner has.
    - `pnpm/action-setup@v4`, which reads `packageManager` (pnpm 11.21.0) from `package.json`.
    - `actions/setup-node@v4` with `node-version: 22` and `cache: pnpm`.
    - `dtolnay/rust-toolchain@stable` and `Swatinem/rust-cache@v2` with `workspaces: src-tauri -> target`.
    - `pnpm install --frozen-lockfile`.
-   - `tauri-apps/tauri-action@v0` (open question 6 in plan.md) with `releaseId` from `draft`, `args: --config src-tauri/tauri.release.conf.json`, and `includeUpdaterJson: true`, so it uploads each bundle with its `.sig` and merges this platform into `latest.json`.
+   - `tauri-apps/tauri-action@v0` (decision 9 in plan.md) with `releaseId` from `draft`, `args: --config src-tauri/tauri.release.conf.json`, and `includeUpdaterJson: true`, so it uploads each bundle with its `.sig` and merges this platform into `latest.json`.
    - Its `env`: `GITHUB_TOKEN`, `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` from the secrets, `AHP_DESK_UI: ahpw` and `AHP_DESK_AHPW: npm` (decision 2: the release is the public build only).
 5. `beforeBuildCommand` runs `pnpm stage:all`, which fetches the Node of the runner's own OS (DEVELOPER.md line 100), so each runner ships its own Node; nothing more is staged by hand.
 6. Job `publish`, needs `build`: checks that the draft holds `latest.json` with both `windows-x86_64` and `linux-x86_64`, then `gh release edit "$GITHUB_REF_NAME" --draft=false --latest`.

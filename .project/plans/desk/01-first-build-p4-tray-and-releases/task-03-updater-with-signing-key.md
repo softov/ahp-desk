@@ -44,7 +44,7 @@ The signing key is the user's, made once, and never in git, in a task file or in
 
 ## Steps
 
-1. `plugins.updater` as above; `bundle.createUpdaterArtifacts` is turned on for the release build only, by task 04 (open question 8 in plan.md), so a clone of this MIT repository still builds an installer with no key.
+1. `plugins.updater` as above; `bundle.createUpdaterArtifacts` is turned on for the release build only, by task 04 (decision 11 in plan.md), so a clone of this MIT repository still builds an installer with no key.
    The updater's Windows `installMode` stays the default, `passive`.
 2. `DeskUpdate(Mutex<Option<Ready>>)` with `struct Ready { version: String, update: tauri_plugin_updater::Update, bytes: Vec<u8> }`.
 3. `pub fn check_on_start(app: &AppHandle)`: returns at once when `cfg!(debug_assertions)`; otherwise `tauri::async_runtime::spawn` runs `app.updater()?.check().await`, and for `Some(update)` runs `update.download(|_, _| {}, || {}).await`, keeps `Ready`, and emits `DESK_UPDATE_READY` (`"desk-update-ready"`) with the version.
@@ -52,7 +52,8 @@ The signing key is the user's, made once, and never in git, in a task file or in
    The check every 6 hours after the start is plan p9's.
 4. `#[tauri::command] desk_update(state) -> Option<String>`: the ready version, for a host list that opens after the event.
 5. `#[tauri::command] async fn install_desk_update(app, state) -> Result<(), String>`: takes `Ready`, runs `local_ahpd::stop_on_quit(&app)` first, since the installer may end the process without `RunEvent::Exit` (check this on Windows and drop the call if `Exit` runs), then `update.install(bytes)` and `app.restart()`.
-6. The notice (decision 3; open question 1 in plan.md asks whether it is this task's or p9 task 06's): `HostList` takes `update: string | null` and shows `t('update.ready', { version })` with a primary button `t('update.restart')` that calls `installDeskUpdate()`; a failure shows its message as a `result bad` line.
+6. The notice is this task's, and p9 task 06 keeps only the check every 6 hours (decisions 3 and 4 in plan.md).
+   `HostList` takes `update: string | null` and shows `t('update.ready', { version })` with a primary button `t('update.restart')` that calls `installDeskUpdate()`; a failure shows its message as a `result bad` line.
 7. `App.tsx` calls `deskUpdate()` once and `onDeskUpdateReady()`, keeps the version, passes it to `HostList`, and sends `update: t('update.ready', { version })` in the tray's words, so the tray item has the same words.
 8. The tray's `tray.update` item calls `install_desk_update`'s body through a shared `pub async fn install(app: AppHandle) -> Result<(), String>` in `updates.rs`.
 9. English words: `update.ready` "ahp-desk {version} is ready. Restart to update.", `update.restart` "Restart"; Portuguese and Spanish in the same keys, keeping `{version}`.
