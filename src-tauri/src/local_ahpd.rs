@@ -460,6 +460,9 @@ pub fn start(
         std::fs::create_dir_all(folder)
             .map_err(|err| format!("cannot make {}: {err}", folder.display()))?;
     }
+    // The log keeps every run; only what this start adds says why it failed.
+    let log = config.join("daemon.log");
+    let before = std::fs::metadata(&log).map(|meta| meta.len()).unwrap_or(0);
     let output = launcher
         .command()
         .arg("start")
@@ -470,15 +473,21 @@ pub fn start(
         .output()
         .map_err(|err| format!("cannot run {}: {err}", launcher.program.display()))?;
     if !output.status.success() {
-        // ahpd names its log; its last lines say why, so they come with it.
-        let log = std::fs::read_to_string(config.join("daemon.log")).unwrap_or_default();
-        let tail: Vec<&str> = log.lines().rev().take(8).collect();
-        let tail: Vec<&str> = tail.into_iter().rev().collect();
-        return Err(format!("{}\n{}", said(&output), tail.join("\n"))
+        let added = log_since(&log, before);
+        return Err(format!("{}\n{}", said(&output), added.trim())
             .trim()
             .to_string());
     }
     status(launcher, config)?.ok_or_else(|| "ahpd start said it began, but none is on".to_string())
+}
+
+/// What `log` holds past byte `from`; all of it when the log is shorter, as a
+/// new log is.
+fn log_since(log: &Path, from: u64) -> String {
+    let bytes = std::fs::read(log).unwrap_or_default();
+    let from = usize::try_from(from).unwrap_or(0);
+    let added = bytes.get(from..).unwrap_or(&bytes);
+    String::from_utf8_lossy(added).into_owned()
 }
 
 /// `ahpd stop`, which on Windows reaches the daemon through its control pipe
@@ -1015,6 +1024,25 @@ mod tests {
         assert!(backend.is_file(), "the backend is under the prefix");
         let config = fs::read_to_string(scratch.0.join("config/ahpd/config.json")).unwrap();
         assert!(config.contains("@ahpd/agent-claude"), "{config}");
+    }
+
+    #[test]
+    fn local_ahpd_a_failed_start_reads_only_its_own_log_lines() {
+        let scratch = Scratch::new();
+        let log = scratch.file("daemon.log", "an earlier run failed\n");
+        let before = fs::metadata(&log).unwrap().len();
+        fs::write(&log, "an earlier run failed\nthis run failed\n").unwrap();
+        assert_eq!(log_since(&log, before), "this run failed\n");
+        assert_eq!(
+            log_since(&log, 0),
+            "an earlier run failed\nthis run failed\n"
+        );
+        assert_eq!(log_since(&scratch.0.join("none.log"), 0), "");
+        // A log rolled shorter than where it was is read whole.
+        assert_eq!(
+            log_since(&log, 10_000),
+            "an earlier run failed\nthis run failed\n"
+        );
     }
 
     #[test]

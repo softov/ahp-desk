@@ -78,6 +78,7 @@ export function FirstRun({ onFinished }: { onFinished: () => void }) {
           taken={[]}
           firstRun
           onDone={(saved) => (saved === null ? setStep({ kind: 'where' }) : open(saved.id, saved.name))}
+          onToList={onFinished}
         />
       );
     case 'opening':

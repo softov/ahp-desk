@@ -30,6 +30,17 @@ type Search = { kind: 'looking' } | { kind: 'done'; found: FoundAhpd | null } | 
 /** What the form is doing: asking, or one of the steps of a save. */
 type Phase = 'form' | 'installing' | 'starting';
 
+/** An error's first line, and what ahpd wrote under it, such as its log, in a box. */
+function ErrorText({ text }: { text: string }) {
+  const [head, ...rest] = text.split('\n');
+  return (
+    <>
+      <p className="result bad">{head}</p>
+      {rest.length > 0 && <InstallSteps lines={rest} />}
+    </>
+  );
+}
+
 /** The line naming the ahpd found. */
 function foundLine(found: FoundAhpd): string {
   const words = { path: 'local.foundPath', set: 'local.foundSet', installed: 'local.foundInstalled' } as const;
@@ -46,12 +57,16 @@ export function LocalForm({
   firstRun = false,
   kindField,
   onDone,
+  onToList,
 }: {
   taken: readonly string[];
   firstRun?: boolean;
   /** Add host's Kind, first among the fields. */
   kindField?: ReactNode;
+  /** The host saved and on, or `null` when the form was left. */
   onDone: (saved: Saved) => void;
+  /** Saved but not started: the way out is the host list, where the host shows down. */
+  onToList: () => void;
 }) {
   const [name, setName] = useState(() => t('firstRun.local'));
   const [ahpdPath, setAhpdPath] = useState<string | null>(null);
@@ -214,10 +229,10 @@ export function LocalForm({
       {phase === 'installing' && <p className="result">{t('local.installing')}</p>}
       {phase === 'starting' && <p className="result">{t('local.starting')}</p>}
       {lines.length > 0 && <InstallSteps lines={lines} />}
-      {error !== null && <p className="result bad">{error}</p>}
+      {error !== null && <ErrorText text={error} />}
       <footer className="actions" ref={footer}>
         {saved !== null ? (
-          <button type="button" className="primary" onClick={() => onDone(saved)}>
+          <button type="button" className="primary" onClick={onToList}>
             {t('local.toList')}
           </button>
         ) : (

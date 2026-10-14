@@ -74,6 +74,7 @@ export function App() {
             taken={hosts.map((host) => host.id)}
             kindField={<KindField kind={addKind} localTaken={localTaken} onKind={setAddKind} />}
             onDone={() => setScreen({ kind: 'list' })}
+            onToList={() => setScreen({ kind: 'list' })}
           />
         ) : (
           <HostForm
