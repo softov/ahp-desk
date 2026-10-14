@@ -19,9 +19,9 @@ refs:
 
 ## Objective
 
-`ssh::connect()` opens a `russh` session to a server and signs in, trying the SSH agent, then a key file (asking its passphrase when it has one), then a password, as decision 3 says.
-A password the person asks to keep is in the OS keyring, or, on a machine with no keyring and only when the person ticked the box that says so, in `hosts.json` (decision 11); it is removed with its host.
-A passphrase, or a password not kept, that the person typed is held in memory until the desk quits, never on disk (decision 8).
+`ssh::connect()` opens a `russh` session to a server and signs in, trying the SSH agent, then a key file (asking its passphrase when it has one), then a password, as the Answers row on the sign-in says.
+A password the person asks to keep is in the OS keyring, or, on a machine with no keyring and only when the person ticked the box that says so, in `hosts.json` (Answers: a password with no keyring); it is removed with its host.
+A passphrase, or a password not kept, that the person typed is held in memory until the desk quits, never on disk (Answers: secrets held until quit).
 `exec_capture()` and `exec_lines()` run a command on the server, the second sending each line as it comes.
 
 ## Files
@@ -40,18 +40,18 @@ A passphrase, or a password not kept, that the person typed is held in memory un
 ## Steps
 
 1. `SshTarget { address, port, user, key_file: Option<PathBuf> }` names the server; `port` is 22 unless the address says `host:port`.
-2. `connect(target, check, secrets)` builds the `client::Config` with `keepalive_interval` set, so a tunnel (task 06) notices a dead link, and hands the server key to `check`, the handler task 02 writes; until then `check` is a parameter the tests fill, never a handler that accepts any key (decision 2).
-3. `sign_in()` tries, in order, as decision 3 says: the agent (`try_agent()`: `$SSH_AUTH_SOCK` on Unix; the OpenSSH pipe `\\.\pipe\openssh-ssh-agent`, then Pageant, on Windows, as doop's `try_agent_auth`); the key file, loaded with `load_secret_key(path, None)`, and on an encrypted key `Err(SignInError::Passphrase)` so the form asks it; the password, from `Secrets` or from `password::kept(id)`.
+2. `connect(target, check, secrets)` builds the `client::Config` with `keepalive_interval` set, so a tunnel (task 06) notices a dead link, and hands the server key to `check`, the handler task 02 writes; until then `check` is a parameter the tests fill, never a handler that accepts any key (Answers: the server key).
+3. `sign_in()` tries, in order, as the Answers row on the sign-in says: the agent (`try_agent()`: `$SSH_AUTH_SOCK` on Unix; the OpenSSH pipe `\\.\pipe\openssh-ssh-agent`, then Pageant, on Windows, as doop's `try_agent_auth`); the key file, loaded with `load_secret_key(path, None)`, and on an encrypted key `Err(SignInError::Passphrase)` so the form asks it; the password, from `Secrets` or from `password::kept(id)`.
    It answers `SignIn::Agent`, `SignIn::KeyFile` or `SignIn::Password`, which the host keeps as `signIn`, and fails naming each way it tried.
-   When the host's sign-in needs a passphrase or a password that neither `Secrets` nor the kept password holds, it fails with `SignInError::NeedsPerson { what }`, `what` being `passphrase` or `password`, which task 06 shows as "Sign in" on a tunnelled host's row (decision 8).
-4. `Secrets` is a Tauri state holding, per host id, for this process only, what the person typed: a passphrase, and a password not kept (decision 8).
+   When the host's sign-in needs a passphrase or a password that neither `Secrets` nor the kept password holds, it fails with `SignInError::NeedsPerson { what }`, `what` being `passphrase` or `password`, which task 06 shows as "Sign in" on a tunnelled host's row (Answers: secrets held until quit).
+4. `Secrets` is a Tauri state holding, per host id, for this process only, what the person typed: a passphrase, and a password not kept (Answers: secrets held until quit).
    It keeps them until the desk quits, so a tunnel that drops opens again with no question.
    It never writes them to disk, never puts them in an event or a log line, and drops a host's entry when the host is removed.
    A typed passphrase that does not decrypt the key, or a password the server refuses, is dropped from `Secrets` at once, so the next attempt asks again.
 5. `password::keyring_works(vault)` answers whether the vault can be used: `vault.get("ssh-keyring-check")` answers `Ok`, with or without an entry.
-   The command `ssh_keyring_works` gives it to the form before the save, so the checkbox says where the password will go (decision 11, task 07).
+   The command `ssh_keyring_works` gives it to the form before the save, so the checkbox says where the password will go (Answers: a password with no keyring; task 07).
    `password::keep(vault, host, password)` writes it to the `Keyring` (`tokens.rs`) under `ssh-password:<id>`, beside the host's token under `<id>`, and clears `host.ssh.password`.
-   When the vault fails, it writes it to `host.ssh.password` in `hosts.json`, as `tokens::set` does a token; the form calls it only when the person ticked the checkbox that names the plain file (decision 11).
+   When the vault fails, it writes it to `host.ssh.password` in `hosts.json`, as `tokens::set` does a token; the form calls it only when the person ticked the checkbox that names the plain file (Answers: a password with no keyring).
    `kept` reads the vault first, then `host.ssh.password`; `forget` deletes both, and deleting what is not there is not an error; `move_to_vault` moves a password in the file into the vault when the vault works, as `tokens::move_to_vault` does.
 6. `exec_capture(session, command)` answers the exit code and stdout and stderr together, as doop's.
    `exec_lines(session, command, line, cancel)` sends each line of both as it comes, as `run_streaming` does for the local install, and fails with the exit code; `cancel` is the `AtomicBool` task 05 raises.

@@ -13,11 +13,6 @@ decisions:
   - decisions/ahpw-reaches-the-desk-with-a-desk-release.md
   - decisions/a-hosts-ahpd-update-is-shown-and-offered.md
   - decisions/ahpd-updates-itself-when-the-first-install-says-so.md
-  - decisions/the-desk-asks-npm-with-reqwest-in-rust.md
-  - decisions/update-shows-after-ahpds-check-says-the-token-may.md
-  - decisions/the-desk-updates-a-host-through-ahp-x-ahpd-update.md
-  - decisions/update-installs-the-version-the-row-showed.md
-  - decisions/a-ready-desk-update-is-the-first-tray-item.md
 refs:
   - file:///github/ahpd/packages/server/src/update.ts - ahpd's npm check and version comparison, the rules the desk's check follows
   - file:///github/ahpd/packages/server/src/commands/restart.ts - ahpd's restart, which its update command ends with
@@ -53,25 +48,22 @@ host connected -> initialize serverInfo (ahpd version) -> npm latest @ahpd/serve
 - ahpd tells no client that it is behind npm, and has no command that updates itself.
 - The desk has no updater yet (p4 task 03).
 
-## Decisions locked in
-
-| # | Decision | Rationale / source |
-| --- | --- | --- |
-| 1 | [The desk asks before it installs its own update](../../../decisions/the-desk-asks-before-installing-its-update.md) | Softov, 2026-10-13 |
-| 2 | [A new ahpw reaches the desk with a desk release](../../../decisions/ahpw-reaches-the-desk-with-a-desk-release.md) | Softov, 2026-10-13 |
-| 3 | [A host's ahpd update is shown on its row and offered, over SSH or through ahpd](../../../decisions/a-hosts-ahpd-update-is-shown-and-offered.md) | Softov, 2026-10-13 |
-| 4 | [ahpd updates itself when the first install says so](../../../decisions/ahpd-updates-itself-when-the-first-install-says-so.md) | Softov, 2026-10-11 |
-| 5 | [The desk asks npm for @ahpd/server's latest with reqwest in Rust](../../../decisions/the-desk-asks-npm-with-reqwest-in-rust.md) | Softov, 2026-10-14 |
-| 6 | [Update shows on a host's row only after ahpd's update command answers a check that the token may update it](../../../decisions/update-shows-after-ahpds-check-says-the-token-may.md) | Softov, 2026-10-14 |
-| 7 | [The desk updates a host's ahpd through the AHP method x-ahpd/update, over the connection the host list holds](../../../decisions/the-desk-updates-a-host-through-ahp-x-ahpd-update.md) | Softov, 2026-10-14 |
-| 8 | [Update installs the version the host's row showed, passed by the desk](../../../decisions/update-installs-the-version-the-row-showed.md) | Softov, 2026-10-14 |
-| 9 | [A ready desk update is the first item of the tray menu, and a click installs it and restarts](../../../decisions/a-ready-desk-update-is-the-first-tray-item.md) | Softov, 2026-10-14 |
+## Answers
 
 | What | Source | Task |
 | --- | --- | --- |
+| [The desk asks before it installs its own update](../../../decisions/the-desk-asks-before-installing-its-update.md) | Softov, 2026-10-13 | 06 |
+| [A new ahpw reaches the desk with a desk release](../../../decisions/ahpw-reaches-the-desk-with-a-desk-release.md) | Softov, 2026-10-13 | 07 |
+| [A host's ahpd update is shown on its row and offered, over SSH or through ahpd](../../../decisions/a-hosts-ahpd-update-is-shown-and-offered.md) | Softov, 2026-10-13 | 02, 04, 05 |
+| [ahpd updates itself when the first install says so](../../../decisions/ahpd-updates-itself-when-the-first-install-says-so.md) | Softov, 2026-10-11 | p3 task 07 |
+| The desk asks npm for `@ahpd/server`'s latest with `reqwest` in Rust, over rustls, and reads `npm_config_registry` first, as ahpd's `registry()` does. | Softov, 2026-10-14: "reqwest in Rust" | 01 |
+| Update shows on a host's row only after ahpd's update command, called with `check`, answers that the token may update it; a refusal, or no such command, leaves the notice without the button. | Softov, 2026-10-14: "A check call" | 03, 04 |
+| The desk calls ahpd's update command as the AHP method `x-ahpd/update`, on the connection the host list holds for that host. | Softov, 2026-10-14: "AHP x-ahpd/update" | 03, 04 |
+| Update installs the version the host's row named: the desk passes it as `version` to `x-ahpd/update`, and as `@ahpd/server@<version>` to the SSH update. | Softov, 2026-10-14: "The one the row showed" | 03, 04, 05 |
+| While a desk update is ready, the first item of the tray menu says so with its version, and a click installs it and restarts; p4 task 03 builds it. | Softov, 2026-10-14: "First menu item" | 06, p4 task 03 |
 | The desk asks npm for `@ahpd/server`'s latest at most every 6 hours, as ahpd does. | (defaulted: ahpd's `update.ts`) | 01 |
-| Update on a host with running sessions names them and waits for a click. | Decision 3 | 02 |
-| The desk's update notice, its install command and its tray item are built by p4 task 03, with the check at start; this plan adds the check every 6 hours after it. | [p4's decision](../../../decisions/the-desk-update-notice-is-built-in-p4-task-03.md), Softov, 2026-10-14 | 06 |
+| Update on a host with running sessions names them and waits for a click. | [A host's ahpd update is shown on its row and offered](../../../decisions/a-hosts-ahpd-update-is-shown-and-offered.md) | 02 |
+| The desk's update notice, its install command and its tray item are built by p4 task 03, with the check at start; this plan adds the check every 6 hours after it. | Softov, 2026-10-14: "p4 task 03", in [p4's Answers](../01-first-build-p4-tray-and-releases/plan.md#answers) | 06 |
 
 ## Proposed architecture
 
@@ -101,10 +93,11 @@ host connected -> initialize serverInfo (ahpd version) -> npm latest @ahpd/serve
 
 ## Resume state
 
-- **Done so far:** the plan, its decisions and its task files, 2026-10-14; the open questions answered as decisions 5 to 9, and task 06 narrowed to the check every 6 hours, 2026-10-14.
+- **Done so far:** the plan, its decisions and its task files, 2026-10-14.
+  The open questions are answered in *Answers*, and task 06 is narrowed to the check every 6 hours, 2026-10-14.
 - **Next action:** hand task 03 to the ahpd repository as its own plan; then task 01, and task 07, which waits on nothing.
 - **Open questions:** none.
-- **Watch out for:** the local ahpd follows decision 4 (p3 task 07), not the host-row Update.
+- **Watch out for:** the local ahpd follows [ahpd updates itself when the first install says so](../../../decisions/ahpd-updates-itself-when-the-first-install-says-so.md) (p3 task 07), not the host-row Update.
 
 ## Final verification checklist
 

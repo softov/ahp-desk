@@ -16,7 +16,7 @@ refs:
 
 ## Objective
 
-`DEVELOPER.md` has a "Releasing" section: how a desk release is made, and that an ahpw release that matters to the desk is followed by one, with the pins moved, so the desk's updater delivers the new ahpw (decision 2).
+`DEVELOPER.md` has a "Releasing" section: how a desk release is made, and that an ahpw release that matters to the desk is followed by one, with the pins moved, so the desk's updater delivers the new ahpw (Answers: ahpw in a desk release).
 The desk never fetches a UI at run time; this section is how a new ahpw reaches it.
 
 ## Files

@@ -18,7 +18,7 @@ refs:
 ## Objective
 
 `src-tauri/src/updates.rs` asks npm for the latest `@ahpd/server` when its last answer is older than 6 hours, at start and then every 6 hours, through `npm_config_registry` when set, as ahpd's `update.ts` does.
-It asks with `reqwest` in Rust, over rustls (decision 5).
+It asks with `reqwest` in Rust, over rustls (Answers: reqwest).
 It keeps the answer in `updates.json` beside `hosts.json`, and sends `updates-changed` to every window when it changes; the host list reads it with `updates()`.
 
 ## Files
@@ -30,7 +30,7 @@ It keeps the answer in `updates.json` beside `hosts.json`, and sends `updates-ch
 - `UPDATE: src-tauri/src/lib.rs:71-87` - `updates::updates` in `generate_handler!`.
 - `UPDATE: src-tauri/build.rs:238-254` - `"updates"` in the command list.
 - `UPDATE: src-tauri/capabilities/shell.json` - `"allow-updates"`.
-- `UPDATE: src-tauri/Cargo.toml` - `reqwest` with `default-features = false` and its rustls and `json` features, in the version `Cargo.lock` already holds through tauri (0.13 today, whose rustls feature is named for that version) (decision 5).
+- `UPDATE: src-tauri/Cargo.toml` - `reqwest` with `default-features = false` and its rustls and `json` features, in the version `Cargo.lock` already holds through tauri (0.13 today, whose rustls feature is named for that version) (Answers: reqwest).
 - `UPDATE: packages/shell/src/hosts/ipc.ts` - `NpmLatest`, `Updates`, `updates()` and `onUpdatesChanged()`.
 
 ## Steps

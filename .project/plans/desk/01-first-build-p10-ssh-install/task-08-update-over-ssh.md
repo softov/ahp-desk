@@ -10,7 +10,7 @@ refs:
 ## Objective
 
 `ssh_install::update(app, id, version, events)` installs `@ahpd/server@<version>` into the host's `~/.local/share/ahpd` over SSH, restarts `ahpd.service`, waits until it answers, and answers the version now running, streaming its steps as the install does.
-It works for a host whose `ssh` details say the desk installed its ahpd (`byDesk`, decision 16), of kind `ssh` or `url`; an ahpd found on the server and not installed by the desk is updated through ahpd, as p9's decision says for any other host.
+It works for a host whose `ssh` details say the desk installed its ahpd (`byDesk`, Answers: a found ahpd), of kind `ssh` or `url`; an ahpd found on the server and not installed by the desk is updated through ahpd, as p9's decision says for any other host.
 [p9](../01-first-build-p9-update-alerts/plan.md)'s task 05 makes it the command `update_ssh_ahpd` behind the row's Update, as its decision [A host's ahpd update is shown on its row and offered, over SSH or through ahpd](../../../decisions/a-hosts-ahpd-update-is-shown-and-offered.md) says: the newer `@ahpd/server` is installed and the service restarted.
 This task adds no command and no shell call; p9's task 05 does.
 

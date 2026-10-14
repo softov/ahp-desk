@@ -15,14 +15,14 @@ refs:
 
 ## Objective
 
-An install chooses its reach, as decision 5 says.
-Through the SSH connection: ahpd stays on the server's 127.0.0.1, and the host is kind `ssh`, whose `url` is a local port, chosen once and kept on the host (decision 18), that the desk forwards to it over SSH while the desk runs.
+An install chooses its reach, as the Answers row on the reach says.
+Through the SSH connection: ahpd stays on the server's 127.0.0.1, and the host is kind `ssh`, whose `url` is a local port, chosen once and kept on the host (Answers: the local port), that the desk forwards to it over SSH while the desk runs.
 An open port: ahpd listens on 0.0.0.0 with its token, and the host is kind `url` at `ws://<server>:<ahpd port>`, with its SSH details kept for Update (task 08) and Remove (task 10).
 
 ## Files
 
 - `CREATE: src-tauri/src/ssh/tunnel.rs` - `Tunnels` (a Tauri state: host id to `Tunnel`), `open()`, `close()`, `forward()`, `open_on_launch()`, `pick_local_port()`, `TunnelState`, the event `tunnels-changed`, the commands `ssh_tunnel_states` and `ssh_sign_in`.
-- `UPDATE: src-tauri/src/hosts.rs` - `HostKind::Ssh`; `SshHost` gains `reach` (`tunnel` or `port`), `remotePort` (the ahpd port, decision 15), `folder` (decision 14), `byDesk` (decision 16) and, for a tunnel, `localPort`; `save` refuses kind `ssh` with no `ssh` or no `localPort`; the `remove_host` command also closes the host's tunnel.
+- `UPDATE: src-tauri/src/hosts.rs` - `HostKind::Ssh`; `SshHost` gains `reach` (`tunnel` or `port`), `remotePort` (Answers: the ahpd port), `folder` (Answers: the folder), `byDesk` (Answers: a found ahpd) and, for a tunnel, `localPort`; `save` refuses kind `ssh` with no `ssh` or no `localPort`; the `remove_host` command also closes the host's tunnel.
 - `UPDATE: src-tauri/src/ssh_install.rs` - `SshInstall.reach` picks `Bind::Loopback` for a tunnel and `Bind::All` for an open port.
 - `UPDATE: src-tauri/src/lib.rs` - `Tunnels` managed; `ssh::tunnel::open_on_launch` after the host list window, beside `local_ahpd::start_on_launch`; the tunnels closed on `RunEvent::Exit`.
 - `UPDATE: src-tauri/build.rs`, `src-tauri/capabilities/shell.json` - `ssh_tunnel_states`, `open_ssh_tunnel` for Retry, `ssh_sign_in`, and `pick_ssh_local_port` for task 07.
@@ -32,20 +32,20 @@ An open port: ahpd listens on 0.0.0.0 with its token, and the host is kind `url`
 
 ## Steps
 
-1. `pick_local_port()` binds `127.0.0.1:0`, reads the port the OS gave, and closes it; the command `pick_ssh_local_port` gives it to task 07 once, when the host is added, and the host keeps it as `localPort` (decision 18).
+1. `pick_local_port()` binds `127.0.0.1:0`, reads the port the OS gave, and closes it; the command `pick_ssh_local_port` gives it to task 07 once, when the host is added, and the host keeps it as `localPort` (Answers: the local port).
    It is never picked again for that host: Edit host leaves it as it is.
 2. `Tunnel::open(app, id)` reads the host's `SshHost`, connects with task 01's `connect()` and task 02's check, binds `127.0.0.1:<localPort>`, and for each connection it accepts opens a `direct-tcpip` channel to `127.0.0.1:<remotePort>` on the server (`channel_open_direct_tcpip`, check its 0.61 signature) and copies both ways with `tokio::io::copy_bidirectional` over the channel's stream.
-   A `localPort` taken by another program is the tunnel's error; the tunnel never moves to another port (decision 18).
-3. The host's `url` is `ws://127.0.0.1:<localPort>`, the same at every launch, so `status.ts`, `page_url()` and the embedder connect to it as to any host, with the host's token from the vault, and ahpw opens the host's own tabs and layout (decision 18).
-4. `TunnelState` is `{ on, error, needs }` per host, sent as `tunnels-changed`; while a tunnel is down its host is down, as decision 5 says, and the row shows the error: a server key refused (task 02), the server unreachable, or the local port taken.
-   `needs` is `passphrase` or `password` when task 01's `connect()` failed with `SignInError::NeedsPerson`, as after a restart for a key with a passphrase or a password not kept (decision 8); the row then shows "Sign in".
-5. `ssh_sign_in(id, secret)` puts what the person typed in task 01's `Secrets` for that host, held until the desk quits and never on disk (decision 8), and opens the tunnel; a secret refused is dropped and the row asks again.
-6. A tunnel whose session drops is opened again after 2 s, then doubling to 60 s, and at once on Retry; it signs in with what `Secrets` holds, so it asks nothing while the desk runs (decision 8).
+   A `localPort` taken by another program is the tunnel's error; the tunnel never moves to another port (Answers: the local port).
+3. The host's `url` is `ws://127.0.0.1:<localPort>`, the same at every launch, so `status.ts`, `page_url()` and the embedder connect to it as to any host, with the host's token from the vault, and ahpw opens the host's own tabs and layout (Answers: the local port).
+4. `TunnelState` is `{ on, error, needs }` per host, sent as `tunnels-changed`; while a tunnel is down its host is down, as the Answers row on the reach says, and the row shows the error: a server key refused (task 02), the server unreachable, or the local port taken.
+   `needs` is `passphrase` or `password` when task 01's `connect()` failed with `SignInError::NeedsPerson`, as after a restart for a key with a passphrase or a password not kept (Answers: secrets held until quit); the row then shows "Sign in".
+5. `ssh_sign_in(id, secret)` puts what the person typed in task 01's `Secrets` for that host, held until the desk quits and never on disk (Answers: secrets held until quit), and opens the tunnel; a secret refused is dropped and the row asks again.
+6. A tunnel whose session drops is opened again after 2 s, then doubling to 60 s, and at once on Retry; it signs in with what `Secrets` holds, so it asks nothing while the desk runs (Answers: secrets held until quit).
    A sign-in that needs the person, or a key refused, is not retried until they act.
 7. `open_on_launch(app)` opens every `ssh` host's tunnel off the main thread, after the host list window, as `start_on_launch` does; on `RunEvent::Exit` each tunnel's listener and session are closed, and `Secrets` goes with the process.
 8. An open port is a `url` host at `ws://<server>:<remotePort>`, with the token `install_ssh_ahpd` read; once saved, the desk connects to it from the desk, and a failure says the port may be closed by a firewall on the server or between, and leaves the host saved and down.
-   For an ahpd found on the server and not installed by the desk, the reach follows how it listens (decision 21): the tunnel, to its own port, is always offered; the open port only when its `ahpd status --json` address is beyond 127.0.0.1, and then the host's `url` is that address with the server's name.
-9. The words: the tunnel's note "Reachable while the desk is open." (plan's Risks), and the open port's "The token travels unencrypted unless the server is behind TLS." (decision 5), shown in task 07's form; the row's tunnel errors and "Sign in" here.
+   For an ahpd found on the server and not installed by the desk, the reach follows how it listens (Answers: how a found ahpd is reached): the tunnel, to its own port, is always offered; the open port only when its `ahpd status --json` address is beyond 127.0.0.1, and then the host's `url` is that address with the server's name.
+9. The words: the tunnel's note "Reachable while the desk is open." (plan's Risks), and the open port's "The token travels unencrypted unless the server is behind TLS." (Answers: the reach), shown in task 07's form; the row's tunnel errors and "Sign in" here.
 
 ## Validation
 

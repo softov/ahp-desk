@@ -16,8 +16,8 @@ refs:
 
 ## Objective
 
-ahpd has an `update` command that installs a newer `@ahpd/server` where it is installed and restarts itself, for the deployment's token only, reached the same way over the CLI, HTTP and AHP (decision 3).
-The desk calls it in task 04 as the AHP method `x-ahpd/update`, on the connection it already holds (decision 7): first with `check`, to know whether to show Update (decision 6), then with the `version` the row named (decision 8).
+ahpd has an `update` command that installs a newer `@ahpd/server` where it is installed and restarts itself, for the deployment's token only, reached the same way over the CLI, HTTP and AHP (Answers: the host's ahpd update).
+The desk calls it in task 04 as the AHP method `x-ahpd/update`, on the connection it already holds (Answers: x-ahpd/update): first with `check`, to know whether to show Update (Answers: the check), then with the `version` the row named (Answers: the version the row named).
 This task is ahpd work: it is handed to the ahpd repository, which writes it as its own plan; nothing in this repository changes for it, and no file in the ahpd repository is written from here.
 It is done when an ahpd release has the command; the release version is then written in this file's Resume and in task 04.
 
@@ -36,13 +36,13 @@ What the ahpd plan is asked for is below; the files it touches are its own to na
    | id | `daemon.update` |
    | CLI | `ahpd update [--version <X.Y.Z>] [--check] [--force]` |
    | HTTP | `POST /api/update` with `{ "version"?: string, "check"?: boolean, "force"?: boolean }` |
-   | AHP | the method `x-ahpd/update` with the same params, answering the same JSON as HTTP; this is the surface the desk calls (decision 7) |
+   | AHP | the method `x-ahpd/update` with the same params, answering the same JSON as HTTP; this is the surface the desk calls (Answers: x-ahpd/update) |
    | scopes | `['config:write']` |
    | meta | `deploymentTokenOnly: 'update the daemon'`; over AHP the same rule holds: only the deployment's token, a person's token is refused whatever its grants |
    | effect | `change` |
 
 3. What it does:
-   - `version` is the version installed; the desk always passes it, the version its row named (decision 8).
+   - `version` is the version installed; the desk always passes it, the version its row named (Answers: the version the row named).
      `version` absent, as from the CLI by hand, means npm's `latest` of `@ahpd/server`, asked through `registry()`.
      A `version` not newer than the running one is refused with why.
    - While a turn runs it is refused, naming the sessions, as `ahpd restart` is, unless `force`.
@@ -50,7 +50,7 @@ What the ahpd plan is asked for is below; the files it touches are its own to na
    - It answers before the restart: `{ "from": "0.11.0", "to": "0.12.0", "restarting": true }`.
      A client sees its connection drop, and the host come back on the new version.
    - It runs one at a time with the plugin commands (`oneAtATime`).
-4. What the desk needs to know before it shows Update, answered without changing anything: with `check`, the command answers `{ "current": "0.11.0", "latest": "0.12.0", "may": true }`, or the refusal a real update would get (a person's token, an install it cannot update, a daemon it cannot restart) (decision 6).
+4. What the desk needs to know before it shows Update, answered without changing anything: with `check`, the command answers `{ "current": "0.11.0", "latest": "0.12.0", "may": true }`, or the refusal a real update would get (a person's token, an install it cannot update, a daemon it cannot restart) (Answers: the check).
 5. Left to the ahpd plan, which decides them in its own records:
    - how ahpd finds where it is installed: a `--prefix` install as the desk's `<app local data>/ahpd` and p10's `~/.local/share/ahpd`, a global `npm i -g`, or a checkout or link, which it refuses;
    - what happens to installed plugins whose `@ahpd/sdk` range does not admit the new version, as `plugin update` asks for each;

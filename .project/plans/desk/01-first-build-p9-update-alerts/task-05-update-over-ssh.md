@@ -15,7 +15,7 @@ refs:
 
 ## Objective
 
-For a host the desk installed over SSH (p10), the row's Update signs in over SSH, installs the newer `@ahpd/server` into that host's install, restarts its user service and waits for it to answer (decision 3).
+For a host the desk installed over SSH (p10), the row's Update signs in over SSH, installs the newer `@ahpd/server` into that host's install, restarts its user service and waits for it to answer (Answers: the host's ahpd update).
 It waits for p10 task 08, which writes the update over SSH as a function; this task makes it a command and puts it behind the row's Update.
 
 ## Files
@@ -33,7 +33,7 @@ It waits for p10 task 08, which writes the update over SSH as a function; this t
 2. `update_ssh_ahpd(app: AppHandle, id: String, version: String, events: Channel<InstallEvent>) -> Result<(), String>`, async:
    - reads the host from `HostStore` and refuses one with no SSH details;
    - signs in as p10 does (the agent, a key file, or the password in the keyring; the confirmed server key);
-   - runs p10 task 08's update with `@ahpd/server@<version>`, the version the row named (decision 8): `npm install` into the host's `~/.local/share/ahpd` with its own Node, `systemctl --user restart ahpd`, and the health wait;
+   - runs p10 task 08's update with `@ahpd/server@<version>`, the version the row named (Answers: the version the row named): `npm install` into the host's `~/.local/share/ahpd` with its own Node, `systemctl --user restart ahpd`, and the health wait;
    - sends each line npm and systemctl write as `InstallEvent::Line`, as `install_local_ahpd` does;
    - keeps running when the host list window goes away, as an install does.
 3. `ipc.ts`:
@@ -47,7 +47,7 @@ It waits for p10 task 08, which writes the update over SSH as a function; this t
    }
    ```
 
-4. `status.ts`: `updateWay(id)` answers `{ kind: 'ssh' }` for a host with SSH details before it looks at ahpd's command, since decision 3 updates an SSH-installed host over SSH; `updateHost` keeps the last lines and, on a failure, shows them with `hosts.updateFailed` (task 04).
+4. `status.ts`: `updateWay(id)` answers `{ kind: 'ssh' }` for a host with SSH details before it looks at ahpd's command, since the Answers row on the host's ahpd update updates an SSH-installed host over SSH; `updateHost` keeps the last lines and, on a failure, shows them with `hosts.updateFailed` (task 04).
 5. A tunnelled host (p10, kind `ssh`) loses its tunnel for the restart; the row reconnects as after any restart.
 
 ## Validation

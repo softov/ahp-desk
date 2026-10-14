@@ -11,14 +11,8 @@ decisions:
   - decisions/the-desk-starts-with-the-os-by-default.md
   - decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md
   - decisions/the-desk-asks-before-installing-its-update.md
-  - decisions/the-desk-update-notice-is-built-in-p4-task-03.md
-  - decisions/a-left-click-on-the-tray-icon-shows-the-host-list.md
-  - decisions/the-tray-menu-gets-show-pill-with-the-pill.md
-  - decisions/the-host-list-opens-settings-from-a-gear-in-its-title-bar.md
-  - decisions/a-start-at-login-shows-only-the-tray.md
-  - decisions/the-release-workflow-builds-with-tauri-action.md
-  - decisions/the-linux-release-builds-on-ubuntu-22-04.md
   - decisions/updater-artifacts-are-made-only-in-the-release-build.md
+  - decisions/the-linux-release-builds-on-ubuntu-22-04.md
 refs:
   - file:///github/opendoop/packages/tauri/src-tauri/src/tray.rs - the tray menu and the left click, at lines 8-62
   - file:///github/opendoop/packages/tauri/src-tauri/src/shell_settings.rs - closeBehavior, minimize to tray or quit
@@ -55,28 +49,25 @@ git tag v* -> GitHub Actions -> tauri-action with --config src-tauri/tauri.relea
 
 - No CI in any of these repositories builds a Tauri app.
 
-## Decisions locked in
-
-| # | Decision | Rationale / source |
-| --- | --- | --- |
-| 1 | [The desk starts with the OS by default](../../../decisions/the-desk-starts-with-the-os-by-default.md) | Softov, 2026-10-11 |
-| 2 | [ahp-desk is MIT, and ahpapp stays private](../../../decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md) | Softov, 2026-10-11 |
-| 3 | [The desk asks before it installs its own update](../../../decisions/the-desk-asks-before-installing-its-update.md) | Softov, 2026-10-13 |
-| 4 | [The desk's update notice, its install and its tray item are built in p4 task 03](../../../decisions/the-desk-update-notice-is-built-in-p4-task-03.md) | Softov, 2026-10-14 |
-| 5 | [A left click on the tray icon shows the host list, and the right click opens the menu](../../../decisions/a-left-click-on-the-tray-icon-shows-the-host-list.md) | Softov, 2026-10-14 |
-| 6 | [The tray menu gets "Show pill" with the pill, in plan p6](../../../decisions/the-tray-menu-gets-show-pill-with-the-pill.md) | Softov, 2026-10-14 |
-| 7 | [The host list opens Settings from a gear in its title bar, before the language picker](../../../decisions/the-host-list-opens-settings-from-a-gear-in-its-title-bar.md) | Softov, 2026-10-14 |
-| 8 | [A start at login shows only the tray, not the host list](../../../decisions/a-start-at-login-shows-only-the-tray.md) | Softov, 2026-10-14 |
-| 9 | [The release workflow builds and publishes with tauri-apps/tauri-action](../../../decisions/the-release-workflow-builds-with-tauri-action.md) | Softov, 2026-10-14 |
-| 10 | [The Linux release builds on ubuntu-22.04](../../../decisions/the-linux-release-builds-on-ubuntu-22-04.md) | Softov, 2026-10-14 |
-| 11 | [The updater artifacts are made only in the release build](../../../decisions/updater-artifacts-are-made-only-in-the-release-build.md) | Softov, 2026-10-14 |
+## Answers
 
 | What | Source | Task |
 | --- | --- | --- |
+| [The desk starts with the OS by default](../../../decisions/the-desk-starts-with-the-os-by-default.md) | Softov, 2026-10-11 | 05 |
+| [ahp-desk is MIT, and ahpapp stays private](../../../decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md) | Softov, 2026-10-11 | 03, 04 |
+| [The desk asks before it installs its own update](../../../decisions/the-desk-asks-before-installing-its-update.md) | Softov, 2026-10-13 | 03 |
+| This plan builds the desk's update notice in the host list, its Restart click that installs the update, and its tray item; p9 task 06 keeps only the check every 6 hours. | Softov, 2026-10-14: "p4 task 03" | 03 |
+| On Windows a left click on the tray icon shows and focuses the host list, and the right click opens the menu; on Linux the menu is the only way in. | Softov, 2026-10-14: "Show the host list" | 01 |
+| The tray menu is Hosts, Settings and Quit, with no "Show pill"; plan p6 adds "Show pill" when it builds the pill. | Softov, 2026-10-14: "No, p6 adds it" | 01 |
+| A gear in the host list's title bar, before the language picker, opens Settings. | Softov, 2026-10-14: "Gear in the title bar" | 02 |
+| A start at login (`--autostart`) builds the host list hidden and shows only the tray icon; a start by hand, or a second start, shows the host list. | Softov, 2026-10-14: "No, tray only" | 05 |
+| Each build job of the release workflow runs `tauri-apps/tauri-action`, which uploads the bundles with their `.sig` files and merges its platform into `latest.json`. | Softov, 2026-10-14: "tauri-apps/tauri-action" | 04 |
+| [The Linux release builds on ubuntu-22.04](../../../decisions/the-linux-release-builds-on-ubuntu-22-04.md) | Softov, 2026-10-14: "ubuntu-22.04" | 04 |
+| [The updater artifacts are made only in the release build](../../../decisions/updater-artifacts-are-made-only-in-the-release-build.md) | Softov, 2026-10-14: "Release config only" | 03, 04 |
 | Close hides to the tray by default; a setting can make it quit. | doop's `closeBehavior` | 02 |
 | CI builds the releases with GitHub Actions on a tag `v*`. | (defaulted: DEVELOPER.md speaks of "a CI run") | 04 |
 | Windows: NSIS for the current user. Linux: AppImage and deb. | DEVELOPER.md | 04 |
-| The release workflow builds the public build only, with `AHP_DESK_UI=ahpw` and `AHP_DESK_AHPW=npm`. | Decision 2 | 04 |
+| The release workflow builds the public build only, with `AHP_DESK_UI=ahpw` and `AHP_DESK_AHPW=npm`. | [ahp-desk is MIT, and ahpapp stays private](../../../decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md) | 04 |
 
 ## Proposed architecture
 
@@ -105,10 +96,10 @@ git tag v* -> GitHub Actions -> tauri-action with --config src-tauri/tauri.relea
 
 ## Resume state
 
-- **Done so far:** the task files, and decisions 4 to 11 from Softov's answers, 2026-10-14.
+- **Done so far:** the task files, and Softov's answers of 2026-10-14 in *Answers*.
 - **Next action:** [task 01](task-01-tray-icon-and-menu.md). Before task 03, the user makes the updater key pair; before task 04's first tag, the user adds the two CI secrets.
 - **Open questions:** none.
-- **Watch out for:** the release build needs `--config src-tauri/tauri.release.conf.json`, which turns on `createUpdaterArtifacts` (decision 11), or no `.sig` file is made; an update must not remove the login entry that the uninstaller hook removes (task 05).
+- **Watch out for:** the release build needs `--config src-tauri/tauri.release.conf.json`, which turns on `createUpdaterArtifacts` (Answers: the updater artifacts), or no `.sig` file is made; an update must not remove the login entry that the uninstaller hook removes (task 05).
 
 ## Final verification checklist
 

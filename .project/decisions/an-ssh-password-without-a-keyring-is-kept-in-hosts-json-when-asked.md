@@ -15,9 +15,9 @@ A Linux desktop with no Secret Service has no keyring.
 
 ## Decision
 
-On a machine with no keyring, the form still offers to keep the password, with the checkbox reading "Remember password (kept unencrypted in the desk's file, no keyring here)".
-Ticked, the password goes in the host's `ssh` details in `hosts.json`, and the host's row is flagged as a token in that file is.
-With a keyring, the checkbox reads "Remember the password" and the password goes in the keyring.
+On a machine with no keyring, the form still offers to keep the password.
+Its checkbox says the password is kept unencrypted in the desk's file.
+Ticked, the password goes in `hosts.json`, and the host's row is flagged as a token in that file is.
 Source: Softov, asked "p10 q4: on a machine with no keyring, can the person still save the SSH password?": "Opt-in, says plain file".
 Before answering, Softov asked "a option to save?" when offered to keep it nowhere.
 

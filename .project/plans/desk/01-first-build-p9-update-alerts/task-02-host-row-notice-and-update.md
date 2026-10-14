@@ -16,10 +16,10 @@ refs:
 
 ## Objective
 
-A connected host whose server is ahpd, and whose version is behind npm's latest from task 01, says "ahpd X available" on its row, in each of the desk's three languages (decision 3).
+A connected host whose server is ahpd, and whose version is behind npm's latest from task 01, says "ahpd X available" on its row, in each of the desk's three languages (Answers: the host's ahpd update).
 The row has Update when a way to update that host exists (tasks 04 and 05 add the ways); with none, it has the notice only.
 Update on a host with running sessions names them and waits for a click; with none, it starts at once.
-The `local` host is left to its own rule (decision 4, p3 task 07) and never shows this notice or this Update.
+The `local` host is left to its own rule (Answers: the local ahpd's own update, p3 task 07) and never shows this notice or this Update.
 
 ## Files
 
@@ -49,7 +49,7 @@ The `local` host is left to its own rule (decision 4, p3 task 07) and never show
    - a click with `statuses.running(host.id)` empty starts the update; otherwise the row becomes a confirmation, as the remove one (`.host.confirm`): `t('hosts.updateQuestion', { name: host.name, sessions: running.join(', ') })`, with Cancel and Update;
    - while the update runs the line says `t('hosts.updating')` and the button is gone; a failure shows in the list's error line, as a failed remove does.
 5. The update itself is `updateHost(host, latestAhpd, force)` in `status.ts`, which calls the way's function (task 04 or 05); `force` is true when the person confirmed over running sessions.
-   `latestAhpd` is the version the row named, and the way installs that one (decision 8).
+   `latestAhpd` is the version the row named, and the way installs that one (Answers: the version the row named).
    The row goes back to normal when the host reconnects with the new version, since the notice then has nothing newer to say.
 6. Words, in `en`, `ptBR` and `es`, beside the `hosts.*` keys:
    - `hosts.ahpdAvailable`: "ahpd {version} available" / "ahpd {version} disponível" / "ahpd {version} disponible";

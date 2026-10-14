@@ -15,23 +15,11 @@ decisions:
   - decisions/an-ssh-installed-ahpd-is-reached-by-tunnel-or-open-port.md
   - decisions/the-backends-are-picked-in-add-host.md
   - decisions/the-local-ahpd-uses-a-token-file.md
-  - decisions/a-typed-ssh-passphrase-or-password-is-held-in-memory-until-quit.md
   - decisions/a-new-server-key-refuses-the-connection-and-trust-connects-again.md
-  - decisions/a-changed-server-key-is-forgotten-from-its-refusal.md
   - decisions/an-ssh-password-without-a-keyring-is-kept-in-hosts-json-when-asked.md
+  - decisions/the-remote-node-download-is-the-newest-22.md
   - decisions/the-installed-ahpd-keeps-the-usual-config-folder.md
   - decisions/the-desk-adds-backends-through-ahpd-plugin-install.md
-  - decisions/the-remote-ahpd-serves-the-folder-asked-in-add-host-else-home.md
-  - decisions/the-remote-ahpd-port-is-a-field-with-9187.md
-  - decisions/an-ahpd-found-on-the-server-is-used-and-offered-the-backends.md
-  - decisions/the-remote-node-download-is-the-newest-22.md
-  - decisions/a-tunnels-local-port-is-chosen-once-and-kept.md
-  - decisions/removing-an-ssh-host-offers-to-uninstall-its-ahpd.md
-  - decisions/a-found-ahpd-not-running-on-the-server-is-started-with-its-own-start.md
-  - decisions/a-found-ahpd-on-the-server-is-reached-on-its-own-port.md
-  - decisions/removing-a-host-whose-ahpd-the-desk-did-not-install-leaves-the-server-alone.md
-  - decisions/the-uninstall-leaves-the-servers-config-ahpd.md
-  - decisions/an-uninstall-that-cannot-reach-the-server-offers-remove-only.md
 refs:
   - file:///github/opendoop/packages/tauri/src-tauri/src/ssh/mod.rs - doop's `russh` session, agent then key-file sign-in, `exec_capture`
   - file:///github/opendoop/packages/tauri/src-tauri/src/ssh/push.rs - doop's file push over SSH
@@ -77,40 +65,37 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 - A user service stops at logout without lingering, which needs an administrator to turn on.
 - `ahpd paths add <folder>` sets the served folders with no terminal on ahpd main (git://54e4ef26), not yet released; the SSH install's folder step needs the release after 0.11.0.
 
-## Decisions locked in
-
-| # | Decision | Rationale / source |
-| --- | --- | --- |
-| 1 | [The SSH installer puts ahpd on Linux as a user systemd service](../../../decisions/the-ssh-installer-targets-linux-user-systemd.md) | Softov, 2026-10-13 |
-| 2 | [An SSH server's key is confirmed once and remembered](../../../decisions/an-ssh-server-key-is-confirmed-once-and-remembered.md) | Softov, 2026-10-13 |
-| 3 | [SSH signs in with the agent, a key file, or a password](../../../decisions/ssh-signs-in-with-the-agent-a-key-file-or-a-password.md) | Softov, 2026-10-13 |
-| 4 | [The remote ahpd runs on the server's own Node 22, or one it downloads](../../../decisions/the-remote-node-is-its-own-or-downloaded.md) | Softov, 2026-10-13 |
-| 5 | [An SSH-installed ahpd is reached through the SSH connection or an open port, chosen per install](../../../decisions/an-ssh-installed-ahpd-is-reached-by-tunnel-or-open-port.md) | Softov, 2026-10-13 |
-| 6 | [The backends are picked in Add host](../../../decisions/the-backends-are-picked-in-add-host.md) | Softov, 2026-10-11 |
-| 7 | [The local ahpd uses a token file](../../../decisions/the-local-ahpd-uses-a-token-file.md) | Softov, 2026-10-11 |
-| 8 | [A typed SSH passphrase, or a password not saved, is held in memory until the desk quits](../../../decisions/a-typed-ssh-passphrase-or-password-is-held-in-memory-until-quit.md) | Softov, 2026-10-14 |
-| 9 | [A server key never seen before refuses the first connection, and Trust connects again](../../../decisions/a-new-server-key-refuses-the-connection-and-trust-connects-again.md) | Softov, 2026-10-14 |
-| 10 | [A changed server key is forgotten from its refusal](../../../decisions/a-changed-server-key-is-forgotten-from-its-refusal.md) | Softov, 2026-10-14 |
-| 11 | [With no keyring, an SSH password is kept in hosts.json only when the person ticks a box that says so](../../../decisions/an-ssh-password-without-a-keyring-is-kept-in-hosts-json-when-asked.md) | Softov, 2026-10-14 |
-| 12 | [An ahpd the desk installs keeps the usual config folder, with its backends under AHPD_PLUGIN_ROOT](../../../decisions/the-installed-ahpd-keeps-the-usual-config-folder.md) | Softov, 2026-10-13, p3; held for the SSH install below |
-| 13 | [The desk adds backends through ahpd plugin install](../../../decisions/the-desk-adds-backends-through-ahpd-plugin-install.md) | Softov, 2026-10-13, p3; held for the SSH install below |
-| 14 | [The remote ahpd serves the folder asked in Add host, the server user's home by default](../../../decisions/the-remote-ahpd-serves-the-folder-asked-in-add-host-else-home.md) | Softov, 2026-10-14 |
-| 15 | [The port the remote ahpd listens on is a field, 9187 by default](../../../decisions/the-remote-ahpd-port-is-a-field-with-9187.md) | Softov, 2026-10-14 |
-| 16 | [An ahpd found on the server is used and offered the backends, and the desk installs only where none is found](../../../decisions/an-ahpd-found-on-the-server-is-used-and-offered-the-backends.md) | Softov, 2026-10-14 |
-| 17 | [The Node downloaded on a server is the newest 22, from latest-v22.x, checked against its SHASUMS256.txt](../../../decisions/the-remote-node-download-is-the-newest-22.md) | Softov, 2026-10-14 |
-| 18 | [A tunnelled host's local port is chosen once and kept on the host](../../../decisions/a-tunnels-local-port-is-chosen-once-and-kept.md) | Softov, 2026-10-14 |
-| 19 | [Removing an SSH host offers to stop and uninstall its ahpd on the server](../../../decisions/removing-an-ssh-host-offers-to-uninstall-its-ahpd.md) | Softov, 2026-10-14 |
-| 20 | [A found ahpd not running on the server is started with its own ahpd start, with no unit, and the form says it will not survive a reboot](../../../decisions/a-found-ahpd-not-running-on-the-server-is-started-with-its-own-start.md) | Softov, 2026-10-14 |
-| 21 | [A found ahpd on the server is reached on its own port, through a tunnel, or through an open port only when it already listens beyond loopback](../../../decisions/a-found-ahpd-on-the-server-is-reached-on-its-own-port.md) | Softov, 2026-10-14 |
-| 22 | [Removing an SSH host whose ahpd the desk did not install does nothing on the server, and says so](../../../decisions/removing-a-host-whose-ahpd-the-desk-did-not-install-leaves-the-server-alone.md) | Softov, 2026-10-14 |
-| 23 | [Uninstalling the desk's ahpd leaves the server's ~/.config/ahpd](../../../decisions/the-uninstall-leaves-the-servers-config-ahpd.md) | Softov, 2026-10-14 |
-| 24 | [An uninstall that cannot reach the server shows why, with Remove from the desk only and Cancel](../../../decisions/an-uninstall-that-cannot-reach-the-server-offers-remove-only.md) | Softov, 2026-10-14 |
+## Answers
 
 | What | Source | Task |
 | --- | --- | --- |
+| [The SSH installer puts ahpd on Linux as a user systemd service](../../../decisions/the-ssh-installer-targets-linux-user-systemd.md) | Softov, 2026-10-13 | 03, 05 |
+| [An SSH server's key is confirmed once and remembered](../../../decisions/an-ssh-server-key-is-confirmed-once-and-remembered.md) | Softov, 2026-10-13 | 02 |
+| [SSH signs in with the agent, a key file, or a password](../../../decisions/ssh-signs-in-with-the-agent-a-key-file-or-a-password.md) | Softov, 2026-10-13 | 01 |
+| [The remote ahpd runs on the server's own Node 22, or one it downloads](../../../decisions/the-remote-node-is-its-own-or-downloaded.md) | Softov, 2026-10-13 | 03, 04 |
+| [An SSH-installed ahpd is reached through the SSH connection or an open port, chosen per install](../../../decisions/an-ssh-installed-ahpd-is-reached-by-tunnel-or-open-port.md) | Softov, 2026-10-13 | 06, 07 |
+| [The backends are picked in Add host](../../../decisions/the-backends-are-picked-in-add-host.md) | Softov, 2026-10-11 | 05, 07 |
+| [The local ahpd uses a token file](../../../decisions/the-local-ahpd-uses-a-token-file.md) | Softov, 2026-10-11 | 05 |
+| [An ahpd the desk installs keeps the usual config folder, with its backends under AHPD_PLUGIN_ROOT](../../../decisions/the-installed-ahpd-keeps-the-usual-config-folder.md) | Softov, 2026-10-13, p3; held for the SSH install below | 03, 05 |
+| [The desk adds backends through ahpd plugin install](../../../decisions/the-desk-adds-backends-through-ahpd-plugin-install.md) | Softov, 2026-10-13, p3; held for the SSH install below | 05 |
+| A typed SSH passphrase, and a typed password not saved, are held in memory per host until the desk quits, never on disk; after a restart, a tunnelled host that needs one shows "Sign in" on its row. | Softov, 2026-10-14: "In memory until quit" | 01, 06, 07 |
+| [A server key never seen before refuses the first connection, and Trust connects again](../../../decisions/a-new-server-key-refuses-the-connection-and-trust-connects-again.md) | Softov, 2026-10-14: "Refuse, reconnect" | 02, 07 |
+| A changed server key is refused with both fingerprints and a "Forget the old key" button, which removes the desk's key so the next connection asks to trust the new one; a changed key from `~/.ssh/known_hosts` names `ssh-keygen -R <host>` instead. | Softov, 2026-10-14: "On the refusal" | 02, 07 |
+| [With no keyring, an SSH password is kept in hosts.json only when the person ticks a box that says so](../../../decisions/an-ssh-password-without-a-keyring-is-kept-in-hosts-json-when-asked.md) | Softov, 2026-10-14: "Opt-in, says plain file" | 01, 07 |
+| Add host over SSH has a Folder field, filled with the server user's home, and the remote ahpd serves that folder, written as `paths` by the same ahpd command as for "This computer". | Softov, 2026-10-14: "A form field" | 05, 07 |
+| Add host over SSH has an "ahpd port" field, 9187 by default, apart from the SSH Port; the host keeps it and Update leaves it. | Softov, 2026-10-14: "A field, default 9187" | 05, 06, 07 |
+| An ahpd found on the server is used: its version is shown (one too old is not replaced), the backends it lacks are offered and added with its own `plugin install`, and the desk installs ahpd only where none is found. | Softov, 2026-10-14: "Use it, offer backends" | 03, 05, 07 |
+| [The Node downloaded on a server is the newest 22, not the version the desk pins](../../../decisions/the-remote-node-download-is-the-newest-22.md) | Softov, 2026-10-14: "latest-v22.x" | 04 |
+| A tunnelled host's local port is picked once, when the host is added, and kept on the host. | Softov, 2026-10-14: "Chosen once, kept" | 06, 07 |
+| Remove, on a host the desk installed over SSH, offers to stop and uninstall its ahpd on the server: the user unit, the desk's install and its token file. | Softov, 2026-10-14: "Offer to uninstall" | 10 |
+| A found ahpd that is not running is started with its own `ahpd start`, with no unit written, and the form says it will not come back after the server restarts. | Softov, 2026-10-14: "Start it, say it won't survive reboot" | 05, 07 |
+| A found ahpd is reached on its own port, read from its `ahpd status --json`, with its token from its `daemon.json`; the tunnel is always offered, and the open port only when it already listens beyond 127.0.0.1. | Softov, 2026-10-14: "Its own port, via tunnel" | 05, 06, 07 |
+| Remove on an SSH host whose ahpd the desk did not install does nothing on the server, and the Remove question says so. | Softov, 2026-10-14: "Nothing, and say so" | 10 |
+| The uninstall leaves `~/.config/ahpd` on the server as it is. | Softov, 2026-10-14: "Leave it" | 10 |
+| An uninstall that cannot reach the server, or fails there, keeps the host and shows why, with "Remove from the desk only" and Cancel. | Softov, 2026-10-14: "Error + remove-only button" | 10 |
 | The SSH client is `russh`, as doop's. | doop's `ssh/mod.rs` | 01 |
 | The install streams its steps and can be cancelled, as doop's. | doop's `installer/mod.rs` | 05 |
-| Decisions 12 and 13 hold for the SSH install: the server's ahpd uses `~/.config/ahpd`, the desk's install puts `@ahpd/server` and the backends under `AHPD_PLUGIN_ROOT=~/.local/share/ahpd`, and the backends go in through the installed ahpd's `plugin install`, so a server's own ahpd and the desk's install look the same. | Softov, 2026-10-14, asked "p10 q5: do p3's two rules (~/.config/ahpd, backends with ahpd plugin install) apply to the remote install, so a server's own ahpd and the desk's install look the same?": "Yes, same layout"; rejected: p10's own layout under ~/.local/share/ahpd; Softov's reason, asked first: "Think like a remote server with ahpd already installed on it per example... it will also work?" | 05 |
+| The two p3 decisions above hold for the SSH install: the server's ahpd uses `~/.config/ahpd`, the desk's install puts `@ahpd/server` and the backends under `AHPD_PLUGIN_ROOT=~/.local/share/ahpd`, and the backends go in through the installed ahpd's `plugin install`, so a server's own ahpd and the desk's install look the same. | Softov, 2026-10-14, asked "p10 q5: do p3's two rules (~/.config/ahpd, backends with ahpd plugin install) apply to the remote install, so a server's own ahpd and the desk's install look the same?": "Yes, same layout"; rejected: p10's own layout under ~/.local/share/ahpd; Softov's reason, asked first: "Think like a remote server with ahpd already installed on it per example... it will also work?" | 05 |
 
 ## Proposed architecture
 
@@ -144,10 +129,10 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 
 ## Resume state
 
-- **Done so far:** the plan and decisions 1 to 7, 2026-10-13; the task files and decisions 8 to 24, 2026-10-14.
+- **Done so far:** the plan and its first decisions, 2026-10-13; the task files and Softov's answers of 2026-10-14 in *Answers*.
 - **Next action:** task 01.
 - **Open questions:** none.
-- **Watch out for:** doop's `AcceptAllHandler` must not be copied; decision 2 replaces it.
+- **Watch out for:** doop's `AcceptAllHandler` must not be copied; the Answers row on the server key replaces it.
   The end to end and every real SSH test run against dev02 only.
   Task 10 runs before task 09, the end to end, which covers it.
 

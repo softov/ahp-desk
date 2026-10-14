@@ -26,7 +26,7 @@ Every item of the plan's checklist holds on the released installers, the way a u
 5. Close the host list: the desk stays in the tray; a left click on the icon shows the host list; the right click opens the menu, whose Hosts, Settings and Quit work, in the three languages.
 6. Sign out and in: the desk starts in the tray, and the host list does not show (task 05).
 7. Release B: bump the version, tag it; wait for its release.
-8. Start A, or restart it: within a minute the host list and the tray say "ahp-desk B is ready. Restart to update."; nothing restarts until the click (decision 3).
+8. Start A, or restart it: within a minute the host list and the tray say "ahp-desk B is ready. Restart to update."; nothing restarts until the click (Answers: asking before the update).
 9. Click Restart: the installer runs passively, the desk comes back as B, with the same hosts, tokens, settings and login entry; a local ahpd with "Stop when the desktop app quits" on was stopped first.
 10. Remove from Windows Settings, Apps: the install folder, the Start menu entry, the tray icon and the login entry are gone; write down whether the config folder (`%APPDATA%\dev.softov.ahpdesk`) and the OS keyring's tokens stay, and what the uninstaller asked.
 11. A smoke check of the Linux bundles on Debian 13: the release's AppImage starts and shows the tray, and the deb installs with `apt install ./ahp-desk_<version>_amd64.deb`.

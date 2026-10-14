@@ -11,7 +11,7 @@ refs:
 
 ## Objective
 
-p4 task 03 checks for a newer signed desk release at start, downloads it, and shows "ahp-desk X is ready. Restart to update." in the host list and as the tray menu's first item, installing only on a click (decisions 1 and 9).
+p4 task 03 checks for a newer signed desk release at start, downloads it, and shows "ahp-desk X is ready. Restart to update." in the host list and as the tray menu's first item, installing only on a click (Answers: asking before the desk update, and the tray item).
 This task adds the check every 6 hours after that start check, so a desk left running for days still finds a new release.
 A newer release found here goes into p4 task 03's `DeskUpdate` and sends its `DESK_UPDATE_READY`, so the same notice, the same tray item and the same install show it; this task adds no notice, no command and no words.
 It waits for p4 task 03 and for task 01's `watch` loop.
