@@ -35,7 +35,9 @@ pub struct AppWindows(Mutex<HashMap<String, String>>);
 
 impl AppWindows {
     fn lock(&self) -> MutexGuard<'_, HashMap<String, String>> {
-        self.0.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.0
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     /// The host the window `label` shows.
@@ -83,7 +85,13 @@ impl AppWindows {
 fn label_for(app: &AppHandle, host_id: &str) -> String {
     let safe: String = host_id
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect();
     let base = format!("app-{safe}");
     let mut label = base.clone();
@@ -116,17 +124,24 @@ pub async fn open_app_window(
     host_id: String,
     replace: bool,
 ) -> Result<(), String> {
-    let host = store.find(&host_id).ok_or_else(|| format!("no host {host_id}"))?;
+    let host = store
+        .find(&host_id)
+        .ok_or_else(|| format!("no host {host_id}"))?;
 
     if replace && windows.host_of(window.label()).is_some() {
-        window.set_title(&host.name).map_err(|err| err.to_string())?;
+        window
+            .set_title(&host.name)
+            .map_err(|err| err.to_string())?;
         // A navigation, not a reload: the page's address names the new host.
         let page = page_url(source.inner(), &host);
         windows.lock().insert(window.label().to_string(), host.id);
         return window.navigate(page).map_err(|err| err.to_string());
     }
 
-    if let Some(open) = windows.window_of(&host.id).and_then(|label| app.get_webview_window(&label)) {
+    if let Some(open) = windows
+        .window_of(&host.id)
+        .and_then(|label| app.get_webview_window(&label))
+    {
         show(&open)?;
         return hide_if_host_list(&window);
     }

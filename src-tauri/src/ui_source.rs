@@ -8,7 +8,7 @@
 use std::path::{Path, PathBuf};
 
 use tauri::http::{header, Request, Response, StatusCode};
-use tauri::{AppHandle, Manager, Runtime, Url, UriSchemeContext, UriSchemeResponder};
+use tauri::{AppHandle, Manager, Runtime, UriSchemeContext, UriSchemeResponder, Url};
 
 /// The build's UI, chosen by `AHP_DESK_UI` in `build.rs`. It names the URI scheme too.
 pub const UI: &str = env!("AHP_DESK_UI");
@@ -70,7 +70,9 @@ pub fn handle<R: Runtime>(
     tauri::async_runtime::spawn_blocking(move || {
         responder.respond(match &source {
             UiSource::Folder(root) => serve(root, &path),
-            UiSource::DevServer(_) => answer(StatusCode::NOT_FOUND, "text/plain", b"Not found".to_vec()),
+            UiSource::DevServer(_) => {
+                answer(StatusCode::NOT_FOUND, "text/plain", b"Not found".to_vec())
+            }
         });
     });
 }
@@ -169,7 +171,10 @@ mod tests {
     #[test]
     fn ui_source_serves_a_file_and_a_folder_index() {
         let root = bundle();
-        assert_eq!(file_for(&root, "/assets/app.js"), Some(root.join("assets/app.js")));
+        assert_eq!(
+            file_for(&root, "/assets/app.js"),
+            Some(root.join("assets/app.js"))
+        );
         assert_eq!(file_for(&root, "/"), Some(root.join("index.html")));
         assert_eq!(file_for(&root, "/assets%2Fapp.js"), None);
     }
@@ -177,7 +182,10 @@ mod tests {
     #[test]
     fn ui_source_serves_the_page_for_a_route_it_handles() {
         let root = bundle();
-        assert_eq!(file_for(&root, "/sessions/42"), Some(root.join("index.html")));
+        assert_eq!(
+            file_for(&root, "/sessions/42"),
+            Some(root.join("index.html"))
+        );
     }
 
     #[test]
@@ -191,7 +199,13 @@ mod tests {
 
     #[test]
     fn ui_source_names_the_content_type() {
-        assert_eq!(content_type(Path::new("a.js")), "text/javascript; charset=utf-8");
-        assert_eq!(content_type(Path::new("a.unknown")), "application/octet-stream");
+        assert_eq!(
+            content_type(Path::new("a.js")),
+            "text/javascript; charset=utf-8"
+        );
+        assert_eq!(
+            content_type(Path::new("a.unknown")),
+            "application/octet-stream"
+        );
     }
 }

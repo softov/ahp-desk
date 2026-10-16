@@ -28,7 +28,9 @@ pub struct HostStatuses(Mutex<HashMap<String, HostStatus>>);
 
 impl HostStatuses {
     fn lock(&self) -> MutexGuard<'_, HashMap<String, HostStatus>> {
-        self.0.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+        self.0
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     pub fn replace(&self, statuses: HashMap<String, HostStatus>) {
