@@ -1,6 +1,6 @@
 ---
 title: Add host has "This computer", with the install steps
-status: doing
+status: done
 depends: [task-03-install-ahpd.md, task-04-start-find-stop.md]
 layer: "packages/shell"
 refs:
@@ -47,4 +47,11 @@ Started 2026-10-14.
 - Verified on the debug desk over CDP: found on `PATH` (0.11.0), Save and start, ahpw connected on the local host; a fake 0.7.0 first on `PATH`, the note in en, pt-BR and es; none found, the install of `@ahpd/server` with the desk's Node into its prefix, then `ahpd plugin install` failing on 0.11.0 as task 03 records.
 - Done (decision 12): a found ahpd shows the backends too, those it has ready ticked and fixed; those ticked here are added with its own `plugin install` before the start. Checked on ahpd main 69ed7790+daemon/24 (6768d19f) first on `PATH` with a config naming no backend: Claude was added, ahpd started, and ahpw connected.
 - Done: a failed start shows only the lines it added to `daemon.log`, in a box under the error; "Back to the list" goes to the list, in the first run too.
-- Left: the folder to serve (step 4), which waits for the ahpd command of decision 11; a whole install, which waits for the ahpd release that fixes `plugin install` on Windows.
+- Done (step 4): the form has a Folder field, the home folder by default, with Change, a folder picker.
+- Done: Save and start runs `ahpd paths add <folder>` before the start, through `serve_local_folder` in `local_ahpd.rs` (decision 11).
+  A folder already served is left as it is, so a second save changes nothing.
+- Done: the label is "Folder", one line in the label column; "Folder to serve" took two lines there.
+- Verified on 2026-10-16 on the debug desk over CDP, with `AHP_DESK_CONFIG_DIR` and `XDG_CONFIG_HOME` on scratch folders.
+  ahpd 0.12.0 from npm was first on `PATH`, and its config named no backend.
+  Save and start added cofold, wrote `paths`, started ahpd, and ahpw connected.
+- The whole install closed with task 03 on ahpd 0.12.0.

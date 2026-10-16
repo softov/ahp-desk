@@ -19,6 +19,8 @@
     "allow-find-local-ahpd",
     "allow-install-local-ahpd",
     "allow-add-local-backends",
+    "allow-serve-local-folder",
+    "allow-local-home-folder",
     "allow-local-ahpd-status",
     "allow-start-local-ahpd",
     "allow-stop-local-ahpd",

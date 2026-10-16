@@ -224,6 +224,24 @@ pub fn add_backends(
     run_streaming("ahpd plugin install", command, line)
 }
 
+/// `ahpd paths add <folder>` on `ahpd`, which writes the folder into its
+/// config as `paths` (decisions 10, 11). A folder already served, or under one
+/// that is, is left as it is, so a second save changes nothing.
+pub fn serve_folder(ahpd: &Launcher, folder: &Path) -> Result<(), String> {
+    let output = ahpd
+        .command()
+        .args(["paths", "add"])
+        .arg(folder)
+        .stdin(Stdio::null())
+        .output()
+        .map_err(|err| format!("cannot run {}: {err}", ahpd.program.display()))?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(format!("ahpd paths add failed: {}", said(&output)))
+    }
+}
+
 /// The plugins `ahpd plugin list --json` has ready, by name.
 pub fn ready_plugins(ahpd: &Launcher) -> Result<Vec<String>, String> {
     let output = ahpd
@@ -619,6 +637,28 @@ pub async fn add_local_backends(
     })
     .await
     .map_err(|err| err.to_string())?
+}
+
+/// Writes `folder` into the config of the ahpd a local host would use, as the
+/// folder it serves (decisions 10, 11).
+#[tauri::command]
+pub async fn serve_local_folder(
+    app: AppHandle,
+    ahpd_path: Option<String>,
+    folder: String,
+) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let launcher = launcher_for(&app.state::<LocalAhpd>(), ahpd_path.as_deref())?;
+        serve_folder(&launcher, Path::new(&folder))
+    })
+    .await
+    .map_err(|err| err.to_string())?
+}
+
+/// The folder Add host offers to serve before one is picked: the home folder (decision 10).
+#[tauri::command]
+pub fn local_home_folder() -> Result<String, String> {
+    home_folder().map(|home| home.display().to_string())
 }
 
 /// A local host's ahpd as the shell shows it.
@@ -1165,6 +1205,34 @@ mod tests {
                 ("FAKE_CODE".into(), code.to_string().into()),
             ],
         }
+    }
+
+    #[test]
+    fn local_ahpd_a_folder_is_served_through_paths_add() {
+        let scratch = Scratch::new();
+        let node = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("resources/node");
+        let node = BundledNode::in_dir(&node).expect("pnpm stage:node first");
+        // Writes its arguments to a file, and exits with FAKE_CODE.
+        let script = scratch.file(
+            "fake-paths.js",
+            "require('fs').writeFileSync(process.env.FAKE_ARGS, JSON.stringify(process.argv.slice(2))); if (process.env.FAKE_CODE !== '0') { process.stderr.write('ahpd: no such folder'); } process.exit(Number(process.env.FAKE_CODE));",
+        );
+        let args = scratch.0.join("args.json");
+        let fake = |code: i32| Launcher {
+            program: node.node.clone(),
+            before: vec![script.clone().into_os_string()],
+            env: vec![
+                ("FAKE_ARGS".into(), args.clone().into_os_string()),
+                ("FAKE_CODE".into(), code.to_string().into()),
+            ],
+        };
+        let folder = scratch.0.join("work");
+        serve_folder(&fake(0), &folder).unwrap();
+        let said: Vec<String> = serde_json::from_str(&fs::read_to_string(&args).unwrap()).unwrap();
+        assert_eq!(said, ["paths", "add", folder.to_str().unwrap()]);
+        let refused = serve_folder(&fake(2), &folder).unwrap_err();
+        assert!(refused.contains("ahpd paths add failed"), "{refused}");
+        assert!(refused.contains("no such folder"), "{refused}");
     }
 
     #[test]

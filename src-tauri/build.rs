@@ -36,13 +36,19 @@ fn main() {
 
     println!("cargo:rustc-env=AHP_DESK_UI={ui}");
     println!("cargo:rustc-env=AHP_DESK_AHPW={source}");
-    println!("cargo:rustc-env=AHP_DESK_AHPW_NPM_DIR={}", npm_dir.display());
+    println!(
+        "cargo:rustc-env=AHP_DESK_AHPW_NPM_DIR={}",
+        npm_dir.display()
+    );
 
     // The embedder script each app window gets; `pnpm build:client` makes it.
     let embedder = workspace.join("packages/ahpw-embedder/dist/ahpw-embedder.js");
     println!("cargo:rerun-if-changed={}", embedder.display());
     if !embedder.is_file() {
-        panic!("{} is missing; run `pnpm build:client` first", embedder.display());
+        panic!(
+            "{} is missing; run `pnpm build:client` first",
+            embedder.display()
+        );
     }
     println!("cargo:rustc-env=AHP_DESK_EMBEDDER={}", embedder.display());
 
@@ -62,6 +68,8 @@ fn main() {
             "find_local_ahpd",
             "install_local_ahpd",
             "add_local_backends",
+            "serve_local_folder",
+            "local_home_folder",
             "local_ahpd_status",
             "start_local_ahpd",
             "stop_local_ahpd",

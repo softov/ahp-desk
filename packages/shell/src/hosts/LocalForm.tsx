@@ -4,7 +4,9 @@ import {
   findLocalAhpd,
   addLocalBackends,
   installLocalAhpd,
+  localHomeFolder,
   saveHost,
+  serveLocalFolder,
   startLocalAhpd,
   type FoundAhpd,
   type InstallEvent,
@@ -75,6 +77,8 @@ export function LocalForm({
   const [search, setSearch] = useState<Search>({ kind: 'looking' });
   const [backends, setBackends] = useState<Set<string>>(() => new Set(['@ahpd/agent-claude']));
   const [onDesk, setOnDesk] = useState<OnDesk>({ startOnLaunch: true, stopOnQuit: false });
+  // The folder to serve, the home folder until one is picked (decision 10).
+  const [folder, setFolder] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>('form');
   const [lines, setLines] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -96,10 +100,21 @@ export function LocalForm({
     );
   }, []);
   useEffect(() => look(ahpdPath), [look, ahpdPath]);
+  useEffect(() => {
+    localHomeFolder().then(
+      (home) => setFolder((picked) => picked ?? home),
+      (err: unknown) => setError(String(err)),
+    );
+  }, []);
 
   const change = async () => {
     const picked = await pickFile({ title: t('local.pickTitle'), multiple: false, directory: false });
     if (typeof picked === 'string') setAhpdPath(picked);
+  };
+
+  const changeFolder = async () => {
+    const picked = await pickFile({ title: t('local.pickFolderTitle'), multiple: false, directory: true, defaultPath: folder ?? undefined });
+    if (typeof picked === 'string') setFolder(picked);
   };
 
   const toggle = (pkg: string, on: boolean) => {
@@ -119,7 +134,7 @@ export function LocalForm({
   const hasBackend =
     BACKENDS.some((one) => backends.has(one.pkg) || has.has(one.pkg)) ||
     [...has].some((pkg) => pkg !== BOT && !BACKENDS.some((one) => one.pkg === pkg));
-  const ready = phase === 'form' && saved === null && name.trim() !== '' && usable && hasBackend;
+  const ready = phase === 'form' && saved === null && name.trim() !== '' && usable && hasBackend && folder !== null;
 
   // A found ahpd that already has a backend gets nothing ticked for it; one with none starts on Claude.
   const foundPlugins = found?.plugins.join(' ');
@@ -146,6 +161,8 @@ export function LocalForm({
         await addLocalBackends(ahpdPath, added, heard);
       }
       setPhase('starting');
+      // ahpd writes the folder into its own config before its first start (decision 11).
+      if (folder !== null) await serveLocalFolder(ahpdPath, folder);
       // The address is ahpd's, read when it starts; until then the default port stands in.
       await saveHost(
         { id, name: name.trim(), kind: 'local', url: 'ws://127.0.0.1:9187', ahpdPath: ahpdPath ?? undefined, onDesk },
@@ -199,6 +216,19 @@ export function LocalForm({
             </div>
           </div>
         </div>
+        {usable && (
+          <div className="field">
+            <span>{t('local.folder')}</span>
+            <div className="found found--line">
+              <p title={folder ?? undefined}>{folder ?? ''}</p>
+              <div className="found-actions">
+                <button type="button" onClick={() => void changeFolder()} disabled={phase !== 'form' || folder === null}>
+                  {t('local.change')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         {usable && (
           <div className="field">
             <span>{t('local.backends')}</span>

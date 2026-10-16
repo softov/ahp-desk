@@ -54,6 +54,16 @@ export function addLocalBackends(
   return invoke('add_local_backends', { ahpdPath, backends, events });
 }
 
+/** Writes `folder` into the config of the ahpd a local host would use, as the folder it serves. */
+export function serveLocalFolder(ahpdPath: string | null, folder: string): Promise<void> {
+  return invoke('serve_local_folder', { ahpdPath, folder });
+}
+
+/** The folder Add host offers to serve before one is picked: the home folder. */
+export function localHomeFolder(): Promise<string> {
+  return invoke<string>('local_home_folder');
+}
+
 /** A local host's ahpd: on or off, and whether the desk started it, which is the only one it stops. */
 export interface LocalState {
   on: boolean;

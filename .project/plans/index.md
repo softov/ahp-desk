@@ -18,7 +18,7 @@ What exists today: [00-desk.md](desk/00-desk.md).
 | [01 - The first build of ahp-desk](desk/01-first-build/plan.md) | active | p1 |
 | [01 p1 - The shell, the host list and the app window](desk/01-first-build-p1-shell-and-url-hosts/plan.md) | built | - |
 | [01 p2 - ahpw on the desk](desk/01-first-build-p2-ahpw-on-the-desk/plan.md) | built | - |
-| [01 p3 - The local ahpd](desk/01-first-build-p3-local-ahpd/plan.md) | active | task 07; tasks 03 and 06 wait on the next ahpd release |
+| [01 p3 - The local ahpd](desk/01-first-build-p3-local-ahpd/plan.md) | active | task 07 |
 | [01 p4 - The tray, the updater and the releases](desk/01-first-build-p4-tray-and-releases/plan.md) | planned | task 01 (the signing key secret before task 03) |
 | [01 p5 - ahpapp in a private build](desk/01-first-build-p5-ahpapp-on-the-desk/plan.md) | draft | name and release channel |
 | [01 p6 - The bot pill](desk/01-first-build-p6-bot-pill/plan.md) | draft | write the tasks |

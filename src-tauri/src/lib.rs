@@ -24,7 +24,11 @@ pub fn run() {
         // Change, in Add host "This computer", picks the ahpd to use.
         .plugin(tauri_plugin_dialog::init())
         .register_asynchronous_uri_scheme_protocol(ui_source::UI, |ctx, request, responder| {
-            let source = ctx.app_handle().state::<ui_source::UiSource>().inner().clone();
+            let source = ctx
+                .app_handle()
+                .state::<ui_source::UiSource>()
+                .inner()
+                .clone();
             ui_source::handle(source, ctx, request, responder);
         })
         .setup(|app| {
@@ -34,7 +38,10 @@ pub fn run() {
                 Some(dir) => std::path::PathBuf::from(dir),
                 None => app.path().app_config_dir()?,
             };
-            app.manage(HostStore::load(config.join("hosts.json"), Box::new(Keyring))?);
+            app.manage(HostStore::load(
+                config.join("hosts.json"),
+                Box::new(Keyring),
+            )?);
             app.manage(AppWindows::default());
             app.manage(HostStatuses::default());
             app.manage(LocalAhpd::new(app.handle())?);
@@ -76,6 +83,8 @@ pub fn run() {
             local_ahpd::find_local_ahpd,
             local_ahpd::install_local_ahpd,
             local_ahpd::add_local_backends,
+            local_ahpd::serve_local_folder,
+            local_ahpd::local_home_folder,
             local_ahpd::local_ahpd_status,
             local_ahpd::start_local_ahpd,
             local_ahpd::stop_local_ahpd,

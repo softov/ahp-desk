@@ -1,6 +1,6 @@
 ---
 title: The desk ships Node and installs ahpd with the chosen backends
-status: doing
+status: done
 depends: [task-01-check-ahpd-commands.md]
 layer: "src-tauri, build"
 refs:
@@ -39,5 +39,7 @@ Started 2026-10-13.
 - Done: `find_local_ahpd` and `install_local_ahpd` are permissions, granted to the shell window; task 02 had left `find_local_ahpd` out.
 - Verified: the ignored test `local_ahpd_a_real_install` installs `@ahpd/server` 0.11.0 from npm into a scratch prefix and reads its version on the bundled Node.
 - Done: the backends, through the installed ahpd's `plugin install` (decision 8), after a check that each is an `@ahpd/` package and that there is at least one; `installLocalAhpd(backends, onEvent)` in `packages/shell/src/hosts/ipc.ts`.
-- Left: the real install with a backend on Windows, the ignored test `local_ahpd_a_real_install`.
-  It fails at `ahpd plugin install` on `@ahpd/server` 0.11.0, which runs `spawn('npm')` with no shell (ENOENT on Windows); Softov fixes that in ahpd, and the test runs again on the release with the fix.
+- Found: on `@ahpd/server` 0.11.0 the real install failed at `ahpd plugin install`, which ran `spawn('npm')` with no shell (ENOENT on Windows).
+- Verified on 2026-10-16 with `@ahpd/server` 0.12.0: the ignored test `local_ahpd_a_real_install` passes on Windows.
+  It installs ahpd and `@ahpd/agent-claude` 0.12.0 with the bundled Node, and the backend is in the prefix and in ahpd's config.
+  `HOME`, `USERPROFILE`, `TEMP` and `XDG_CONFIG_HOME` pointed at scratch folders.
