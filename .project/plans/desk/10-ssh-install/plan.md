@@ -81,6 +81,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | An ahpd found on the server is used: its version is shown (one too old is not replaced), the backends it lacks are offered and added with its own `plugin install`, and the desk installs ahpd only where none is found. | Softov, 2026-10-14: "Use it, offer backends" | 03, 05, 07 |
 | [The Node downloaded on a server is the newest 22, not the version the desk pins](../../../decisions/the-remote-node-download-is-the-newest-22.md) | Softov, 2026-10-14: "latest-v22.x" | 04 |
 | A tunnelled host's local port is picked once, when the host is added, and kept on the host. | Softov, 2026-10-14: "Chosen once, kept" | 06, 07 |
+| [A saved host's refused server key shows on its row and is answered in Edit host](../../../decisions/a-saved-hosts-refused-server-key-is-answered-in-edit-host.md) | Softov, 2026-10-18: "Row says it, Edit shows key" | 11 |
 | Remove, on a host the desk installed over SSH, offers to stop and uninstall its ahpd on the server: the user unit, the desk's install and its token file. | Softov, 2026-10-14: "Offer to uninstall" | 10 |
 | A found ahpd that is not running is started with its own `ahpd start`, with no unit written, and the form says it will not come back after the server restarts. | Softov, 2026-10-14: "Start it, say it won't survive reboot" | 05, 07 |
 | A found ahpd is reached on its own port, read from its `ahpd status --json`, with its token from its `daemon.json`; the tunnel is always offered, and the open port only when it already listens beyond 127.0.0.1. | Softov, 2026-10-14: "Its own port, via tunnel" | 05, 06, 07 |
@@ -113,7 +114,8 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | [07 - Add host and the first run: "A server over SSH"](task-07-add-host-ssh.md) | done | 02, 05, 06 |
 | [08 - update over SSH, for plan 09](task-08-update-over-ssh.md) | done | 05 |
 | [10 - Remove offers to uninstall the desk's ahpd on the server](task-10-uninstall-over-ssh.md) | todo | 05, 06, 07 |
-| [09 - end to end on the test machine](task-09-end-to-end.md) | todo | 01 to 08, 10 |
+| [11 - A saved host's refused server key on its row and in Edit host](task-11-refused-key-on-a-saved-host.md) | done | 02, 06, 07 |
+| [09 - end to end on the test machine](task-09-end-to-end.md) | todo | 01 to 08, 10, 11 |
 
 ## Risks and tradeoffs
 
@@ -124,9 +126,9 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 
 ## Resume state
 
-- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 08, 2026-10-18, with their by-hand checks, task 06's window checks among task 07's.
+- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 08 and 11, 2026-10-18, with their by-hand checks, task 06's window checks among task 07's.
 - **Next action:** task 10, then task 09.
-- **Open questions:** how a host whose server key changed after it was added gets the key's question (task 07's Resume).
+- **Open questions:** none.
 - **Watch out for:** doop's `AcceptAllHandler` must not be copied; the Answers row on the server key replaces it.
   The end to end and every real SSH test run against the test machine only.
   Task 10 runs before task 09, the end to end, which covers it.

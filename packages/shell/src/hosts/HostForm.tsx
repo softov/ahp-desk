@@ -1,5 +1,17 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { hostToken, saveHost, sshKeyringWorks, sshSignIn, type OnDesk, type ShellHost } from './ipc.js';
+import {
+  confirmSshKey,
+  forgetSshKey,
+  hostToken,
+  openSshTunnel,
+  saveHost,
+  sshKeyringWorks,
+  sshSignIn,
+  type OnDesk,
+  type ShellHost,
+} from './ipc.js';
+import { ServerKey } from './ServerKey.js';
+import { useTunnels } from './useTunnels.js';
 import { t } from '../i18n.js';
 import { explain, testHost } from './status.js';
 import { hostId, normalizeUrl } from './url.js';
@@ -43,6 +55,22 @@ export function HostForm({
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
   const [keyring, setKeyring] = useState<boolean | null>(null);
+  // A tunnel stopped on the server's key: trusting or forgetting it here opens the tunnel again.
+  const refused = useTunnels()[host?.id ?? '']?.key ?? null;
+  const [answering, setAnswering] = useState(false);
+  const answer = async (work: () => Promise<void>) => {
+    if (host === null) return;
+    setAnswering(true);
+    setError(null);
+    try {
+      await work();
+      await openSshTunnel(host.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAnswering(false);
+    }
+  };
   useEffect(() => {
     if (ssh !== undefined) sshKeyringWorks().then(setKeyring, (err: unknown) => setError(String(err)));
   }, [ssh]);
@@ -53,8 +81,7 @@ export function HostForm({
   const ready = name.trim() !== '' && url !== '';
 
   /** The token to use: the one typed, or in Edit the one saved. */
-  const tokenToUse = async () =>
-    token !== '' ? token : host === null ? null : await hostToken(host.id);
+  const tokenToUse = async () => (token !== '' ? token : host === null ? null : await hostToken(host.id));
 
   const test = async () => {
     setTesting(true);
@@ -147,6 +174,17 @@ export function HostForm({
                   {ssh.folder !== undefined && <p title={ssh.folder}>{ssh.folder}</p>}
                 </div>
               </div>
+            )}
+            {ssh !== undefined && tunnel && refused !== null && (
+              <ServerKey
+                server={`${ssh.address}:${ssh.port}`}
+                address={ssh.address}
+                port={ssh.port}
+                refused={refused}
+                busy={answering}
+                onTrust={() => void answer(() => confirmSshKey(ssh.address, ssh.port, refused.offered.sha256))}
+                onForget={() => void answer(() => forgetSshKey(ssh.address, ssh.port))}
+              />
             )}
             {!tunnel && (
               <label>

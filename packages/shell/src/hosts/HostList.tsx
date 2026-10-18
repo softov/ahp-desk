@@ -54,6 +54,12 @@ function statusText(status: HostStatus): string {
   }
 }
 
+/** A down tunnel's words: its server key refused, changed or new, or just down. */
+function tunnelWord(tunnel: TunnelState): 'tunnel.down' | 'tunnel.keyChanged' | 'tunnel.keyNew' {
+  if (tunnel.key === null) return 'tunnel.down';
+  return tunnel.key.reason === 'changedKey' ? 'tunnel.keyChanged' : 'tunnel.keyNew';
+}
+
 /** The ⋯ menu of one row; it closes on a click anywhere else. */
 function RowMenu({ onEdit, onRemove }: { onEdit: () => void; onRemove: () => void }) {
   const [open, setOpen] = useState(false);
@@ -176,7 +182,7 @@ export function HostList({
                 className="state"
                 title={tunnelDown ? (tunnel.error ?? undefined) : status.kind === 'down' ? (status.error ?? undefined) : undefined}
               >
-                {tunnelDown ? t('tunnel.down') : statusText(status)}
+                {tunnelDown ? t(tunnelWord(tunnel)) : statusText(status)}
               </span>
               <span className="address" title={host.url}>
                 {shortUrl(host.url)}
@@ -188,7 +194,11 @@ export function HostList({
                 {tunnelDown && tunnel.needs !== null && (
                   <button onClick={() => setSigningIn(host.id)}>{t('tunnel.signIn')}</button>
                 )}
-                {tunnelDown && tunnel.needs === null && (
+                {/* Retry asks the server again with nothing new; the key is answered in Edit host. */}
+                {tunnelDown && tunnel.key !== null && (
+                  <button onClick={() => onEdit(host)}>{t('tunnel.checkKey')}</button>
+                )}
+                {tunnelDown && tunnel.needs === null && tunnel.key === null && (
                   <button onClick={() => void run(openSshTunnel(host.id))}>{t('hosts.retry')}</button>
                 )}
                 {status.kind === 'down' && !tunnelDown && (

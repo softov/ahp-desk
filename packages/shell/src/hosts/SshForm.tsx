@@ -14,13 +14,14 @@ import {
   type InstallEvent,
   type Probe,
   type ProbeTarget,
+  type RefusedKey,
 } from './ipc.js';
 import { t } from '../i18n.js';
 import { BackendsField, hasBackend, startingBackends } from './BackendsField.js';
 import { FoundAhpdField } from './FoundAhpd.js';
 import { InstallSteps, withStep, type StepState } from './InstallSteps.js';
 import { ErrorText } from './LocalForm.js';
-import { ServerKey, type RefusedKey } from './ServerKey.js';
+import { ServerKey } from './ServerKey.js';
 import type { Saved } from './HostForm.js';
 import { ahpdPort, hostId, sshTarget } from './url.js';
 

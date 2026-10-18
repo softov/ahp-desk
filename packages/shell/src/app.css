@@ -335,7 +335,7 @@ button.choice:hover:not(:disabled) {
 /* A row as ahpw's session rows: no line between rows, a tint on hover. */
 .host {
   display: grid;
-  grid-template-columns: 10px minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.4fr) 72px 32px;
+  grid-template-columns: 10px minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.4fr) 92px 32px;
   align-items: center;
   gap: 12px;
   min-height: 42px;
@@ -437,6 +437,7 @@ button.choice:hover:not(:disabled) {
 
 .action {
   text-align: right;
+  white-space: nowrap;
 }
 
 .menu {

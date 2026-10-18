@@ -43,6 +43,8 @@ export interface TunnelState {
   on: boolean;
   error: string | null;
   needs: 'passphrase' | 'password' | null;
+  /** The server key it refused, which Edit host shows with Trust or Forget. */
+  key: RefusedKey | null;
 }
 
 export function sshTunnelStates(): Promise<Record<string, TunnelState>> {
@@ -99,6 +101,9 @@ export type ConnectError =
   /** `inKnownHosts`: the old key is in `~/.ssh/known_hosts`, removed with `ssh-keygen -R <host>`, not by Forget. */
   | { reason: 'changedKey'; known: Fingerprint; offered: Fingerprint; inKnownHosts: boolean }
   | { reason: 'failed'; why: string };
+
+/** A server key a connection refused: one the desk has not seen, or one that changed. */
+export type RefusedKey = Extract<ConnectError, { reason: 'newKey' | 'changedKey' }>;
 
 /** How an SSH sign-in failed, as a desk command rejects with it. */
 export type SshError =

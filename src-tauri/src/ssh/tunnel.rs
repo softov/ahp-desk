@@ -34,6 +34,9 @@ pub struct TunnelState {
     pub error: Option<String>,
     /// What the person types to open it again, as after a restart.
     pub needs: Option<Need>,
+    /// The server key it refused, new or changed, which Edit host shows
+    /// with Trust or Forget.
+    pub key: Option<super::ConnectError>,
 }
 
 /// What a tunnel needs of its host, read when it opens.
@@ -196,6 +199,7 @@ async fn supervise(
         on: false,
         error: Some(error),
         needs,
+        key: None,
     };
     let mut wait = FIRST_WAIT;
     loop {
@@ -225,8 +229,7 @@ async fn supervise(
                 };
                 set(TunnelState {
                     on: true,
-                    error: None,
-                    needs: None,
+                    ..TunnelState::default()
                 });
                 wait = FIRST_WAIT;
                 serve(listener, Arc::new(session), &spec).await;
@@ -249,9 +252,17 @@ async fn supervise(
                 retry.notified().await;
                 continue;
             }
-            Err(err @ SignInError::Connect(super::ConnectError::NewKey { .. }))
-            | Err(err @ SignInError::Connect(super::ConnectError::ChangedKey { .. }))
-            | Err(err @ SignInError::Refused { .. }) => {
+            Err(SignInError::Connect(
+                key @ (super::ConnectError::NewKey { .. } | super::ConnectError::ChangedKey { .. }),
+            )) => {
+                set(TunnelState {
+                    key: Some(key.clone()),
+                    ..down(key.to_string(), None)
+                });
+                retry.notified().await;
+                continue;
+            }
+            Err(err @ SignInError::Refused { .. }) => {
                 set(down(err.to_string(), None));
                 retry.notified().await;
                 continue;
@@ -376,6 +387,7 @@ mod tests {
     struct Fixture {
         tunnels: Tunnels,
         secrets: Arc<Secrets>,
+        known: KnownKeys,
         _scratch: Scratch,
     }
 
@@ -398,6 +410,7 @@ mod tests {
             Fixture {
                 tunnels,
                 secrets,
+                known,
                 _scratch: scratch,
             }
         }
@@ -547,6 +560,40 @@ mod tests {
         println!("{}", String::from_utf8_lossy(&banner));
         assert_eq!(&banner, b"SSH-2.0-");
         tunnels.close_all();
+    }
+
+    #[tokio::test]
+    async fn tunnel_a_changed_key_is_in_its_state_and_forget_then_trust_opens_it() {
+        let server = TestServer::start().await;
+        let fixture = Fixture::new(&server).await;
+        fixture.secrets.set_password("dev", PASSWORD);
+        server.change_host_key();
+        let port = pick_local_port().unwrap();
+        fixture.tunnels.open(spec(&server, None, port));
+        let state = fixture.until("dev", |state| state.key.is_some()).await;
+        let Some(crate::ssh::ConnectError::ChangedKey { in_known_hosts, .. }) = state.key else {
+            panic!("not a changed key: {state:?}");
+        };
+        assert!(!in_known_hosts && !state.on && state.needs.is_none());
+        let target = server.target(None);
+        fixture.known.forget(&target.address, target.port).unwrap();
+        fixture.tunnels.retry("dev");
+        let state = fixture
+            .until("dev", |state| {
+                matches!(state.key, Some(crate::ssh::ConnectError::NewKey { .. }))
+            })
+            .await;
+        let Some(crate::ssh::ConnectError::NewKey { offered }) = state.key else {
+            unreachable!()
+        };
+        fixture
+            .known
+            .confirm(&target.address, target.port, &offered.sha256)
+            .unwrap();
+        fixture.tunnels.retry("dev");
+        let state = fixture.until("dev", |state| state.on).await;
+        assert!(state.key.is_none() && state.error.is_none());
+        assert_eq!(echo(port, b"trusted").await, b"trusted");
     }
 
     #[tokio::test]

@@ -93,3 +93,4 @@ It shows what the probe found: an ahpd already on the server, which it uses, or 
 - Not shown: that the app window keeps its tabs across a restart, as no tab was open before it.
 - The test machine was left as before the task: the desk's ahpd, unit and config removed, and the key added for the passphrase check taken out of `authorized_keys`.
 - Open: a host whose server key changed after it was added shows "tunnel down" with Retry, which cannot fix it; neither the row nor Edit host offers the key's question.
+- That is task 11, done 2026-10-18.

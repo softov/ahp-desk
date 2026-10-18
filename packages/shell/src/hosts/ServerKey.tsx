@@ -1,8 +1,5 @@
 import { t } from '../i18n.js';
-import type { ConnectError, Fingerprint } from './ipc.js';
-
-/** A server key the connection refused: one the desk has not seen, or one that changed. */
-export type RefusedKey = Extract<ConnectError, { reason: 'newKey' | 'changedKey' }>;
+import type { Fingerprint, RefusedKey } from './ipc.js';
 
 function KeyLine({ fingerprint }: { fingerprint: Fingerprint }) {
   return (

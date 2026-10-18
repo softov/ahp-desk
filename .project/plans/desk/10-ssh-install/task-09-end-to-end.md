@@ -1,7 +1,7 @@
 ---
 title: Install over SSH works end to end on the test machine
 status: todo
-depends: [task-01-ssh-session.md, task-02-server-key.md, task-03-probe.md, task-04-node.md, task-05-install.md, task-06-reach.md, task-07-add-host-ssh.md, task-08-update-over-ssh.md, task-10-uninstall-over-ssh.md]
+depends: [task-01-ssh-session.md, task-02-server-key.md, task-03-probe.md, task-04-node.md, task-05-install.md, task-06-reach.md, task-07-add-host-ssh.md, task-08-update-over-ssh.md, task-10-uninstall-over-ssh.md, task-11-refused-key-on-a-saved-host.md]
 layer: "ahp-desk"
 refs:
   - "[code://src-tauri/src/lib.rs#L31-L37](../../../../src-tauri/src/lib.rs#L31-L37) - `AHP_DESK_CONFIG_DIR`, so the run uses a scratch host list and never the user's"
