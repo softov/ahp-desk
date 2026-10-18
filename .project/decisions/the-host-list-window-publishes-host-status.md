@@ -5,7 +5,7 @@ date: 2026-10-11
 refs:
   - file:///github/ahp-desk/packages/shell/src/hosts/status.ts - the one MultiHostClient that already watches every host
   - "[code://packages/ahpw-embedder/src/embedder.ts](../../packages/ahpw-embedder/src/embedder.ts) - the embedder ahpw reads the statuses through"
-  - file:///github/ahp-desk/.project/decisions/ahpw-shows-one-host-at-a-time-on-the-desk.md - why ahpw holds no connection to the other hosts
+  - file:///github/ahp-desk/.project/specs/app-window.md - why ahpw holds no connection to the other hosts
 ---
 
 ## Context
@@ -28,5 +28,5 @@ The contract does not say who computes a status, so the Rust side can take the w
 
 ## Options
 
-- **Rust owns the status.** An AHP client in Rust keeps one connection per host and works with no window open. Not now: it needs a WebSocket AHP client in Rust; it is the way forward when the desk runs with no window, as the tray and the bot pill of p4 and p6 may need.
-- **No dots.** The switcher lists names only. Lost: the locked switcher decision of p2.
+- **Rust owns the status.** An AHP client in Rust keeps one connection per host and works with no window open. Not now: it needs a WebSocket AHP client in Rust; it is the way forward when the desk runs with no window, as the tray and the bot pill of plan 04 and plan 06 may need.
+- **No dots.** The switcher lists names only. Lost: the locked switcher decision of plan 02.

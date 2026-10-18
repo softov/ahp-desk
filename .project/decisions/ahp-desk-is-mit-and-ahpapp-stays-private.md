@@ -25,7 +25,7 @@ Source: Softov: "ahp-desk as MIT, ahpapp as PRIVATE mine.", and then "done, publ
 The updater of the public build reads `latest.json` with no token.
 A private build reads ahpapp from a local checkout, so a clone of ahp-desk alone cannot build it.
 A private build ships the MIT notice of the shell beside ahpapp.
-The private build's releases need a place of their own, which p5 chooses.
+The private build's releases need a place of their own, which plan 05 chooses.
 
 ## Options
 

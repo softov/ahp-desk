@@ -5,7 +5,7 @@ date: 2026-10-11
 refs:
   - file:///github/ahpapp/src/bood.ts - bodies, moods, actions and paths as data, with no imports
   - file:///github/cofold/README.md - one family of packages with no runtime dependencies, under MIT
-  - file:///github/ahp-desk/.project/decisions/the-pill-draws-bood-in-the-dom-from-the-bood-data.md - the decision that needs one shared place for the data
+  - file:///github/ahp-desk/.project/plans/desk/06-bot-pill/plan.md - the pill draws bood in the DOM from this data, so the data needs one shared place (Answers)
 ---
 
 ## Context

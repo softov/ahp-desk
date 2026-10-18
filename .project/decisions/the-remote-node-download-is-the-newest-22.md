@@ -9,7 +9,7 @@ refs:
 
 ## Context
 
-A server with no Node 22 or later downloads the official build, as [the decision on the remote Node](the-remote-node-is-its-own-or-downloaded.md) says.
+A server with no Node 22 or later downloads the official build, as [plan 10's Answers](../plans/desk/10-ssh-install/plan.md) say.
 The desk pins its own Node in `scripts/stage-node.mjs`.
 So an unpinned download on the server looks like a gap, to close by pinning it the same way.
 

@@ -8,7 +8,7 @@ refs:
 
 ## Context
 
-[An SSH server's key is confirmed once and remembered](an-ssh-server-key-is-confirmed-once-and-remembered.md) shows a new server key's fingerprint for the person to confirm.
+The desk shows a new server key's fingerprint for the person to confirm, as [plan 10's Answers](../plans/desk/10-ssh-install/plan.md) say.
 `russh` asks the client's handler about the server key during the handshake, and the person's answer can take minutes.
 
 ## Decision

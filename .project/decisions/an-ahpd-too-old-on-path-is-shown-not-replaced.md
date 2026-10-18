@@ -10,7 +10,7 @@ refs:
 
 The desk drives ahpd through `ahpd status --json`, which came in 0.8.0.
 An older ahpd can be the one on `PATH`, as a global npm install.
-An ahpd the desk installs would share `~/.config/ahpd` with it (decision 7), so the two would read and write the same `daemon.json` and `config.json`.
+An ahpd the desk installs would share `~/.config/ahpd` with it ([the installed ahpd keeps the usual config folder](the-installed-ahpd-keeps-the-usual-config-folder.md)), so the two would read and write the same `daemon.json` and `config.json`.
 
 ## Decision
 

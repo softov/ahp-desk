@@ -9,7 +9,7 @@ refs:
 
 ## Context
 
-[SSH signs in with the agent, a key file, or a password](ssh-signs-in-with-the-agent-a-key-file-or-a-password.md) keeps a password the person asks to keep in the OS keyring.
+The desk keeps a password the person asks to keep in the OS keyring, as [plan 10's Answers](../plans/desk/10-ssh-install/plan.md) say.
 A Linux desktop with no Secret Service has no keyring.
 [Tokens are in the OS keyring, with hosts.json as the fallback](tokens-are-in-the-os-keyring-with-hosts-json-as-the-fallback.md) keeps a token in `hosts.json` there, and the host list flags that host.
 

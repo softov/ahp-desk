@@ -20,7 +20,7 @@ A desk build ships one UI, chosen when it is built.
 The public build ships ahpw.
 A private build ships ahpapp.
 No build has both, so the host list has no row "Open with".
-Source: Softov, on the "Open with" question: "I was thinking in separated distro... one public another private. ahpapp private". Asked then what is wrong in p5's goal: "\"Open with\" row".
+Source: Softov, on the "Open with" question: "I was thinking in separated distro... one public another private. ahpapp private". Asked then what is wrong in plan 05's goal: "\"Open with\" row".
 
 ## Consequences
 

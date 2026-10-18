@@ -11,7 +11,7 @@ refs:
 
 Decision 10 has Add host write the folder it asks for into ahpd's config as `paths`.
 ahpd sets `paths` only through `configure`, which asks at a terminal and refuses without one.
-The desk already leaves `config.json` to ahpd for the backends (decision 8).
+The desk already leaves `config.json` to ahpd for the backends ([the desk adds backends through ahpd plugin install](the-desk-adds-backends-through-ahpd-plugin-install.md)).
 
 ## Decision
 
@@ -27,4 +27,5 @@ Add host's folder step waits for the ahpd release with that command.
 ## Options
 
 - **The desk edits `config.json`.** Lost: a second writer of ahpd's file.
-- **`--path` on each start.** Lost: a terminal `ahpd start` would serve another folder, and it changes decision 10.
+- **`--path` on each start.** Lost: a terminal `ahpd start` would serve another folder.
+  It also changes plan 03's answer: the folder asked in Add host, else the home folder.

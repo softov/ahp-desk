@@ -14,7 +14,7 @@ In `@ahpd/server` 0.11.0 it starts `npm` with no shell, which fails with ENOENT 
 
 ## Decision
 
-The desk adds the backends by running the installed ahpd's `plugin install <backends>`, with `AHPD_PLUGIN_ROOT` set (decision 7).
+The desk adds the backends by running the installed ahpd's `plugin install <backends>`, with `AHPD_PLUGIN_ROOT` set ([the installed ahpd keeps the usual config folder](the-installed-ahpd-keeps-the-usual-config-folder.md)).
 The Windows failure is fixed in ahpd, and the desk's install on Windows waits for that release.
 Source: Softov, asked "How does task 03 add the backends while ahpd plugin install fails on Windows?": "I will fix ahpd."
 

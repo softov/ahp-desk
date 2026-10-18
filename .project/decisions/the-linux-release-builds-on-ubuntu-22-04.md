@@ -3,7 +3,7 @@ title: The Linux release builds on ubuntu-22.04
 status: accepted
 date: 2026-10-14
 refs:
-  - "[code://.project/plans/desk/01-first-build-p4-tray-and-releases/task-04-release-workflow.md](../../.project/plans/desk/01-first-build-p4-tray-and-releases/task-04-release-workflow.md) - the build matrix"
+  - "[code://.project/plans/desk/04-tray-and-releases/task-04-release-workflow.md](../../.project/plans/desk/04-tray-and-releases/task-04-release-workflow.md) - the build matrix"
   - https://v2.tauri.app/distribute/appimage/ - an AppImage runs only where the glibc is as new as the one it was built with
 ---
 

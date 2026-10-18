@@ -4,7 +4,7 @@ status: accepted
 date: 2026-10-14
 refs:
   - "[code://src-tauri/tauri.conf.json#L18-L38](../../src-tauri/tauri.conf.json#L18-L38) - the bundle settings, which leave `createUpdaterArtifacts` off"
-  - "[code://.project/plans/desk/01-first-build-p4-tray-and-releases/task-04-release-workflow.md](../../.project/plans/desk/01-first-build-p4-tray-and-releases/task-04-release-workflow.md) - creates `src-tauri/tauri.release.conf.json` and passes it with `--config`"
+  - "[code://.project/plans/desk/04-tray-and-releases/task-04-release-workflow.md](../../.project/plans/desk/04-tray-and-releases/task-04-release-workflow.md) - creates `src-tauri/tauri.release.conf.json` and passes it with `--config`"
   - https://v2.tauri.app/plugin/updater/ - `createUpdaterArtifacts` and the signing variables it needs
 ---
 

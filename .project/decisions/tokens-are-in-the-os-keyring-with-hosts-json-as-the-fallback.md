@@ -4,6 +4,7 @@ status: accepted
 date: 2026-10-11
 supersedes: decisions/tokens-are-kept-in-the-os-keyring.md
 refs:
+  - git://4c89294 - the last commit that holds the superseded decision tokens-are-kept-in-the-os-keyring
   - file:///github/ahp-desk/mockups/02-hosts.md - "Token [...] in the OS keyring"
   - https://crates.io/crates/keyring - the Rust crate for the Windows Credential Manager, the macOS Keychain and the Secret Service
 ---
