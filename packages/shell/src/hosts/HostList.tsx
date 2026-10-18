@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { t } from '../i18n.js';
 import { useOutsideClose } from '../useOutsideClose.js';
 import {
@@ -13,9 +13,10 @@ import {
   type UninstallStep,
 } from './ipc.js';
 import { InstallSteps, withStep, type StepState } from './InstallSteps.js';
-import type { HostStatus, HostStatuses } from './status.js';
+import type { HostStatus, HostStatuses, UpdateWay } from './status.js';
 import { shortUrl } from './url.js';
 import { useTunnels } from './useTunnels.js';
+import { newer } from './versions.js';
 
 const UNINSTALL_WORDS = {
   connect: 'uninstall.connect',
@@ -183,11 +184,14 @@ function RowMenu({ onEdit, onRemove }: { onEdit: () => void; onRemove: () => voi
 export function HostList({
   hosts,
   statuses,
+  latestAhpd,
   onAdd,
   onEdit,
 }: {
   hosts: readonly ShellHost[];
   statuses: HostStatuses;
+  /** npm's latest `@ahpd/server`, or `null` until the desk has asked. */
+  latestAhpd: string | null;
   onAdd: () => void;
   onEdit: (host: ShellHost) => void;
 }) {
@@ -195,6 +199,31 @@ export function HostList({
   const [signingIn, setSigningIn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const tunnels = useTunnels();
+  // How each host's ahpd can be updated, asked again when the list changes.
+  const [ways, setWays] = useState<Record<string, UpdateWay | null>>({});
+  useEffect(() => {
+    let live = true;
+    void Promise.all(hosts.map(async (host) => [host.id, await statuses.updateWay(host)] as const)).then((all) => {
+      if (live) setWays(Object.fromEntries(all));
+    });
+    return () => {
+      live = false;
+    };
+  }, [hosts, statuses]);
+  // The host whose update waits on a click over running sessions, and the ones updating.
+  const [confirmingUpdate, setConfirmingUpdate] = useState<string | null>(null);
+  const [updating, setUpdating] = useState<ReadonlySet<string>>(new Set());
+  const update = (host: ShellHost, version: string, force: boolean) => {
+    setConfirmingUpdate(null);
+    setUpdating((all) => new Set(all).add(host.id));
+    void run(statuses.updateHost(host, version, force)).finally(() =>
+      setUpdating((all) => {
+        const next = new Set(all);
+        next.delete(host.id);
+        return next;
+      }),
+    );
+  };
 
   const run = (work: Promise<void>) =>
     work.catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
@@ -223,6 +252,26 @@ export function HostList({
           }
           if (removing === host.id && host.ssh !== undefined) {
             return <RemoveSshRow key={host.id} host={host} ssh={host.ssh} onDone={() => setRemoving(null)} />;
+          }
+          // The local host updates by its own rule (plan 03), never from this notice.
+          const behind =
+            host.kind !== 'local' &&
+            status.kind === 'connected' &&
+            status.ahpd !== null &&
+            latestAhpd !== null &&
+            newer(latestAhpd, status.ahpd);
+          if (confirmingUpdate === host.id && latestAhpd !== null) {
+            return (
+              <li key={host.id} className="host confirm">
+                <span className="question">
+                  {t('hosts.updateQuestion', { name: host.name, sessions: statuses.running(host.id).join(', ') })}
+                </span>
+                <button onClick={() => setConfirmingUpdate(null)}>{t('form.cancel')}</button>
+                <button className="primary" onClick={() => update(host, latestAhpd, true)}>
+                  {t('hosts.update')}
+                </button>
+              </li>
+            );
           }
           if (removing === host.id) {
             return (
@@ -261,6 +310,28 @@ export function HostList({
                 {host.sshPasswordInFile === true && (
                   <span className="warn" title={t('hosts.noKeyring')}>
                     {t('hosts.passwordInFile')}
+                  </span>
+                )}
+                {behind && (
+                  <span className="note">
+                    <span
+                      className="note-text"
+                      title={updating.has(host.id) ? undefined : t('hosts.ahpdAvailable', { version: latestAhpd })}
+                    >
+                      {updating.has(host.id) ? t('hosts.updating') : t('hosts.ahpdAvailable', { version: latestAhpd })}
+                    </span>
+                    {!updating.has(host.id) && (ways[host.id] ?? null) !== null && (
+                      <button
+                        className="link"
+                        onClick={() =>
+                          statuses.running(host.id).length === 0
+                            ? update(host, latestAhpd, false)
+                            : setConfirmingUpdate(host.id)
+                        }
+                      >
+                        {t('hosts.update')}
+                      </button>
+                    )}
                   </span>
                 )}
               </span>

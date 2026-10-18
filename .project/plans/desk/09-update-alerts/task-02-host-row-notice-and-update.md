@@ -1,6 +1,6 @@
 ---
 title: A host row says when its ahpd is behind npm, and offers Update
-status: todo
+status: done
 depends: [task-01-npm-latest-ahpd.md]
 layer: "packages/shell"
 refs:
@@ -65,3 +65,14 @@ The `local` host is left to its own rule (Answers: the local ahpd's own update, 
 - By hand, on `pnpm tauri dev` with `AHP_DESK_CONFIG_DIR` on a scratch folder: a URL host on an ahpd older than npm's latest says "ahpd X available" with no button (no way yet); in Portuguese and Spanish too; an up-to-date ahpd and a non-ahpd server say nothing; the local host says nothing from this task.
 
 ## Resume
+
+- 2026-10-18: `packages/shell/src/hosts/versions.ts` has `newer(latest, current)`, a port of ahpd's, and `versions.test.ts` runs ahpd's table in its order.
+- `status.ts` keeps each host's `ServerInfo`; `connected` carries `ahpd`, the version when the server is ahpd; `HostStatuses` has `running(id)`, `updateWay(host)` and `updateHost(host, version, force)`, with `UpdateWay` and `IN_PROGRESS` (`1 << 3`).
+- `updateWay` takes the `ShellHost`, not its id, since task 05's way reads the host's `ssh` details; it answers `null`, and `updateHost` rejects with `hosts.noUpdateWay`, until tasks 04 and 05.
+- `running(id)` reads the chats of the host's sessions: in `@microsoft/agent-host-protocol` 1.0.0 a `SessionSummary` has no `status` or `title` of its own, and each `SessionChatSummary` has both; a chat with the `IN_PROGRESS` bit is running, named by its title.
+- `App.tsx` reads `updates()` and `onUpdatesChanged()` into `latestAhpd` for `HostList`; the row of a connected non-local host on an ahpd behind it shows `.note` under the name, "ahpd X available", ending in an ellipsis with the whole line as its title when the column is narrow, with an inline Update when `updateWay` answered a way; a click with running chats turns the row into the `.host.confirm` question, and while it runs the line says "Updating ahpd…"; a failure goes to the list's error line.
+- Words `hosts.ahpdAvailable`, `hosts.update`, `hosts.updateQuestion`, `hosts.updating` and `hosts.noUpdateWay` in en, pt-BR and es.
+- Verified: `pnpm typecheck`, `pnpm test` (42, with 13 for `newer` and `i18n.test.ts` over the new words).
+- By hand on a release build with a scratch `AHP_DESK_CONFIG_DIR`, a URL host on ahpd 0.11.0 run from a scratch folder on this machine, and npm's latest 0.12.0 from task 01: the row said "ahpd 0.12.0 available", "disponível" and "disponible", with no Update since no way exists yet; with the kept latest at 0.11.0, the row said nothing.
+  The ellipsis at 480x300 was seen with its rules put in the running page; the build after it was not run.
+- Not seen by hand: a non-ahpd server and the local host, both left out by the row's condition (`ahpd` is `null` for a server not named ahpd, and `kind !== 'local'`); the confirmation over running chats, which needs a way, so tasks 04 and 05 see it.

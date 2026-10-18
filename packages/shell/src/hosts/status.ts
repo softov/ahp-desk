@@ -24,7 +24,8 @@ export function explain(error: unknown): string {
 }
 
 export type HostStatus =
-  | { kind: 'connected'; server: string | null }
+  /** `ahpd`: the version, when the server is ahpd. */
+  | { kind: 'connected'; server: string | null; ahpd: string | null }
   | { kind: 'connecting' }
   | { kind: 'down'; error: string | null };
 
@@ -34,8 +35,18 @@ type ServerInfo = { name: string; version?: string };
 const serverName = (info: ServerInfo) =>
   info.version === undefined ? info.name : `${info.name} ${info.version}`;
 
+/** How the desk can update a host's ahpd; tasks 04 and 05 of plan 09 add the ways. */
+export type UpdateWay = { kind: 'ssh' } | { kind: 'ahpd' };
+
+/**
+ * `SessionStatus.InProgress` of `@microsoft/agent-host-protocol`, written out
+ * because `isolatedModules` cannot read an ambient const enum; `InputNeeded`
+ * carries the same bit.
+ */
+const IN_PROGRESS = 1 << 3;
+
 /** Passes every frame through, and tells `onServer` what the server says it is. */
-function noticing(transport: AhpTransport, onServer: (name: string) => void): AhpTransport {
+function noticing(transport: AhpTransport, onServer: (info: ServerInfo) => void): AhpTransport {
   return {
     send: (message) => transport.send(message),
     close: () => transport.close(),
@@ -53,7 +64,7 @@ function noticing(transport: AhpTransport, onServer: (name: string) => void): Ah
         }
         const info = (message as { result?: { serverInfo?: ServerInfo } } | null)?.result
           ?.serverInfo;
-        if (info !== undefined && typeof info.name === 'string') onServer(serverName(info));
+        if (info !== undefined && typeof info.name === 'string') onServer(info);
       }
       return frame;
     },
@@ -66,6 +77,12 @@ export interface HostStatuses {
   status(id: string): HostStatus;
   /** Connects again now, as after a token change or a press on Retry. */
   retry(id: string): Promise<void>;
+  /** The titles of the host's chats with a turn on, which an update would stop. */
+  running(id: string): string[];
+  /** How the desk can update the host's ahpd, or `null` when it cannot. */
+  updateWay(host: ShellHost): Promise<UpdateWay | null>;
+  /** Updates the host's ahpd to `version`, the one its row named; `force` once the person confirmed over running sessions. */
+  updateHost(host: ShellHost, version: string, force: boolean): Promise<void>;
 }
 
 /**
@@ -77,7 +94,7 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
   // What every window last heard, so a change that moves no dot sends nothing.
   let published = '';
   const urls = new Map<string, string>();
-  const servers = new Map<string, string>();
+  const servers = new Map<string, ServerInfo>();
   // One sync at a time, so two quick changes never add the same host twice.
   let syncing: Promise<void> = Promise.resolve();
 
@@ -93,8 +110,8 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
       transportFactory: async (id) => {
         const token = await hostToken(id);
         const socket = await WebSocketTransport.connect(withToken(urls.get(id) ?? host.url, token));
-        return noticing(offering(socket), (name) => {
-          servers.set(id, name);
+        return noticing(offering(socket), (info) => {
+          servers.set(id, info);
           onChange();
         });
       },
@@ -145,8 +162,14 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
       const handle = multi.host(id);
       if (handle === undefined) return { kind: 'connecting' };
       switch (handle.state.status) {
-        case 'connected':
-          return { kind: 'connected', server: servers.get(id) ?? null };
+        case 'connected': {
+          const info = servers.get(id);
+          return {
+            kind: 'connected',
+            server: info === undefined ? null : serverName(info),
+            ahpd: info?.name === 'ahpd' && info.version !== undefined ? info.version : null,
+          };
+        }
         case 'connecting':
           return { kind: 'connecting' };
         default:
@@ -157,6 +180,17 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
       }
     },
     retry: (id) => multi.reconnectHost(id),
+    running(id) {
+      return multi
+        .aggregatedSessions()
+        .filter((hosted) => hosted.hostId === id)
+        .flatMap((hosted) => hosted.summary.chats ?? [])
+        .filter((chat) => chat.status !== undefined && (chat.status & IN_PROGRESS) !== 0)
+        .map((chat) => chat.title);
+    },
+    // No way yet: plan 09's task 05 adds SSH, task 04 ahpd's own update command.
+    updateWay: () => Promise.resolve(null),
+    updateHost: () => Promise.reject(new Error(t('hosts.noUpdateWay'))),
   };
   return statuses;
 }

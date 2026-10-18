@@ -11,8 +11,10 @@ import {
   onEditAsked,
   onHostsChanged,
   onTunnelsChanged,
+  onUpdatesChanged,
   setTrayWords,
   sshTunnelStates,
+  updates,
   type ShellHost,
 } from './hosts/ipc.js';
 import { createHostStatuses, type HostStatuses } from './hosts/status.js';
@@ -81,6 +83,15 @@ export function App() {
     statuses.sync(hosts).catch((err: unknown) => console.error('host status sync failed', err));
   }, [hosts, statuses]);
 
+  // npm's latest @ahpd/server, which each host row compares with its ahpd.
+  const [latestAhpd, setLatestAhpd] = useState<string | null>(null);
+  useEffect(() => {
+    const take = (view: { ahpd: { latest: string } | null }) => setLatestAhpd(view.ahpd?.latest ?? null);
+    updates().then(take, (err: unknown) => console.error('updates failed', err));
+    const stop = onUpdatesChanged(take);
+    return () => void stop.then((unlisten) => unlisten());
+  }, []);
+
   // A tunnel that comes up is connected through at once, not at the client's next retry.
   useEffect(() => {
     const on = new Set<string>();
@@ -116,6 +127,7 @@ export function App() {
           <HostList
             hosts={hosts}
             statuses={statuses}
+            latestAhpd={latestAhpd}
             onAdd={add}
             onEdit={(host) => setScreen({ kind: 'form', host })}
           />

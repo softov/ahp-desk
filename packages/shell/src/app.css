@@ -449,6 +449,38 @@ button.choice:hover:not(:disabled) {
   white-space: nowrap;
 }
 
+/* A newer ahpd, under the name, with Update beside it when the desk can update the host. */
+.name .note {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  color: var(--oo-color-accent);
+  font-size: var(--oo-font-size-xs);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.name .note-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.name .note button.link {
+  flex: none;
+}
+
+.name .note button.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .name .warn {
   color: var(--oo-color-warning);
   font-size: var(--oo-font-size-xs);
