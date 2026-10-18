@@ -15,6 +15,27 @@ export function withToken(url: string, token: string | null): string {
   return `${url}${separator}tkn=${encodeURIComponent(token)}`;
 }
 
+/**
+ * A pasted address split from the token it carries as `?tkn=` or `?token=`,
+ * so the token goes to the keyring and not into `hosts.json`. Other query
+ * parameters and a fragment stay; a lone `/` left before the query goes too.
+ */
+export function splitToken(raw: string): { address: string; token: string | null } {
+  const trimmed = raw.trim();
+  const at = trimmed.indexOf('?');
+  if (at < 0) return { address: raw, token: null };
+  const hash = trimmed.indexOf('#', at);
+  const params = new URLSearchParams(trimmed.slice(at + 1, hash < 0 ? undefined : hash));
+  if (!params.has('tkn') && !params.has('token')) return { address: raw, token: null };
+  const token = params.get('tkn') || params.get('token') || null;
+  params.delete('tkn');
+  params.delete('token');
+  const rest = params.toString();
+  let base = trimmed.slice(0, at);
+  if (rest === '') base = base.replace(/^((?:wss?:\/\/)?[^/]+)\/$/i, '$1');
+  return { address: base + (rest === '' ? '' : `?${rest}`) + (hash < 0 ? '' : trimmed.slice(hash)), token };
+}
+
 /** The address as the list shows it: without the scheme, when it is plain `ws://`. */
 export function shortUrl(url: string): string {
   return url.replace(/^ws:\/\//i, '');

@@ -14,7 +14,7 @@ import { ServerKey } from './ServerKey.js';
 import { useTunnels } from './useTunnels.js';
 import { t } from '../i18n.js';
 import { explain, testHost } from './status.js';
-import { hostId, normalizeUrl } from './url.js';
+import { hostId, normalizeUrl, splitToken } from './url.js';
 
 type TestResult = { ok: true; text: string } | { ok: false; text: string } | null;
 
@@ -44,8 +44,15 @@ export function HostForm({
   onDone: (saved: Saved) => void;
 }) {
   const [name, setName] = useState(host?.name ?? '');
-  const [address, setAddress] = useState(host?.url ?? '');
-  const [token, setToken] = useState('');
+  // A host saved with its token in the address gives it up here, so Save moves it to the keyring.
+  const [address, setAddress] = useState(() => splitToken(host?.url ?? '').address);
+  const [token, setToken] = useState(() => splitToken(host?.url ?? '').token ?? '');
+  /** Moves a token out of the address into the token field. */
+  const takeAddress = (typed: string) => {
+    const split = splitToken(typed);
+    setAddress(split.address);
+    if (split.token !== null) setToken(split.token);
+  };
   const [testing, setTesting] = useState(false);
   const [result, setResult] = useState<TestResult>(null);
   const [error, setError] = useState<string | null>(null);
@@ -192,9 +199,13 @@ export function HostForm({
                 <input
                   value={address}
                   onChange={(event) => {
-                    setAddress(event.target.value);
+                    // A paste moves its token at once; typed text waits for the blur, so `?tkn=` can be typed.
+                    const kind = (event.nativeEvent as InputEvent).inputType;
+                    if (kind === 'insertFromPaste' || kind === 'insertFromDrop') takeAddress(event.target.value);
+                    else setAddress(event.target.value);
                     setResult(null);
                   }}
+                  onBlur={(event) => takeAddress(event.target.value)}
                   placeholder="wss://host.example:9187"
                   spellCheck={false}
                 />

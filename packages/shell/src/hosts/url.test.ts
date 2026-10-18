@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ahpdPort, hostId, normalizeUrl, serverFolder, shortUrl, sshTarget, withToken } from './url.js';
+import { ahpdPort, hostId, normalizeUrl, serverFolder, shortUrl, splitToken, sshTarget, withToken } from './url.js';
 
 describe('normalizeUrl', () => {
   it('adds ws:// to a bare address', () => {
@@ -14,6 +14,32 @@ describe('normalizeUrl', () => {
 
   it('leaves an empty address empty', () => {
     expect(normalizeUrl('   ')).toBe('');
+  });
+});
+
+describe('splitToken', () => {
+  it('takes the token out of ?tkn= and ?token=, with or without the slash', () => {
+    for (const pasted of [
+      'ws://10.0.0.5:9137?tkn=tkn_123',
+      'ws://10.0.0.5:9137/?tkn=tkn_123',
+      'ws://10.0.0.5:9137/?token=tkn_123',
+      '  ws://10.0.0.5:9137/?tkn=tkn_123  ',
+    ])
+      expect(splitToken(pasted), pasted).toEqual({ address: 'ws://10.0.0.5:9137', token: 'tkn_123' });
+  });
+
+  it('keeps a path, other parameters and a fragment', () => {
+    expect(splitToken('wss://host.example/ahp/?a=1&tkn=x%2By&b=2#f')).toEqual({
+      address: 'wss://host.example/ahp/?a=1&b=2#f',
+      token: 'x+y',
+    });
+    expect(splitToken('host.example:9187/?tkn=x')).toEqual({ address: 'host.example:9187', token: 'x' });
+  });
+
+  it('drops an empty token from the address, and leaves an address with none as it is', () => {
+    expect(splitToken('ws://host?tkn=')).toEqual({ address: 'ws://host', token: null });
+    expect(splitToken('ws://host:9187/?a=1')).toEqual({ address: 'ws://host:9187/?a=1', token: null });
+    expect(splitToken('ws://host:91')).toEqual({ address: 'ws://host:91', token: null });
   });
 });
 
