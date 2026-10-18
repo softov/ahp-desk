@@ -1,6 +1,6 @@
 ---
 title: The release steps say that an ahpw release is followed by a desk release
-status: todo
+status: done
 depends: []
 layer: "docs"
 refs:
@@ -41,3 +41,9 @@ The desk never fetches a UI at run time; this section is how a new ahpw reaches 
 - The first desk release after this follows the steps as written, and any step found missing is added then.
 
 ## Resume
+
+- 2026-10-18: `DEVELOPER.md` has a "Releasing" section after "Signing keys": the five steps of this task, and that an ahpw fix reaches people only through them.
+- Plan 04 tasks 03, 04 and 06 are not built, so no release section existed to add to, and the section says steps 4 and 5 wait on them and a release ends at step 3 until then; when plan 04 task 04 is built, that sentence goes.
+- The line for ahpw's own release steps is not written; it belongs to the ahpw repository.
+- Verified: every name the section uses exists: `@ahpd/web` pinned at 0.5.0 in `package.json:24` and `packages/ahpw-embedder/package.json:17`, `"version"` in `package.json`, `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`, the `test` and `lint` scripts, and the 6 hours of `updates.rs`'s `MAX_AGE`.
+- Not seen: a release made with these steps, which the first desk release after plan 04 is.

@@ -141,6 +141,26 @@ export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=...
 
 Windows code signing certificates (`*.pfx`, `*.p12`) are also kept out of git.
 
+## Releasing
+
+The desk never fetches its UI at run time: ahpw is built into each desk release.
+A fix in ahpw reaches people only through these steps, so make a desk release for every ahpw release the desk needs.
+
+1. When ahpw is released as a new `@ahpd/web`, move both pins to it: `package.json` and `packages/ahpw-embedder/package.json`.
+   Then run `pnpm install`.
+2. Run `pnpm test` and `pnpm lint`.
+   Then run `pnpm tauri dev` and open a host to see the new ahpw in an app window.
+3. Raise the desk's version in `package.json`, `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`, the same in all three.
+   The updater compares the version in `tauri.conf.json`.
+4. Commit, tag `v<version>`, and push the tag.
+   CI builds the installers and publishes them with `latest.json`.
+5. An installed desk finds the release within 6 hours, downloads it, and asks before it restarts.
+
+Steps 4 and 5 need the release workflow and the updater, which are not built yet (plan 04, tasks 03, 04 and 06).
+Until then, a release ends at step 3.
+
+ahpw's own release steps live in the ahpw repository.
+
 ## Project records
 
 What is built (specs), the plans, the decisions and the research live in `.project/`. The format is the `do-spec` skill in `.agents/skills/do-spec/`. Start at [`.project/plans/index.md`](.project/plans/index.md).
