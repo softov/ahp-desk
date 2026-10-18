@@ -234,7 +234,7 @@ export function HostList({
     work.catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
 
   return (
-    <section className="panel">
+    <section className="panel wide">
       <header className="panel-head">
         <h1>{t('hosts.title')}</h1>
         <button className="primary" onClick={onAdd}>

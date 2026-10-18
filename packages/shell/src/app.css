@@ -248,6 +248,16 @@ button.danger:hover:not(:disabled) {
   color: #ffffff;
 }
 
+.panel {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+/* The host list's rows need more room than a form's fields. */
+.panel.wide {
+  max-width: 720px;
+}
+
 .panel-head {
   display: flex;
   align-items: center;
@@ -306,6 +316,7 @@ button.danger:hover:not(:disabled) {
 .choices {
   display: grid;
   gap: 8px;
+  width: 100%;
   max-width: 520px;
 }
 

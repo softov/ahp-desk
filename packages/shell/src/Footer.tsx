@@ -7,7 +7,7 @@ const SITE = 'https://ahpio.com';
 export function Footer() {
   return (
     <footer className="footer">
-      <AhpioLogo size={26} />
+      <AhpioLogo size={14} />
       <a
         href={SITE}
         onClick={(event) => {

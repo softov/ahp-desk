@@ -74,21 +74,19 @@ export function FirstRun({ onFinished }: { onFinished: () => void }) {
       );
     case 'where':
       return (
-        <section className="panel">
-          <header className="panel-head">
-            <h1>{t('firstRun.whereTitle')}</h1>
-          </header>
+        <section className="first-run">
+          <h1>{t('firstRun.whereTitle')}</h1>
           <div className="choices">
             <button className="choice" onClick={() => setStep({ kind: 'form' })}>
-              <strong>{t('firstRun.remote')}</strong>
+              <strong>📡︎ {t('firstRun.remote')}</strong>
               <span>{t('firstRun.remoteHint')}</span>
             </button>
             <button className="choice" onClick={() => setStep({ kind: 'local' })}>
-              <strong>{t('firstRun.local')}</strong>
+              <strong>🖳 {t('firstRun.local')}</strong>
               <span>{t('firstRun.localHint')}</span>
             </button>
             <button className="choice" onClick={() => setStep({ kind: 'ssh' })}>
-              <strong>{t('firstRun.ssh')}</strong>
+              <strong>🖧 {t('firstRun.ssh')}</strong>
               <span>{t('firstRun.sshHint')}</span>
             </button>
           </div>
