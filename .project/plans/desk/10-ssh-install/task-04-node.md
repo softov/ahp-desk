@@ -1,6 +1,6 @@
 ---
 title: The remote ahpd has a Node, the server's own 22 or later, or the newest official 22 downloaded there
-status: todo
+status: done
 depends: [task-03-probe.md]
 layer: "src-tauri"
 refs:
@@ -35,3 +35,11 @@ Nothing large goes from the desk.
 - By hand on dev02 only: the ignored test `ssh_a_real_node_download`, with the download forced into a scratch folder, ends with `node -v` printing a 22 version; a second run replaces it whole.
 
 ## Resume
+
+- 2026-10-18: `ssh_install.rs` has `NODE_DIST`, `RemoteNode { node, npm, binDir, version }`, `download_script()` and `node()`; the probe keeps `fetch` (`curl` or `wget`), which the script downloads with.
+- The script works in a `mktemp -d` folder under the install folder, removed on exit; it exits 10 to 14 by what stopped it (no `SHASUMS256.txt`, not one line for the CPU, no archive, a wrong sum, the move), and a failed `node()` carries its last 5 lines.
+- An older `<install>/node` is moved aside, the new one moved in, and the old one removed; a failed move puts the old one back.
+- `node()` with the server's own Node runs nothing on the server.
+- `ssh_install.rs` is allowed unused outside tests until the install calls `node()` (task 05).
+- Verified: `cargo test` (99: the script's text for each CPU and tool; the script run in `sh` against a `file://` dist for the CPU's line, a whole replacement, a missing line and a wrong sum; `node()` against the test server), `cargo clippy --all-targets -- -D warnings`, `pnpm typecheck`, `pnpm test`.
+- By hand, `ssh_a_real_node_download` on the test server Softov named: twice into a scratch folder in the user's home, each ending in `v22.23.3` for x64, and the folder removed after.

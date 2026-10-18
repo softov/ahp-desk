@@ -116,6 +116,8 @@ export interface Probe {
   systemd: boolean;
   runtimeDir: string | null;
   linger: boolean;
+  /** The tool the server downloads with. */
+  fetch: 'curl' | 'wget' | null;
   node: NodeOnServer;
   found: FoundOnServer | null;
   /** Why the desk cannot use or install ahpd there; null when it can. */

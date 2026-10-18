@@ -3,7 +3,12 @@
 //! none, whether it can take ahpd as a user service and where its Node comes
 //! from.
 
-use std::collections::HashMap;
+// `node()` waits for its caller, the install (task 05). Drop this then.
+#![cfg_attr(not(test), allow(dead_code))]
+
+use std::collections::{HashMap, VecDeque};
+use std::sync::atomic::AtomicBool;
+use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -11,10 +16,19 @@ use tauri::State;
 use crate::hosts::HostStore;
 use crate::local_ahpd::{version_of_text, OLDEST_SUPPORTED};
 use crate::ssh::known_keys::KnownKeys;
-use crate::ssh::{self, exec_capture, quote, ConnectError, Keys, Session, SignInError, SshTarget};
+use crate::ssh::{
+    self, exec_capture, exec_lines, quote, ConnectError, Keys, Session, SignInError, SshTarget,
+};
 
 /// The oldest Node the desk's ahpd runs on.
 const NODE_MAJOR: u64 = 22;
+
+/// Where a server downloads its Node: the newest 22 release, not the version
+/// the desk pins for itself (decision `the-remote-node-download-is-the-newest-22`).
+pub const NODE_DIST: &str = "https://nodejs.org/dist/latest-v22.x/";
+
+/// How many of a failed script's last lines its error carries.
+const LAST_LINES: usize = 5;
 
 /// Where the desk installs ahpd on a server, under the user's home.
 pub const INSTALL_DIR: &str = ".local/share/ahpd";
@@ -85,6 +99,14 @@ impl Cpu {
     }
 }
 
+/// The tool a server downloads with.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Fetch {
+    Curl,
+    Wget,
+}
+
 /// Where the Node of an ahpd the desk installs comes from.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -138,6 +160,8 @@ pub struct Probe {
     /// runs with, when the session has no user bus of its own.
     pub runtime_dir: Option<String>,
     pub linger: bool,
+    /// `curl`, else `wget`, whichever the server has.
+    pub fetch: Option<Fetch>,
     pub node: NodeOnServer,
     pub found: Option<FoundOnServer>,
     /// Why the desk cannot use or install ahpd here; none when it can.
@@ -161,6 +185,11 @@ pub fn parse_probe(text: &str) -> Probe {
     let user = get("user").unwrap_or_default().to_string();
     let systemd = yes("systemd");
     let linger = get("linger") == Some("yes");
+    let fetch = match get("fetch") {
+        Some("curl") => Some(Fetch::Curl),
+        Some("wget") => Some(Fetch::Wget),
+        _ => None,
+    };
 
     let node = node_on_server(
         get("node"),
@@ -168,7 +197,7 @@ pub fn parse_probe(text: &str) -> Probe {
         get("npm"),
         &arch,
         get("libc") == Some("musl"),
-        get("fetch").is_some(),
+        fetch.is_some(),
         yes("tar"),
     );
 
@@ -235,6 +264,7 @@ pub fn parse_probe(text: &str) -> Probe {
         systemd,
         runtime_dir: get("runtimeDir").map(str::to_string),
         linger,
+        fetch,
         node,
         found,
         refusal,
@@ -367,6 +397,132 @@ pub async fn probe(session: &Session) -> Result<Probe, String> {
         found.url = state.url;
     }
     Ok(probe)
+}
+
+/// The Node an ahpd the desk installs runs on.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteNode {
+    pub node: String,
+    pub npm: String,
+    /// The folder of both, which the unit puts first on `PATH`.
+    pub bin_dir: String,
+    /// `node -v`, which the install's steps show, since two installs can get
+    /// different 22 releases.
+    pub version: String,
+}
+
+/// The `sh` script that downloads the newest Node 22 for `cpu` from `dist`
+/// into `<install_dir>/node`, checked against the release's `SHASUMS256.txt`;
+/// an older Node there is replaced only once the new one is whole.
+pub fn download_script(install_dir: &str, cpu: Cpu, fetch: Fetch, dist: &str) -> String {
+    let cpu = match cpu {
+        Cpu::X64 => "x64",
+        Cpu::Arm64 => "arm64",
+        Cpu::Armv7l => "armv7l",
+    };
+    let get = match fetch {
+        Fetch::Curl => r#"curl -fsSL "$1" -o "$2""#,
+        Fetch::Wget => r#"wget -q -O "$2" "$1""#,
+    };
+    format!(
+        r#"set -eu
+dir={dir}
+dist={dist}
+mkdir -p "$dir"
+work=$(mktemp -d "$dir/.node-XXXXXX")
+trap 'rm -rf "$work"' EXIT
+get() {{ {get}; }}
+echo "Reading the newest Node {major} from $dist"
+get "${{dist}}SHASUMS256.txt" "$work/SHASUMS256.txt" || {{ echo "Cannot download ${{dist}}SHASUMS256.txt; does this server reach the internet?" >&2; exit 10; }}
+grep -E '  node-v{major}\.[0-9]+\.[0-9]+-linux-{cpu}\.tar\.gz$' "$work/SHASUMS256.txt" > "$work/line" || true
+count=$(wc -l < "$work/line" | tr -d ' ')
+if [ "$count" != 1 ]; then echo "SHASUMS256.txt names $count Node {major} archives for linux-{cpu}; it holds:" >&2; cat "$work/SHASUMS256.txt" >&2; exit 11; fi
+name=$(awk '{{print $2}}' "$work/line")
+echo "Downloading $name"
+get "$dist$name" "$work/$name" || {{ echo "Cannot download $dist$name" >&2; exit 12; }}
+if ! (cd "$work" && sha256sum -c line >/dev/null 2>&1); then rm -f "$work/$name"; echo "$name does not match its SHA-256 in SHASUMS256.txt, and was deleted" >&2; exit 13; fi
+echo "Unpacking $name"
+mkdir "$work/node"
+tar -xzf "$work/$name" -C "$work/node" --strip-components=1
+rm -rf "$dir/node.old"
+if [ -d "$dir/node" ]; then mv "$dir/node" "$dir/node.old"; fi
+if ! mv "$work/node" "$dir/node"; then [ -d "$dir/node.old" ] && mv "$dir/node.old" "$dir/node"; exit 14; fi
+rm -rf "$dir/node.old"
+"#,
+        dir = quote(install_dir),
+        dist = quote(dist),
+        major = NODE_MAJOR,
+    )
+}
+
+/// The Node the remote ahpd runs on: the server's own, or the newest 22
+/// downloaded into `install_dir`, each line of the download sent to `line`.
+pub async fn node(
+    session: &Session,
+    probe: &Probe,
+    install_dir: &str,
+    line: impl Fn(String),
+    cancel: &AtomicBool,
+) -> Result<RemoteNode, String> {
+    let cpu = match &probe.node {
+        NodeOnServer::Own { path, version, npm } => {
+            let bin_dir = path
+                .rsplit_once('/')
+                .map_or(".", |(dir, _)| dir)
+                .to_string();
+            return Ok(RemoteNode {
+                npm: npm.clone().unwrap_or_else(|| format!("{bin_dir}/npm")),
+                node: path.clone(),
+                bin_dir,
+                version: version.clone(),
+            });
+        }
+        NodeOnServer::Refused { reason } => return Err(reason.clone()),
+        NodeOnServer::Download { cpu } => *cpu,
+    };
+    let fetch = probe
+        .fetch
+        .ok_or("this server has neither curl nor wget to download Node")?;
+    // The error carries the last lines, where the script says why it stopped.
+    let last = Mutex::new(VecDeque::new());
+    let script = download_script(install_dir, cpu, fetch, NODE_DIST);
+    let ran = exec_lines(
+        session,
+        &script,
+        |text| {
+            let mut kept = last.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            if kept.len() == LAST_LINES {
+                kept.pop_front();
+            }
+            kept.push_back(text.clone());
+            line(text);
+        },
+        cancel,
+    )
+    .await;
+    if let Err(err) = ran {
+        let kept = last
+            .into_inner()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let said = kept.into_iter().collect::<Vec<_>>().join("\n");
+        return Err(format!("the Node download stopped ({err}): {said}"));
+    }
+    let bin_dir = format!("{install_dir}/node/bin");
+    let node = format!("{bin_dir}/node");
+    let (code, version) = exec_capture(session, &format!("{} -v", quote(&node))).await?;
+    let version = version.trim().to_string();
+    if code != 0 || !node_version(&version).is_some_and(|major| major >= NODE_MAJOR) {
+        return Err(format!(
+            "the downloaded Node answered {version:?}, not a Node {NODE_MAJOR}"
+        ));
+    }
+    Ok(RemoteNode {
+        npm: format!("{bin_dir}/npm"),
+        node,
+        bin_dir,
+        version,
+    })
 }
 
 /// The server as the form names it, with what the person typed for it.
@@ -601,6 +757,244 @@ mod tests {
         assert_eq!(node_version("v22.11.0"), Some(22));
         assert_eq!(node_version("v8.0.0\n"), Some(8));
         assert_eq!(node_version("command not found"), None);
+    }
+
+    #[test]
+    fn node_the_download_script_fetches_only_from_latest_22_and_checks_before_unpacking() {
+        for (cpu, name) in [
+            (Cpu::X64, "x64"),
+            (Cpu::Arm64, "arm64"),
+            (Cpu::Armv7l, "armv7l"),
+        ] {
+            for (fetch, tool) in [(Fetch::Curl, "curl -fsSL"), (Fetch::Wget, "wget -q")] {
+                let script = download_script("/home/a b/.local/share/ahpd", cpu, fetch, NODE_DIST);
+                assert!(
+                    script.contains("dir='/home/a b/.local/share/ahpd'"),
+                    "{script}"
+                );
+                assert!(script.contains(&format!("dist='{NODE_DIST}'")));
+                assert!(script.contains(&format!(
+                    "node-v22\\.[0-9]+\\.[0-9]+-linux-{name}\\.tar\\.gz$"
+                )));
+                assert!(script.contains(tool));
+                assert_eq!(
+                    script.matches("get \"").count(),
+                    2,
+                    "only SHASUMS256.txt and its archive"
+                );
+                let check = script.find("sha256sum -c").unwrap();
+                assert!(check < script.find("tar -xzf").unwrap());
+            }
+        }
+    }
+
+    /// `sh` on `PATH`, or Git for Windows' own.
+    fn sh() -> std::path::PathBuf {
+        let on_path = std::process::Command::new("sh")
+            .arg("-c")
+            .arg("exit 0")
+            .status();
+        if on_path.is_ok_and(|status| status.success()) {
+            return "sh".into();
+        }
+        let git = std::path::PathBuf::from(r"C:\Program Files\Git\bin\sh.exe");
+        assert!(git.is_file(), "this test runs the download script in sh: install Git for Windows, or run it where sh is on PATH");
+        git
+    }
+
+    /// A scratch dist folder with a fake Node archive and its SHASUMS256.txt,
+    /// served to the script as a `file://` URL, and an install folder.
+    struct Dist(std::path::PathBuf);
+    impl Dist {
+        fn new() -> Self {
+            use std::sync::atomic::{AtomicUsize, Ordering};
+            static NEXT: AtomicUsize = AtomicUsize::new(0);
+            let dir = std::env::temp_dir().join(format!(
+                "ahp-desk-node-{}-{}",
+                std::process::id(),
+                NEXT.fetch_add(1, Ordering::Relaxed)
+            ));
+            std::fs::create_dir_all(dir.join("dist")).unwrap();
+            Dist(dir)
+        }
+        /// Runs a shell line in the scratch folder.
+        fn sh(&self, line: &str) -> std::process::Output {
+            std::process::Command::new(sh())
+                .arg("-c")
+                .arg(line)
+                .current_dir(&self.0)
+                .output()
+                .unwrap()
+        }
+        fn archive(&self, version: &str, cpu: &str) -> String {
+            let name = format!("node-{version}-linux-{cpu}.tar.gz");
+            let made = self.sh(&format!(
+                "mkdir -p pkg/node-{version}/bin && printf '#!/bin/sh\\necho {version}\\n' > pkg/node-{version}/bin/node && chmod +x pkg/node-{version}/bin/node && tar -czf dist/{name} -C pkg node-{version}"
+            ));
+            assert!(made.status.success(), "{made:?}");
+            name
+        }
+        fn sums(&self, lines: &str) {
+            std::fs::write(self.0.join("dist/SHASUMS256.txt"), lines).unwrap();
+        }
+        fn sum_of(&self, name: &str) -> String {
+            let out = self.sh(&format!("sha256sum dist/{name}"));
+            String::from_utf8_lossy(&out.stdout)
+                .split(' ')
+                .next()
+                .unwrap()
+                .to_string()
+        }
+        /// Runs the download script for x64 with curl from this dist.
+        fn run(&self) -> std::process::Output {
+            // Git Bash's `pwd -W` gives C:/..., which curl opens; elsewhere `pwd` does.
+            let url = self
+                .sh("cd dist && p=$(pwd -W 2>/dev/null || pwd) && printf 'file:///%s/' \"${p#/}\"");
+            let url = String::from_utf8_lossy(&url.stdout).to_string();
+            let install = self.sh("printf '%s/install' \"$(pwd)\"");
+            let install = String::from_utf8_lossy(&install.stdout).to_string();
+            self.sh(&download_script(&install, Cpu::X64, Fetch::Curl, &url))
+        }
+    }
+    impl Drop for Dist {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn node_the_download_script_in_sh_picks_the_cpus_line_and_replaces_the_old_node_whole() {
+        let dist = Dist::new();
+        let x64 = dist.archive("v22.11.0", "x64");
+        let arm = dist.archive("v22.11.0", "arm64");
+        dist.sums(&format!(
+            "{}  {x64}\n{}  {arm}\n{}  node-v22.11.0-linux-x64.tar.xz\n",
+            dist.sum_of(&x64),
+            dist.sum_of(&arm),
+            "0".repeat(64)
+        ));
+        let ran = dist.run();
+        assert!(ran.status.success(), "{ran:?}");
+        let said = String::from_utf8_lossy(&ran.stdout);
+        assert!(said.contains(&format!("Downloading {x64}")), "{said}");
+        let node = dist.sh("install/node/bin/node");
+        assert_eq!(String::from_utf8_lossy(&node.stdout).trim(), "v22.11.0");
+
+        // A second run replaces it whole, and leaves no work folder behind.
+        let newer = dist.archive("v22.12.0", "x64");
+        dist.sums(&format!("{}  {newer}\n", dist.sum_of(&newer)));
+        assert!(dist.run().status.success());
+        let node = dist.sh("install/node/bin/node");
+        assert_eq!(String::from_utf8_lossy(&node.stdout).trim(), "v22.12.0");
+        let left = dist.sh("ls -A install");
+        assert_eq!(String::from_utf8_lossy(&left.stdout).trim(), "node");
+    }
+
+    #[test]
+    fn node_the_download_script_in_sh_refuses_a_missing_line_and_deletes_a_wrong_sum() {
+        let dist = Dist::new();
+        let arm = dist.archive("v22.11.0", "arm64");
+        dist.sums(&format!("{}  {arm}\n", dist.sum_of(&arm)));
+        let ran = dist.run();
+        assert_eq!(ran.status.code(), Some(11));
+        assert!(
+            String::from_utf8_lossy(&ran.stderr).contains("names 0 Node 22 archives for linux-x64")
+        );
+
+        let x64 = dist.archive("v22.11.0", "x64");
+        dist.sums(&format!("{}  {x64}\n", "a".repeat(64)));
+        let ran = dist.run();
+        assert_eq!(ran.status.code(), Some(13), "{ran:?}");
+        assert!(String::from_utf8_lossy(&ran.stderr).contains("was deleted"));
+        let left = dist.sh("ls -A install");
+        assert_eq!(
+            String::from_utf8_lossy(&left.stdout).trim(),
+            "",
+            "no archive and no node left"
+        );
+    }
+
+    #[tokio::test]
+    async fn node_the_servers_own_sends_nothing_and_a_failed_download_says_its_last_lines() {
+        let server = TestServer::start().await;
+        let session = signed_in(&server).await;
+        let cancel = AtomicBool::new(false);
+        let own = parse_probe(DEBIAN);
+        let found = node(
+            &session,
+            &own,
+            "/home/ana/.local/share/ahpd",
+            |_| {},
+            &cancel,
+        )
+        .await
+        .unwrap();
+        assert_eq!(found.node, "/usr/bin/node");
+        assert_eq!(found.bin_dir, "/usr/bin");
+        assert_eq!(found.version, "v22.11.0");
+        assert!(
+            server.commands().is_empty(),
+            "the server's own Node downloads nothing"
+        );
+
+        server.answer(
+            "set -eu",
+            "Reading the newest Node 22\nCannot download SHASUMS256.txt\n",
+            10,
+        );
+        let none = parse_probe(&DEBIAN.replace("nodeVersion=v22.11.0\n", ""));
+        let failed = node(
+            &session,
+            &none,
+            "/home/ana/.local/share/ahpd",
+            |_| {},
+            &cancel,
+        )
+        .await
+        .unwrap_err();
+        assert!(failed.contains("exited with 10"), "{failed}");
+        assert!(
+            failed.contains("Cannot download SHASUMS256.txt"),
+            "{failed}"
+        );
+    }
+
+    /// By hand, on the test server Softov names: downloads the newest Node 22
+    /// into `~/.cache/ahp-desk-test-node`, twice, and removes it after.
+    #[tokio::test]
+    #[ignore]
+    async fn ssh_a_real_node_download() {
+        let (target, check) = crate::ssh::tests::real_target();
+        let secrets = Secrets::default();
+        let keys = Keys {
+            id: "real",
+            secrets: &secrets,
+            kept_password: None,
+            signed_in_before: None,
+        };
+        let (session, _) = ssh::open(&target, check, keys).await.unwrap();
+        let mut probed = probe(&session).await.unwrap();
+        let cpu = Cpu::of(&probed.arch).unwrap();
+        probed.node = NodeOnServer::Download { cpu };
+        let scratch = format!("{}/.cache/ahp-desk-test-node", probed.home);
+        let cancel = AtomicBool::new(false);
+        for _ in 0..2 {
+            let got = node(
+                &session,
+                &probed,
+                &scratch,
+                |text| println!("{text}"),
+                &cancel,
+            )
+            .await
+            .unwrap();
+            println!("{}", got.version);
+            assert_eq!(node_version(&got.version), Some(22));
+        }
+        let (code, _) = exec_capture(&session, &format!("rm -rf {}", quote(&scratch)))
+            .await
+            .unwrap();
+        assert_eq!(code, 0);
     }
 
     async fn signed_in(server: &TestServer) -> Session {
