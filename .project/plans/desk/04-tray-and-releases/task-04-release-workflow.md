@@ -74,3 +74,8 @@ Nothing in the workflow prints them, and no task file or log holds them.
   Step 5 there says "at its next start", since the check every 6 hours is plan 09 task 06.
 - Verified: `actionlint` 1.7.12 passes (with no shellcheck on this machine); the `version` job's script, run here with the files, passes `v0.1.0` and fails `v0.2.0`; `pnpm tauri build --no-bundle --config src-tauri/tauri.release.conf.json` from the repository root reads the file, and a wrong path fails.
 - Left: the first tag and the Validation that follows it (the four jobs, the release's files, `latest.json`, a wrong tag failing, no key in the log).
+- First tag, v0.1.0, run 39176904123: `version` and `draft` passed, both builds passed and made the NSIS installer, the AppImage and the deb, each with a `.sig` (the deb's too), but tauri-action said "No releaseId or tagName provided, skipping all uploads", and `publish` failed on a draft with no files.
+  `draft` had found no id: the release list did not show the draft just made.
+  `draft` now makes the release with `gh api repos/<repo>/releases -F draft=true --jq .id`, whose answer is the id, and fails when it is empty.
+- The same run warned that `actions/checkout@v4`, `actions/setup-node@v4` and `pnpm/action-setup@v4` run on the deprecated Node 20; they are now `@v5`, the first majors on Node 24, whose notes change nothing else this workflow uses.
+- Left: the empty v0.1.0 draft deleted, the tag moved to the fix and pushed again, and the Validation after it.

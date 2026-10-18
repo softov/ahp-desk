@@ -16,7 +16,7 @@ jobs:
     outputs:
       version: ${{ steps.check.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # A release is cut from the version the files say.
       - id: check
         run: |
@@ -41,12 +41,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.version.outputs.version }}
+        # The id comes from the create itself: the release list does not show a new draft at once.
         run: |
-          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft \
-            --title "ahp-desk $VERSION" --notes "ahp-desk $VERSION"
-          # A draft has no public tag yet, so it is found in the list.
-          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
-            --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\" and .draft) | .id")
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" -f tag_name="$GITHUB_REF_NAME" \
+            -f name="ahp-desk $VERSION" -f body="ahp-desk $VERSION" -F draft=true --jq .id)
+          if [ -z "$id" ]; then
+            echo "::error::the draft release was made with no id"
+            exit 1
+          fi
           echo "release-id=$id" >> "$GITHUB_OUTPUT"
 
   build:
@@ -58,7 +60,7 @@ jobs:
         os: [windows-latest, ubuntu-22.04]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - if: runner.os == 'Linux'
         run: |
@@ -66,9 +68,9 @@ jobs:
           sudo apt-get install -y pkg-config libssl-dev libxdo-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
 
       # Reads packageManager from package.json.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
