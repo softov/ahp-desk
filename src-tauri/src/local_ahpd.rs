@@ -1,6 +1,6 @@
 //! The ahpd on this computer: the one set on the host, else the one the desk
-//! installed, else one on `PATH` (decision: a local ahpd is found, or installed
-//! with the bundled Node).
+//! installed, else one on `PATH` (decision
+//! `a-local-ahpd-is-found-or-installed-with-the-bundled-node`).
 
 use std::ffi::OsString;
 use std::io::{BufRead, BufReader, Read};
@@ -149,7 +149,8 @@ impl LocalAhpd {
 
     /// The ahpd the desk installed, run by its Node rather than npm's shim,
     /// which would look for a `node` on `PATH`. Its backends are under the
-    /// prefix, and its config folder is the usual one (decision 7).
+    /// prefix, and its config folder is the usual one (decision
+    /// `the-installed-ahpd-keeps-the-usual-config-folder`).
     pub fn installed(&self) -> Option<Launcher> {
         let node = self.node.as_ref()?;
         let script = installed_script(&self.prefix)?;
@@ -167,7 +168,7 @@ impl LocalAhpd {
     }
 
     /// Installs `@ahpd/server` into the prefix with the bundled npm, then the
-    /// `backends` through its `plugin install` (decision 8), sending each line
+    /// `backends` through its `plugin install`, sending each line
     /// npm and ahpd write to `line`.
     pub fn install(
         &self,
@@ -206,8 +207,9 @@ impl LocalAhpd {
 }
 
 /// `ahpd plugin install <backends>` on `ahpd`, which installs them where it
-/// loads plugins from and names them in its config (decision 8), sending each
-/// line it writes to `line`.
+/// loads plugins from and names them in its config (decision
+/// `the-desk-adds-backends-through-ahpd-plugin-install`), sending each line it
+/// writes to `line`.
 pub fn add_backends(
     ahpd: &Launcher,
     backends: &[String],
@@ -225,8 +227,9 @@ pub fn add_backends(
 }
 
 /// `ahpd paths add <folder>` on `ahpd`, which writes the folder into its
-/// config as `paths` (decisions 10, 11). A folder already served, or under one
-/// that is, is left as it is, so a second save changes nothing.
+/// config as `paths` (decision `the-folder-is-written-by-an-ahpd-command`). A
+/// folder already served, or under one that is, is left as it is, so a second
+/// save changes nothing.
 pub fn serve_folder(ahpd: &Launcher, folder: &Path) -> Result<(), String> {
     let output = ahpd
         .command()
@@ -264,7 +267,7 @@ pub fn ready_plugins(ahpd: &Launcher) -> Result<Vec<String>, String> {
 }
 
 /// The backends Add host offers are `@ahpd/` packages, and ahpd does not start
-/// with none (decision 2).
+/// with none.
 fn check_backends(backends: &[String]) -> Result<(), String> {
     if backends.is_empty() {
         return Err("pick at least one backend; ahpd does not start without one".into());
@@ -362,7 +365,7 @@ pub fn on_path(path_var: Option<OsString>) -> Option<PathBuf> {
         .find(|candidate| candidate.is_file())
 }
 
-/// The ahpd the desk uses, in the order decision 1 gives; `None` when there is none.
+/// The ahpd the desk uses: the set path, else its own install, else `PATH`; `None` when there is none.
 /// A set path that is not there is an error, never a reason to use another.
 pub fn find(
     set: Option<&Path>,
@@ -440,7 +443,7 @@ pub struct Running {
 }
 
 /// ahpd's config folder, as ahpd reads it: `$XDG_CONFIG_HOME/ahpd`, else
-/// `<home>/.config/ahpd` (decision 7).
+/// `<home>/.config/ahpd`.
 pub fn config_dir(xdg: Option<OsString>, home: Option<OsString>) -> Option<PathBuf> {
     let base = match xdg.filter(|dir| !dir.is_empty()) {
         Some(dir) => PathBuf::from(dir),
@@ -499,7 +502,7 @@ fn token_in_record(record: &Path, pid: u32) -> Option<String> {
 }
 
 /// `ahpd start` in `folder`, the folder it serves when its config names none,
-/// with the desk's token file (decision 5); then what is on.
+/// with the desk's token file; then what is on.
 pub fn start(
     launcher: &Launcher,
     config: &Path,
@@ -575,7 +578,7 @@ pub struct FoundView {
     pub origin: Origin,
     pub version: String,
     pub supported: bool,
-    /// The plugins it has ready (decision 12); none asked of one too old.
+    /// The plugins it has ready; none asked of one too old.
     pub plugins: Vec<String>,
 }
 
@@ -619,7 +622,7 @@ pub async fn find_local_ahpd(
     .map_err(|err| err.to_string())?
 }
 
-/// Adds `backends` to the ahpd a local host would use (decision 12), then
+/// Adds `backends` to the ahpd a local host would use, then
 /// answers it again.
 #[tauri::command]
 pub async fn add_local_backends(
@@ -640,7 +643,7 @@ pub async fn add_local_backends(
 }
 
 /// Writes `folder` into the config of the ahpd a local host would use, as the
-/// folder it serves (decisions 10, 11).
+/// folder it serves.
 #[tauri::command]
 pub async fn serve_local_folder(
     app: AppHandle,
@@ -655,7 +658,7 @@ pub async fn serve_local_folder(
     .map_err(|err| err.to_string())?
 }
 
-/// The folder Add host offers to serve before one is picked: the home folder (decision 10).
+/// The folder Add host offers to serve before one is picked: the home folder.
 #[tauri::command]
 pub fn local_home_folder() -> Result<String, String> {
     home_folder().map(|home| home.display().to_string())
@@ -670,7 +673,8 @@ pub struct LocalState {
 }
 
 /// The ahpd a local host uses: its set path, else the desk's install, else
-/// `PATH`; refused when there is none or it is too old (decision 9).
+/// `PATH`; refused when there is none or it is too old (decision
+/// `an-ahpd-too-old-on-path-is-shown-not-replaced`).
 fn launcher_for(local: &LocalAhpd, ahpd_path: Option<&str>) -> Result<Launcher, String> {
     let found = find(
         ahpd_path.map(Path::new),
@@ -689,7 +693,7 @@ fn launcher_for(local: &LocalAhpd, ahpd_path: Option<&str>) -> Result<Launcher, 
     Ok(found.launcher)
 }
 
-/// The folder an ahpd whose config names none serves (decision 10).
+/// The folder an ahpd whose config names none serves.
 fn home_folder() -> Result<PathBuf, String> {
     std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
         .filter(|home| !home.is_empty())
@@ -719,7 +723,7 @@ fn publish(
 }
 
 /// Whether the local host's ahpd is on, taking its address and token from its
-/// record (decision 4).
+/// record (decision `the-local-ahpd-runs-through-its-own-start-and-stop`).
 #[tauri::command]
 pub async fn local_ahpd_status(app: AppHandle, id: String) -> Result<LocalState, String> {
     tauri::async_runtime::spawn_blocking(move || {
@@ -791,7 +795,7 @@ pub fn start_on_launch(app: &AppHandle) {
 }
 
 /// At quit: stops each local host's ahpd set to stop that the desk started,
-/// before the process ends (decision 3).
+/// before the process ends.
 pub fn stop_on_quit(app: &AppHandle) {
     for id in app.state::<HostStore>().to_stop_on_quit() {
         if let Err(err) = stop_host(app, &id) {

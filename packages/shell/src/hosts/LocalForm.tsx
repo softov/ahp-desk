@@ -17,7 +17,7 @@ import { InstallSteps } from './InstallSteps.js';
 import type { Saved } from './HostForm.js';
 import { hostId } from './url.js';
 
-/** The backends Add host offers (decision 2), in `ahpd configure`'s order, and the bots. */
+/** The backends Add host offers, in `ahpd configure`'s order, and the bots. */
 const BACKENDS = [
   { name: 'Claude', pkg: '@ahpd/agent-claude' },
   { name: 'cofold', pkg: '@ahpd/agent-cofold' },
@@ -54,7 +54,7 @@ function foundLine(found: FoundAhpd): string {
 /**
  * Add host, kind "This computer": the ahpd found, or the install of one with
  * the backends picked, then the start. An ahpd too old for the desk is shown,
- * not replaced (decision 9).
+ * not replaced (decision `an-ahpd-too-old-on-path-is-shown-not-replaced`).
  */
 export function LocalForm({
   taken,
@@ -77,7 +77,7 @@ export function LocalForm({
   const [search, setSearch] = useState<Search>({ kind: 'looking' });
   const [backends, setBackends] = useState<Set<string>>(() => new Set(['@ahpd/agent-claude']));
   const [onDesk, setOnDesk] = useState<OnDesk>({ startOnLaunch: true, stopOnQuit: false });
-  // The folder to serve, the home folder until one is picked (decision 10).
+  // The folder to serve, the home folder until one is picked.
   const [folder, setFolder] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>('form');
   const [lines, setLines] = useState<string[]>([]);
@@ -127,7 +127,7 @@ export function LocalForm({
   const found = search.kind === 'done' ? search.found : null;
   const install = retryInstall || (search.kind === 'done' && found === null);
   const usable = found?.supported === true || install;
-  // What the found ahpd has ready, ticked and fixed (decision 12); the desk's own install starts with none.
+  // What the found ahpd has ready, ticked and fixed; the desk's own install starts with none.
   const has = new Set(install ? [] : (found?.plugins ?? []));
   const added = [...backends].filter((pkg) => !has.has(pkg));
   // A ready plugin the desk does not offer counts, as the list cannot tell a backend from another plugin.
@@ -161,7 +161,7 @@ export function LocalForm({
         await addLocalBackends(ahpdPath, added, heard);
       }
       setPhase('starting');
-      // ahpd writes the folder into its own config before its first start (decision 11).
+      // ahpd writes the folder into its own config before its first start (decision `the-folder-is-written-by-an-ahpd-command`).
       if (folder !== null) await serveLocalFolder(ahpdPath, folder);
       // The address is ahpd's, read when it starts; until then the default port stands in.
       await saveHost(

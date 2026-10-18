@@ -30,14 +30,24 @@ export function hostUrlOf(location: { search: string }): string {
   return url;
 }
 
-/** The embedder for the page at `location`. */
-export function createEmbedder(location: { search: string }): Embedder {
+/**
+ * The embedder for the page at `location`. The window with every host is
+ * opened with `?hosts=every`, and `focus=` names the host it opened on;
+ * `forgetFocus` drops that from the address once it is given, so a reload
+ * keeps the person's own filter.
+ */
+export function createEmbedder(location: { search: string }, forgetFocus: () => void = () => undefined): Embedder {
+  const params = new URLSearchParams(location.search);
+  const multi = params.get('hosts') === 'every';
+  let focus = params.get('focus');
   const host = () => invoke<EmbedHost>('window_host');
   return {
+    mode: multi ? 'multi' : 'mono',
     host,
-    hostUrl: hostUrlOf(location),
-    // The desk lets a window read only its own host's token.
-    token: async () => invoke<string | null>('host_token', { id: (await host()).id }),
+    // The window with every host has no one address; ahpw keys its pages under `*` there.
+    hostUrl: multi ? '*' : hostUrlOf(location),
+    // A window of one host reads only its own host's token; the window with every host reads any.
+    token: async (id) => invoke<string | null>('host_token', { id: id ?? (await host()).id }),
     hosts: () => invoke<EmbedHost[]>('hosts'),
     onHosts: (handler) =>
       unsubscribe(listen<EmbedHost[]>('hosts-changed', (event) => handler(event.payload))),
@@ -47,7 +57,25 @@ export function createEmbedder(location: { search: string }): Embedder {
         listen<Record<string, EmbedHostStatus>>('hosts-status', (event) => handler(event.payload)),
       ),
     switchHost: (id) => invoke('open_app_window', { hostId: id, replace: true }),
-    manageHosts: (options) => invoke<void>('show_host_list', { add: options?.add === true }),
+    manageHosts: (options) =>
+      invoke<void>('show_host_list', {
+        add: options?.add === true,
+        ...(options?.edit === undefined ? {} : { edit: options.edit }),
+      }),
+    ...(multi
+      ? {
+          onFocusHost: (handler: (id: string) => void) => {
+            // The host the window opened on comes first, once: the desk's event came before this listened.
+            const first = focus;
+            focus = null;
+            if (first !== null && first !== '') {
+              forgetFocus();
+              queueMicrotask(() => handler(first));
+            }
+            return unsubscribe(listen<string>('focus-host', (event) => handler(event.payload)));
+          },
+        }
+      : {}),
     window: {
       minimize: () => getCurrentWindow().minimize(),
       toggleMaximize: () => getCurrentWindow().toggleMaximize(),

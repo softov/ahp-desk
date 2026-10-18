@@ -24,7 +24,7 @@ fn setting(name: &str, default: &str, allowed: &[&str]) -> String {
 fn main() {
     let ui = setting("AHP_DESK_UI", "ahpw", &["ahpw", "ahpapp"]);
     if ui == "ahpapp" {
-        panic!("AHP_DESK_UI=ahpapp: ahpapp support comes in plan p5");
+        panic!("AHP_DESK_UI=ahpapp: ahpapp support comes in plan 05");
     }
     let source = setting("AHP_DESK_AHPW", "npm", &["npm", "local"]);
 
@@ -73,6 +73,11 @@ fn main() {
             "local_ahpd_status",
             "start_local_ahpd",
             "stop_local_ahpd",
+            "set_tray_words",
+            "settings",
+            "save_settings",
+            "start_with_os",
+            "set_start_with_os",
         ]),
     ))
     .expect("the Tauri build failed");

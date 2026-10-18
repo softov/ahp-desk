@@ -2,7 +2,7 @@
  * Copies the build's UI into src-tauri/resources/ui/<ui>/, where a release
  * build bundles it from. Run before `tauri build`; tauri.conf.json does.
  *
- * - AHP_DESK_UI: ahpw (default) or ahpapp. ahpapp comes in plan p5.
+ * - AHP_DESK_UI: ahpw (default) or ahpapp. ahpapp comes in plan 05.
  * - AHP_DESK_AHPW: npm (default), the published @ahpd/web, or local, a built checkout.
  * - AHP_DESK_AHPW_DIR: the checkout for local, default ../ahpw from this workspace.
  */
@@ -24,7 +24,7 @@ function setting(name, fallback, allowed) {
 
 const ui = setting('AHP_DESK_UI', 'ahpw', ['ahpw', 'ahpapp']);
 if (ui === 'ahpapp') {
-  console.error('AHP_DESK_UI=ahpapp: ahpapp support comes in plan p5');
+  console.error('AHP_DESK_UI=ahpapp: ahpapp support comes in plan 05');
   process.exit(1);
 }
 const source = setting('AHP_DESK_AHPW', 'npm', ['npm', 'local']);

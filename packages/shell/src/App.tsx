@@ -4,21 +4,23 @@ import { HostForm } from './hosts/HostForm.js';
 import { HostList } from './hosts/HostList.js';
 import { KindField, type AddKind } from './hosts/KindField.js';
 import { LocalForm } from './hosts/LocalForm.js';
-import { listHosts, onAddAsked, onHostsChanged, type ShellHost } from './hosts/ipc.js';
+import { listHosts, onAddAsked, onEditAsked, onHostsChanged, setTrayWords, type ShellHost } from './hosts/ipc.js';
 import { createHostStatuses, type HostStatuses } from './hosts/status.js';
 import { Footer } from './Footer.js';
-import { useLanguage } from './i18n.js';
+import { t, useLanguage } from './i18n.js';
 import { TitleBar } from './TitleBar.js';
+import { onSettingsAsked } from './settings/ipc.js';
+import { SettingsScreen } from './settings/SettingsScreen.js';
 
-type Screen = { kind: 'list' } | { kind: 'form'; host: ShellHost | null };
+type Screen = { kind: 'list' } | { kind: 'form'; host: ShellHost | null } | { kind: 'settings' };
 
 export function App() {
   // Every word below is read in this language; a pick redraws the whole window.
-  useLanguage();
+  const lang = useLanguage();
   // `null` until the list is read, so a desk with hosts never shows the first run.
   const [hosts, setHosts] = useState<ShellHost[] | null>(null);
   const [screen, setScreen] = useState<Screen>({ kind: 'list' });
-  // Add host opens on This computer while the list has none (decision: one local host).
+  // Add host opens on This computer while the list has none; a desk has one local host.
   const [addKind, setAddKind] = useState<AddKind>('local');
   const localTaken = hosts?.some((host) => host.kind === 'local') ?? false;
   const add = () => {
@@ -39,12 +41,30 @@ export function App() {
       if (list.length === 0) setFirstRun(true);
     };
     void listHosts().then((list) => live && take(list));
-    const stops = [onHostsChanged(take), onAddAsked(() => setScreen({ kind: 'form', host: null }))];
+    const stops = [
+      onHostsChanged(take),
+      onAddAsked(() => setScreen({ kind: 'form', host: null })),
+      // Read again rather than from state: this listener outlives the list it was set up with.
+      onEditAsked((id) => {
+        void listHosts().then((list) => {
+          const host = list.find((one) => one.id === id);
+          if (live && host !== undefined) setScreen({ kind: 'form', host });
+        });
+      }),
+      onSettingsAsked(() => setScreen({ kind: 'settings' })),
+    ];
     return () => {
       live = false;
       for (const stop of stops) void stop.then((unlisten) => unlisten());
     };
   }, []);
+
+  // The tray menu has no words of its own; it takes the host list's, and again on each pick.
+  useEffect(() => {
+    setTrayWords({ hosts: t('tray.hosts'), settings: t('tray.settings'), quit: t('tray.quit') }).catch((err: unknown) =>
+      console.error('tray words failed', err),
+    );
+  }, [lang]);
 
   useEffect(() => {
     if (hosts === null) return;
@@ -53,7 +73,8 @@ export function App() {
 
   return (
     <>
-      <TitleBar />
+      {/* Settings opens from the host list; the first run has no way back to it. */}
+      <TitleBar onSettings={firstRun ? undefined : () => setScreen({ kind: 'settings' })} />
       <main className="shell">
         {hosts === null ? null : firstRun ? (
           <FirstRun
@@ -62,6 +83,8 @@ export function App() {
               setScreen({ kind: 'list' });
             }}
           />
+        ) : screen.kind === 'settings' ? (
+          <SettingsScreen onDone={() => setScreen({ kind: 'list' })} />
         ) : screen.kind === 'list' ? (
           <HostList
             hosts={hosts}

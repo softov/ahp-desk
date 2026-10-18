@@ -1,6 +1,6 @@
 /*
- * The host list in ahpw's colours (decision: the host list is plain React in
- * ahpw's colours). The values are copied from scena's themes as ahpw ships
+ * The host list in ahpw's colours (decision
+ * `the-host-list-is-plain-react-in-ahpws-colours`). The values are copied from scena's themes as ahpw ships
  * them: light from `styles/themes/tokens.css`, dark from `styles/themes/dark.css`.
  * The rules copy ahpw's: buttons as scena's, rows as `.web-row`, dots as
  * `.embed-dot`, the frame as `embed/embed.css`.
@@ -277,6 +277,14 @@ button.danger:hover:not(:disabled) {
   line-height: 1.5;
 }
 
+/* The welcome's "Start with the OS", over Get started. */
+.first-run label.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 /* Where the host is: one row per place, as the host rows. */
 .choices {
   display: grid;
@@ -472,6 +480,35 @@ button.choice:hover:not(:disabled) {
 input[type='checkbox'] {
   margin: 0;
   padding: 0;
+  accent-color: var(--oo-color-accent);
+}
+
+/* A choice of one, as Settings' close: its question over its options. */
+.fields fieldset.choice {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fields fieldset.choice legend {
+  padding: 0 0 4px;
+  color: var(--oo-color-muted);
+  font-size: var(--oo-font-size-sm);
+}
+
+.fields fieldset.choice label.check {
+  margin-left: 0;
+}
+
+/* A checkbox on a screen with no inputs to sit under, as Settings' start with the OS. */
+.fields label.check--alone {
+  margin-left: 0;
+}
+
+input[type='radio'] {
+  margin: 0;
   accent-color: var(--oo-color-accent);
 }
 

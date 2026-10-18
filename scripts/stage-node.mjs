@@ -1,7 +1,7 @@
 /**
  * Puts the Node runtime the desk ships into src-tauri/resources/node/, where a
- * build bundles it from (decision: a local ahpd is found, or installed with the
- * bundled Node). The desk runs npm from it to install ahpd, and ahpd on it.
+ * build bundles it from (decision
+ * `a-local-ahpd-is-found-or-installed-with-the-bundled-node`). The desk runs npm from it to install ahpd, and ahpd on it.
  *
  * The official build for the OS and CPU this runs on, checked against the
  * release's SHASUMS256.txt, and kept in .cache/node/ so a second run is offline.

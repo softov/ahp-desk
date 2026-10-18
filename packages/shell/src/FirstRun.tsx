@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { HostForm } from './hosts/HostForm.js';
 import { LocalForm } from './hosts/LocalForm.js';
 import { openHost } from './hosts/ipc.js';
 import { t } from './i18n.js';
 import { Mark } from './Mark.js';
+import { setStartWithOs, startWithOs } from './settings/ipc.js';
 
 type Step =
   | { kind: 'welcome' }
@@ -13,13 +14,31 @@ type Step =
   | { kind: 'opening'; id: string; name: string; error: string | null };
 
 /**
- * The first run, for a desk with no host (decision: the first run adds a URL
- * host, and This computer once p3 brings it): a welcome, where the host is,
+ * The first run, for a desk with no host: a welcome, where the host is,
  * the host form with Test or This computer's install and start, and Open.
  * It ends when the new host's window opens; the desk then shows the host list.
  */
 export function FirstRun({ onFinished }: { onFinished: () => void }) {
   const [step, setStep] = useState<Step>({ kind: 'welcome' });
+  // "Start with the OS", checked the first time; a first run that comes back
+  // after the last host is removed shows the login entry as it is.
+  const [atLogin, setAtLogin] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    startWithOs().then(
+      (state) => setAtLogin(state.asked ? state.on : true),
+      (err: unknown) => setError(String(err)),
+    );
+  }, []);
+
+  const start = () => {
+    if (atLogin === null) return;
+    setError(null);
+    setStartWithOs(atLogin).then(
+      () => setStep({ kind: 'where' }),
+      (err: unknown) => setError(err instanceof Error ? err.message : String(err)),
+    );
+  };
 
   const open = (id: string, name: string) => {
     setStep({ kind: 'opening', id, name, error: null });
@@ -35,9 +54,19 @@ export function FirstRun({ onFinished }: { onFinished: () => void }) {
           <Mark size={56} />
           <h1>{t('firstRun.welcomeTitle')}</h1>
           <p>{t('firstRun.welcomeText')}</p>
-          <button className="primary" onClick={() => setStep({ kind: 'where' })}>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={atLogin ?? false}
+              disabled={atLogin === null}
+              onChange={(event) => setAtLogin(event.target.checked)}
+            />
+            <span>{t('settings.startWithOs')}</span>
+          </label>
+          <button className="primary" onClick={start} disabled={atLogin === null}>
             {t('firstRun.start')}
           </button>
+          {error !== null && <p className="result bad">{error}</p>}
         </section>
       );
     case 'where':

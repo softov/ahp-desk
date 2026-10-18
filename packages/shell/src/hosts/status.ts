@@ -118,7 +118,7 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
     onChange();
   };
 
-  /** Every host's dot, for the windows that list hosts but watch none (decision: the host list publishes). */
+  /** Every host's dot, for the windows that list hosts but watch none (decision `the-host-list-window-publishes-host-status`). */
   const publish = () => {
     const map: Record<string, PublishedStatus> = {};
     for (const known of multi.hostsSnapshot()) map[known.id] = statuses.status(known.id).kind;

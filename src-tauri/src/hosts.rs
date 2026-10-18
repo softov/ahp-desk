@@ -44,7 +44,7 @@ pub struct Host {
     pub on_desk: OnDesk,
 }
 
-/// What a `local` host's ahpd does when the desk starts and quits (decision 3).
+/// What a `local` host's ahpd does when the desk starts and quits.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OnDesk {
@@ -162,7 +162,7 @@ impl HostStore {
             moved |= tokens::move_to_vault(vault.as_ref(), host);
         }
         if moved {
-            write(&path, &hosts)?;
+            write_json(&path, &hosts[..])?;
         }
         Ok(HostStore {
             path,
@@ -224,7 +224,7 @@ impl HostStore {
             Some(i) => hosts[i] = host,
             None => hosts.push(host),
         }
-        write(&self.path, &hosts)?;
+        write_json(&self.path, &hosts[..])?;
         Ok(hosts.iter().map(HostView::from).collect())
     }
 
@@ -237,7 +237,7 @@ impl HostStore {
         }
         // A keyring that cannot be reached holds no copy to delete.
         let _ = self.vault.delete(id);
-        write(&self.path, &hosts)?;
+        write_json(&self.path, &hosts[..])?;
         Ok(hosts.iter().map(HostView::from).collect())
     }
 
@@ -260,7 +260,7 @@ impl HostStore {
     }
 
     /// The `local` hosts whose ahpd the desk stops when it quits: set to, and
-    /// started by the desk (decision 3).
+    /// started by the desk.
     pub fn to_stop_on_quit(&self) -> Vec<String> {
         self.lock()
             .iter()
@@ -285,7 +285,7 @@ impl HostStore {
         Ok((host.ahpd_path.clone(), host.started_by_desk))
     }
 
-    /// Saves what the local ahpd says of itself (decision 4): its address,
+    /// Saves what the local ahpd says of itself: its address,
     /// its token when it has one, and whether the desk started it.
     pub fn set_local(
         &self,
@@ -303,18 +303,18 @@ impl HostStore {
             tokens::set(self.vault.as_ref(), host, token.unwrap_or_default());
         }
         host.started_by_desk = started_by_desk;
-        write(&self.path, &hosts)?;
+        write_json(&self.path, &hosts[..])?;
         Ok(hosts.iter().map(HostView::from).collect())
     }
 }
 
-/// Writes the list to a temporary file and renames it over `path`, so a crash
-/// mid-write never leaves half a file.
-fn write(path: &Path, hosts: &[Host]) -> Result<(), String> {
+/// Writes `value` as JSON to a temporary file and renames it over `path`, so a
+/// crash mid-write never leaves half a file. `settings.json` is written the same way.
+pub fn write_json<T: Serialize + ?Sized>(path: &Path, value: &T) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|err| err.to_string())?;
     }
-    let text = serde_json::to_string_pretty(hosts).map_err(|err| err.to_string())?;
+    let text = serde_json::to_string_pretty(value).map_err(|err| err.to_string())?;
     let tmp = path.with_extension("json.tmp");
     fs::write(&tmp, text).map_err(|err| err.to_string())?;
     fs::rename(&tmp, path).map_err(|err| err.to_string())

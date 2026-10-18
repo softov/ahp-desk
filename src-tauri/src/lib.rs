@@ -2,8 +2,10 @@ mod app_window;
 mod frame;
 mod hosts;
 mod local_ahpd;
+mod settings;
 mod statuses;
 mod tokens;
+mod tray;
 mod ui_source;
 
 use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
@@ -11,14 +13,30 @@ use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use crate::app_window::AppWindows;
 use crate::hosts::HostStore;
 use crate::local_ahpd::LocalAhpd;
+use crate::settings::{CloseBehavior, SettingsStore};
 use crate::statuses::HostStatuses;
 use crate::tokens::Keyring;
 
 /// The label of the window with the host list.
 pub const SHELL_WINDOW: &str = "shell";
 
+/// The flag the login entry starts the desk with.
+const AT_LOGIN: &str = "--autostart";
+
 pub fn run() {
     tauri::Builder::default()
+        // First, as its docs ask: a second start shows this desk's host list
+        // rather than making a second desk on the same hosts.json and ahpd.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Err(err) = app_window::show_host_list(app.clone(), None, None) {
+                eprintln!("ahp-desk: a second start could not show the host list: {err}");
+            }
+        }))
+        // The OS starts the desk at login with --autostart.
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec![AT_LOGIN]),
+        ))
         // The host list's footer opens ahpio.com in the browser; its capability allows that one site.
         .plugin(tauri_plugin_opener::init())
         // Change, in Add host "This computer", picks the ahpd to use.
@@ -42,12 +60,12 @@ pub fn run() {
                 config.join("hosts.json"),
                 Box::new(Keyring),
             )?);
+            app.manage(SettingsStore::load(config.join("settings.json"))?);
             app.manage(AppWindows::default());
             app.manage(HostStatuses::default());
             app.manage(LocalAhpd::new(app.handle())?);
             app.manage(ui_source::resolve(app.handle())?);
-            // Frameless and rounded, as an app window (decision: the app window
-            // draws its own rounded frame); the host list draws its title bar.
+            // Frameless and rounded, as an app window; the host list draws its title bar.
             let shell = WebviewWindowBuilder::new(app, SHELL_WINDOW, WebviewUrl::App("/".into()))
                 .title("ahp-desk")
                 .decorations(false)
@@ -55,14 +73,21 @@ pub fn run() {
                 .shadow(false)
                 .inner_size(640.0, 400.0)
                 .min_inner_size(480.0, 300.0)
+                // A start at login shows only the tray icon; a start by hand shows the list.
+                .visible(!std::env::args().any(|arg| arg == AT_LOGIN))
                 .build()?;
             frame::round_corners(&shell);
+            tray::install(app.handle())?;
             let handle = app.handle().clone();
             shell.on_window_event(move |event| {
                 // The host list holds every host's status, so while an app window
-                // shows a host it hides instead of closing (decision: open hides the host list).
+                // shows a host it hides instead of closing.
+                // With none, it hides to the tray unless Settings says quit.
                 if let WindowEvent::CloseRequested { api, .. } = event {
-                    if handle.state::<AppWindows>().any_open() {
+                    let hide = handle.state::<AppWindows>().any_open()
+                        || handle.state::<SettingsStore>().get().close_behavior
+                            == CloseBehavior::MinimizeToTray;
+                    if hide {
                         api.prevent_close();
                         if let Some(shell) = handle.get_webview_window(SHELL_WINDOW) {
                             // A host list that will not hide stays on screen; nothing is lost.
@@ -93,6 +118,11 @@ pub fn run() {
             app_window::show_host_list,
             statuses::publish_host_statuses,
             statuses::host_statuses,
+            tray::set_tray_words,
+            settings::settings,
+            settings::save_settings,
+            settings::start_with_os,
+            settings::set_start_with_os,
         ])
         .build(tauri::generate_context!())
         .expect("ahp-desk failed to start")

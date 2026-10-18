@@ -24,6 +24,11 @@
     "allow-local-ahpd-status",
     "allow-start-local-ahpd",
     "allow-stop-local-ahpd",
+    "allow-set-tray-words",
+    "allow-settings",
+    "allow-save-settings",
+    "allow-start-with-os",
+    "allow-set-start-with-os",
     "dialog:allow-open",
     {
       "identifier": "opener:allow-open-url",

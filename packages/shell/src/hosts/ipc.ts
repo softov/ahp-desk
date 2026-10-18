@@ -112,6 +112,11 @@ export function onAddAsked(handler: () => void): Promise<UnlistenFn> {
   return listen('host-list-add', () => handler());
 }
 
+/** Calls `handler` with a host's id when an app window asks for that host's form, as ahpw's Sign in does. */
+export function onEditAsked(handler: (id: string) => void): Promise<UnlistenFn> {
+  return listen<string>('host-list-edit', (event) => handler(event.payload));
+}
+
 /** The host's token, or null for a host with none. */
 export function hostToken(id: string): Promise<string | null> {
   return invoke<string | null>('host_token', { id });
@@ -124,6 +129,18 @@ export function saveHost(host: Host, token: string | null): Promise<void> {
 
 export function removeHost(id: string): Promise<void> {
   return invoke('remove_host', { id });
+}
+
+/** The tray menu's words, in the host list's language. */
+export interface TrayWords {
+  hosts: string;
+  settings: string;
+  quit: string;
+}
+
+/** Sets the tray menu in the host list's language. */
+export function setTrayWords(words: TrayWords): Promise<void> {
+  return invoke('set_tray_words', { words });
 }
 
 /** Opens a host in its own window, or focuses the window that shows it. */

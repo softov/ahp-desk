@@ -1,6 +1,5 @@
 /**
- * The desk's words in English, Portuguese (Brasil) and Spanish (decision: the
- * desk speaks English, Brazilian Portuguese and Spanish). The language follows
+ * The desk's words in English, Portuguese (Brasil) and Spanish. The language follows
  * the OS until one is picked; the pick is kept in `localStorage`.
  */
 
@@ -23,6 +22,18 @@ const en = {
   'window.restore': 'Restore',
   'window.close': 'Close',
   'window.language': 'Language',
+  'window.settings': 'Settings',
+  'tray.hosts': 'Hosts',
+  'tray.settings': 'Settings',
+  'tray.quit': 'Quit ahp-desk',
+  'settings.title': 'Settings',
+  'settings.close': 'When I close the host list',
+  'settings.closeTray': 'Hide it in the tray',
+  'settings.closeQuit': 'Quit ahp-desk',
+  'settings.startWithOs': 'Start with the OS',
+  'settings.windows': 'Hosts open in',
+  'settings.windowsPerHost': 'A window for each host',
+  'settings.windowsEveryHost': 'One window with every host',
 
   'hosts.title': 'Hosts',
   'hosts.add': '+ Add host',
@@ -106,6 +117,18 @@ const ptBR: Record<Key, string> = {
   'window.restore': 'Restaurar',
   'window.close': 'Fechar',
   'window.language': 'Idioma',
+  'window.settings': 'Configurações',
+  'tray.hosts': 'Hosts',
+  'tray.settings': 'Configurações',
+  'tray.quit': 'Sair do ahp-desk',
+  'settings.title': 'Configurações',
+  'settings.close': 'Quando eu fecho a lista de hosts',
+  'settings.closeTray': 'Esconder na bandeja',
+  'settings.closeQuit': 'Sair do ahp-desk',
+  'settings.startWithOs': 'Iniciar com o sistema',
+  'settings.windows': 'Os hosts abrem em',
+  'settings.windowsPerHost': 'Uma janela para cada host',
+  'settings.windowsEveryHost': 'Uma janela com todos os hosts',
 
   'hosts.title': 'Hosts',
   'hosts.add': '+ Adicionar host',
@@ -187,6 +210,18 @@ const es: Record<Key, string> = {
   'window.restore': 'Restaurar',
   'window.close': 'Cerrar',
   'window.language': 'Idioma',
+  'window.settings': 'Configuración',
+  'tray.hosts': 'Hosts',
+  'tray.settings': 'Configuración',
+  'tray.quit': 'Salir de ahp-desk',
+  'settings.title': 'Configuración',
+  'settings.close': 'Cuando cierro la lista de hosts',
+  'settings.closeTray': 'Ocultarla en la bandeja',
+  'settings.closeQuit': 'Salir de ahp-desk',
+  'settings.startWithOs': 'Iniciar con el sistema',
+  'settings.windows': 'Los hosts se abren en',
+  'settings.windowsPerHost': 'Una ventana para cada host',
+  'settings.windowsEveryHost': 'Una ventana con todos los hosts',
 
   'hosts.title': 'Hosts',
   'hosts.add': '+ Añadir host',

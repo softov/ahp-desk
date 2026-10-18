@@ -102,6 +102,48 @@ describe('createEmbedder', () => {
   });
 });
 
+describe('the window with every host', () => {
+  /** The page the desk opens with every host, on the host `work`. */
+  const EVERY = { search: '?hosts=every&focus=work' };
+
+  it('says multi and keys its pages under *', () => {
+    const embedder = createEmbedder(EVERY);
+    expect(embedder.mode).toBe('multi');
+    expect(embedder.hostUrl).toBe('*');
+  });
+
+  it("reads any host's token", async () => {
+    invoke.mockResolvedValue('secret');
+    expect(await createEmbedder(EVERY).token('home')).toBe('secret');
+    expect(invoke).toHaveBeenLastCalledWith('host_token', { id: 'home' });
+  });
+
+  it('gives the host it opened on once, then each host the desk asks for', async () => {
+    const forget = vi.fn();
+    const embedder = createEmbedder(EVERY, forget);
+    const shown = vi.fn();
+    embedder.onFocusHost?.(shown);
+    await Promise.resolve();
+    expect(shown).toHaveBeenCalledWith('work');
+    expect(forget).toHaveBeenCalledOnce();
+    delivered('focus-host')({ payload: 'home' });
+    expect(shown).toHaveBeenLastCalledWith('home');
+    embedder.onFocusHost?.(vi.fn());
+    expect(forget).toHaveBeenCalledOnce();
+  });
+
+  it("shows the host list on a host's form", async () => {
+    await createEmbedder(EVERY).manageHosts({ edit: 'home' });
+    expect(invoke).toHaveBeenLastCalledWith('show_host_list', { add: false, edit: 'home' });
+  });
+
+  it('a window of one host says mono and has no focus to follow', () => {
+    const embedder = createEmbedder(PAGE);
+    expect(embedder.mode).toBe('mono');
+    expect(embedder.onFocusHost).toBeUndefined();
+  });
+});
+
 describe('unsubscribe', () => {
   it('stops a listener once it is set', async () => {
     const unlisten = vi.fn();

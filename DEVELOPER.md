@@ -35,6 +35,9 @@ node --version
 pnpm --version
 ```
 
+"Start with the OS" writes `~/.config/autostart/ahp-desk.desktop`.
+A deb removal does not touch a user's home, so that file stays until the box is unticked or the file is deleted.
+
 ## Windows
 
 1. Install the [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) and select "Desktop development with C++".
@@ -79,7 +82,7 @@ A Windows installer is built on Windows. Tauri does not cross-compile it from Li
 
 ## Testing ahpw from source
 
-A build ships one UI, chosen by `AHP_DESK_UI`: `ahpw`, the default, or `ahpapp`, which comes in plan p5.
+A build ships one UI, chosen by `AHP_DESK_UI`: `ahpw`, the default, or `ahpapp`, which comes in plan 05.
 ahpw comes from the published `@ahpd/web` by default, or from an ahpw checkout:
 
 | Variable | Values | What it does |
@@ -114,6 +117,11 @@ A bare `cargo build` needs the three in place, and says which is missing.
 3. To test against a host on this Linux box, run ahpd here and add it as a URL host from Windows.
 4. To remove it, use "Apps" in Windows Settings.
 
+"Start with the OS" is the value `ahp-desk` under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`; check it with `reg query HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
+It holds the path of the exe that ticked the box, so a debug build can start itself at login.
+Untick the box in Settings before you remove that build.
+The uninstaller removes the value, and an update keeps it.
+
 On Windows, the dev tools in a webview open with `Ctrl+Shift+I` in a debug build.
 
 ## Signing keys
@@ -135,4 +143,4 @@ Windows code signing certificates (`*.pfx`, `*.p12`) are also kept out of git.
 
 ## Project records
 
-Plans, decisions and research live in `.project/`. The format is the `do-spec` skill in `.agents/skills/do-spec/`. Start at [`.project/plans/index.md`](.project/plans/index.md).
+What is built (specs), the plans, the decisions and the research live in `.project/`. The format is the `do-spec` skill in `.agents/skills/do-spec/`. Start at [`.project/plans/index.md`](.project/plans/index.md).
