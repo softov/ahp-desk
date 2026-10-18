@@ -1,6 +1,6 @@
 ---
 title: The desk knows npm's latest @ahpd/server, asked at most every 6 hours and kept
-status: todo
+status: done
 depends: []
 layer: "src-tauri, packages/shell"
 refs:
@@ -23,7 +23,7 @@ It keeps the answer in `updates.json` beside `hosts.json`, and sends `updates-ch
 
 ## Files
 
-- `UPDATE: src-tauri/src/updates.rs` (made by plan 04 task 03, which this plan requires) - the check, the file and the command (below), beside plan 04's `DeskUpdate`.
+- `CREATE: src-tauri/src/updates.rs` (plan 04 task 03 adds its `DeskUpdate` here) - the check, the file and the command (below), beside plan 04's `DeskUpdate`.
 - `UPDATE: src-tauri/src/lib.rs:1-7` - `mod updates;`, unless plan 04 task 03 has already added it.
 - `UPDATE: src-tauri/src/lib.rs:33-41` - `app.manage(Updates::load(config.join("updates.json")));`, with the same `config` folder as `hosts.json`, so `AHP_DESK_CONFIG_DIR` covers it.
 - `UPDATE: src-tauri/src/lib.rs:67-68` - `updates::watch(app.handle());` after `local_ahpd::start_on_launch`.
@@ -93,3 +93,10 @@ It keeps the answer in `updates.json` beside `hosts.json`, and sends `updates-ch
 - By hand: `pnpm tauri dev` with `AHP_DESK_CONFIG_DIR` on a scratch folder writes `updates.json` with npm's latest; a second start within 6 hours asks nothing (no request in the network log); with `npm_config_registry` on an address that does not answer, the desk starts as before and the file stays as it was.
 
 ## Resume
+
+- 2026-10-18: `src-tauri/src/updates.rs` is new, since plan 04 task 03 has not made it yet; it has `UPDATES_CHANGED`, `AHPD_PACKAGE`, `MAX_AGE`, `NpmLatest`, `UpdatesView`, `Updates` (`load`, `view`, `set_ahpd`), `registry()`, `stale()`, `ask_npm()`, `watch()` and the command `updates`; plan 04 task 03 adds `DeskUpdate` beside them.
+- `Updates` is managed with `updates.json` beside `hosts.json`, `watch` runs after `local_ahpd::start_on_launch`, and `updates` is in `generate_handler!`, `build.rs` and `capabilities/shell.json`; `ipc.ts` has `NpmLatest`, `Updates`, `updates()` and `onUpdatesChanged()`.
+- `set_ahpd` answers a change only when the name or the version moves, so a new `checkedAt` alone writes the file and sends no event.
+- `reqwest` 0.13 is taken with `rustls-no-provider` and `json`, and `rustls` 0.23 with `ring`, whose provider `ask_npm` installs once (defaulted: reqwest 0.13's `rustls` feature uses aws-lc-rs, which needs NASM to build on Windows, the reason russh is on `ring`); `cargo tree` holds no aws-lc.
+- Verified: `cargo test` (135, with 5 in `updates.rs`: `registry`, `stale` at 6 hours and a second past, `load` of a missing, a broken, a misshapen and a written file, `ask_npm` reading `latest` and sending `accept: application/json` to `/-/package/@ahpd/server/dist-tags`, and `None` for a 404, HTML with 200, and no answer within the 5 s timeout), `cargo clippy --all-targets -- -D warnings`, `pnpm typecheck`, `pnpm test` (29).
+- By hand on a release build with a scratch `AHP_DESK_CONFIG_DIR`: the first start wrote `updates.json` with `0.12.0`, npm's latest, over HTTPS, and `updates` answered it in the host list; a second start within 6 hours left `checkedAt` as it was; with the answer made stale and `npm_config_registry` on an address that does not answer, the desk started as before and the file stayed as it was.

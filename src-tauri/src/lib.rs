@@ -9,6 +9,7 @@ mod statuses;
 mod tokens;
 mod tray;
 mod ui_source;
+mod updates;
 
 use tauri::{Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 
@@ -64,6 +65,7 @@ pub fn run() {
                 Box::new(Keyring),
             )?);
             app.manage(SettingsStore::load(config.join("settings.json"))?);
+            app.manage(updates::Updates::load(config.join("updates.json")));
             app.manage(KnownKeys::load(
                 config.join("known_keys.json"),
                 app.path().home_dir()?.join(".ssh").join("known_hosts"),
@@ -107,6 +109,7 @@ pub fn run() {
             });
             // After the host list window, so its rows show each host as it comes up.
             local_ahpd::start_on_launch(app.handle());
+            updates::watch(app.handle());
             ssh::tunnel::open_on_launch(app.handle());
             Ok(())
         })
@@ -140,6 +143,7 @@ pub fn run() {
             ssh_install::install_ssh_ahpd,
             ssh_install::cancel_ssh_install,
             ssh_install::uninstall_ssh_ahpd,
+            updates::updates,
             ssh::tunnel::ssh_tunnel_states,
             ssh::tunnel::open_ssh_tunnel,
             ssh::tunnel::ssh_sign_in,

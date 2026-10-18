@@ -352,6 +352,27 @@ export function setTrayWords(words: TrayWords): Promise<void> {
   return invoke('set_tray_words', { words });
 }
 
+/** npm's latest of a package, and when it was asked, in seconds since the Unix epoch. */
+export interface NpmLatest {
+  name: string;
+  latest: string;
+  checkedAt: number;
+}
+
+/** What the desk knows can be updated. */
+export interface Updates {
+  ahpd: NpmLatest | null;
+}
+
+export function updates(): Promise<Updates> {
+  return invoke<Updates>('updates');
+}
+
+/** Calls `handler` with the whole view each time it changes. */
+export function onUpdatesChanged(handler: (updates: Updates) => void): Promise<UnlistenFn> {
+  return listen<Updates>('updates-changed', (event) => handler(event.payload));
+}
+
 /** Opens a host in its own window, or focuses the window that shows it. */
 export function openHost(id: string): Promise<void> {
   return invoke('open_app_window', { hostId: id, replace: false });

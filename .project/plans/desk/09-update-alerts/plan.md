@@ -1,7 +1,7 @@
 ---
 title: The desk says what can be updated, and updates it
 domain: desk
-status: planned
+status: active
 priority: high
 created: 2026-10-13
 revalidated: 2026-10-14
@@ -74,7 +74,7 @@ host connected -> initialize serverInfo (ahpd version) -> npm latest @ahpd/serve
 
 | Task | Status | Depends on |
 | --- | --- | --- |
-| [01 - npm's latest @ahpd/server, checked and kept](task-01-npm-latest-ahpd.md) | todo | - |
+| [01 - npm's latest @ahpd/server, checked and kept](task-01-npm-latest-ahpd.md) | done | - |
 | [02 - the host row's notice and Update](task-02-host-row-notice-and-update.md) | todo | 01 |
 | [03 - ahpd: an update command for an administrator, over HTTP and AHP (in the ahpd repository)](task-03-ahpd-update-command.md) | todo | - |
 | [04 - Update through ahpd's command](task-04-update-through-ahpd.md) | blocked | 02, 03 |
@@ -92,7 +92,8 @@ host connected -> initialize serverInfo (ahpd version) -> npm latest @ahpd/serve
 
 - **Done so far:** the plan, its decisions and its task files, 2026-10-14.
   The open questions are answered in *Answers*, and task 06 is narrowed to the check every 6 hours, 2026-10-14.
-- **Next action:** task 01, and task 07, which waits on nothing.
+  Task 01, 2026-10-18.
+- **Next action:** task 02, then task 05; task 07 waits on nothing.
   Task 04 is `blocked` until ahpd has its update command (task 03), which Softov looks at in the ahpd repository, 2026-10-16.
 - **Open questions:** none.
 - **Watch out for:** the local ahpd follows plan 03's update answer (task 07), not the host-row Update.
