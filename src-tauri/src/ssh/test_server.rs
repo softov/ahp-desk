@@ -25,7 +25,14 @@ pub struct TestServer {
     config: Arc<Mutex<Arc<server::Config>>>,
     /// Sign-in attempts of any kind, over every connection.
     attempts: Arc<AtomicUsize>,
+    /// Canned answers a test sets, by the start of the command.
+    answers: Answers,
+    /// Every command run, in order.
+    commands: Arc<Mutex<Vec<String>>>,
 }
+
+/// (the command's start, stdout, exit code).
+type Answers = Arc<Mutex<Vec<(String, String, u32)>>>;
 
 impl TestServer {
     pub async fn start() -> Self {
@@ -35,12 +42,17 @@ impl TestServer {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
         let accepted = client_key.public_key().clone();
+        let answers: Answers = Arc::default();
+        let commands: Arc<Mutex<Vec<String>>> = Arc::default();
         let (serving, counted) = (config.clone(), attempts.clone());
+        let (answering, recording) = (answers.clone(), commands.clone());
         tokio::spawn(async move {
             while let Ok((stream, _)) = listener.accept().await {
                 let handler = Handler {
                     accepted: accepted.clone(),
                     attempts: counted.clone(),
+                    answers: answering.clone(),
+                    commands: recording.clone(),
                 };
                 let config = serving.lock().unwrap().clone();
                 if let Ok(running) = server::run_stream(config, stream, handler).await {
@@ -53,7 +65,21 @@ impl TestServer {
             client_key,
             config,
             attempts,
+            answers,
+            commands,
         }
+    }
+
+    /// Answers a command that starts with `start` with `stdout` and `code`.
+    pub fn answer(&self, start: &str, stdout: &str, code: u32) {
+        self.answers
+            .lock()
+            .unwrap()
+            .push((start.into(), stdout.into(), code));
+    }
+
+    pub fn commands(&self) -> Vec<String> {
+        self.commands.lock().unwrap().clone()
     }
 
     /// The server comes back with another host key, on the same port.
@@ -140,6 +166,8 @@ impl Drop for KeyFile {
 struct Handler {
     accepted: PublicKey,
     attempts: Arc<AtomicUsize>,
+    answers: Answers,
+    commands: Arc<Mutex<Vec<String>>>,
 }
 
 impl server::Handler for Handler {
@@ -187,6 +215,23 @@ impl server::Handler for Handler {
         data: &[u8],
         session: &mut Session,
     ) -> Result<(), Self::Error> {
+        let command = String::from_utf8_lossy(data).into_owned();
+        self.commands.lock().unwrap().push(command.clone());
+        let set = self
+            .answers
+            .lock()
+            .unwrap()
+            .iter()
+            .find(|(start, _, _)| command.starts_with(start.as_str()))
+            .cloned();
+        if let Some((_, stdout, code)) = set {
+            session.channel_success(channel)?;
+            session.data(channel, stdout.into_bytes())?;
+            session.exit_status_request(channel, code)?;
+            session.eof(channel)?;
+            session.close(channel)?;
+            return Ok(());
+        }
         let home = format!("/home/{USER}");
         // (stdout, stderr, exit code); the order the client reads them is the order sent.
         let (out, err, code): (&[&str], &[&str], u32) = match data {

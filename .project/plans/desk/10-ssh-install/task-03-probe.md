@@ -1,6 +1,6 @@
 ---
 title: The desk probes a server for Linux, its CPU, systemctl --user, lingering, Node and an ahpd already there
-status: todo
+status: done
 depends: [task-01-ssh-session.md]
 layer: "src-tauri"
 refs:
@@ -48,3 +48,12 @@ refs:
 - By hand on dev02 only: the ignored test `ssh_a_real_probe` prints dev02's probe, which is recorded in this file's Resume.
 
 ## Resume
+
+- 2026-10-18: `src-tauri/src/ssh_install.rs` has `Probe`, `Cpu`, `NodeOnServer`, `FoundOnServer`, `probe()`, `parse_probe()`, `parse_found()`, `node_version()`, `ahpd_command()` and the command `probe_ssh_server`; `ipc.ts` has `probeSshServer` and the types.
+- The probe is one `sh` script after the line `# ahp-desk probe`, printing `key=value` lines; a found ahpd gets one more command, after `# ahp-desk found`, with its `plugin list --json` and `status --json` each after a marker line.
+- The desk's own install is run as `<node> <home>/.local/share/ahpd/node_modules/.bin/ahpd`, the Node read from the unit's `ExecStart`, else `<install>/node/bin/node`, else the server's; an `ahpd` found only through the login shell keeps `loginShell` and is run there.
+- Refusals and warnings are English sentences from the desk, as the local install's errors are; an ahpd older than `OLDEST_SUPPORTED` is a refusal that names the version needed.
+- `probe_ssh_server` takes the typed `passphrase` and `password` and holds them in `Secrets` before it signs in, and rejects with task 02's `SshError`.
+- The test server answers canned commands by their start, and keeps the commands it ran.
+- Verified: `cargo test` (95: 15 for the probe's parse, 1 against the test server for one command and a second only for a found ahpd), `cargo clippy --all-targets -- -D warnings`, `pnpm typecheck`, `pnpm test`.
+- By hand, `ssh_a_real_probe` on the test server Softov named: Debian 13 on x86_64, `systemctl --user` answering, lingering off (warned), no Node 22 (`download`, `x64`), no ahpd found, no refusal.

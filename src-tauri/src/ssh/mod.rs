@@ -10,7 +10,7 @@
 pub mod known_keys;
 pub mod password;
 #[cfg(test)]
-mod test_server;
+pub(crate) mod test_server;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -600,7 +600,7 @@ pub fn quote(s: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::known_keys::tests::Scratch;
     use super::test_server::{TestServer, PASSWORD, USER};
     use super::*;

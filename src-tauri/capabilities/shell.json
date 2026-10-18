@@ -32,6 +32,7 @@
     "allow-ssh-keyring-works",
     "allow-confirm-ssh-key",
     "allow-forget-ssh-key",
+    "allow-probe-ssh-server",
     "dialog:allow-open",
     {
       "identifier": "opener:allow-open-url",

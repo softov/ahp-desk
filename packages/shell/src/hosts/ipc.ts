@@ -76,6 +76,58 @@ export function confirmSshKey(address: string, port: number, fingerprint: string
   return invoke('confirm_ssh_key', { address, port, fingerprint });
 }
 
+/** A server as Add host names it; `id` is the host's, under which what was typed is held until the desk quits. */
+export interface ProbeTarget {
+  id: string;
+  address: string;
+  port: number;
+  user: string;
+  keyFile?: string;
+}
+
+/** Where the Node of an ahpd the desk installs comes from. */
+export type NodeOnServer =
+  | { kind: 'own'; path: string; version: string; npm: string | null }
+  | { kind: 'download'; cpu: 'x64' | 'arm64' | 'armv7l' }
+  | { kind: 'refused'; reason: string };
+
+/** An ahpd already on the server, which the desk uses and never installs over. */
+export interface FoundOnServer {
+  path: string;
+  node: string | null;
+  loginShell: boolean;
+  version: string;
+  /** False for an ahpd older than the oldest the desk drives. */
+  supported: boolean;
+  plugins: string[];
+  running: boolean;
+  url: string | null;
+  /** The desk's own install, with the desk's unit. */
+  byDesk: boolean;
+}
+
+/** What the probe found on a server, and whether the desk can go on. */
+export interface Probe {
+  os: string;
+  pretty: string | null;
+  arch: string;
+  home: string;
+  user: string;
+  systemd: boolean;
+  runtimeDir: string | null;
+  linger: boolean;
+  node: NodeOnServer;
+  found: FoundOnServer | null;
+  /** Why the desk cannot use or install ahpd there; null when it can. */
+  refusal: string | null;
+  warnings: string[];
+}
+
+/** Signs in to the server and probes it; rejects with an `SshError` the form reads with `sshError`. */
+export function probeSshServer(target: ProbeTarget, passphrase: string | null, password: string | null): Promise<Probe> {
+  return invoke<Probe>('probe_ssh_server', { target, passphrase, password });
+}
+
 /** Forgets the desk's key for a server, so the next connection asks to trust its key as a first one. */
 export function forgetSshKey(address: string, port: number): Promise<void> {
   return invoke('forget_ssh_key', { address, port });

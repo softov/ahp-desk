@@ -81,6 +81,7 @@ fn main() {
             "ssh_keyring_works",
             "confirm_ssh_key",
             "forget_ssh_key",
+            "probe_ssh_server",
         ]),
     ))
     .expect("the Tauri build failed");

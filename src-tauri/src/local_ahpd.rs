@@ -421,7 +421,7 @@ pub fn version(launcher: &Launcher) -> Result<String, String> {
 }
 
 /// `major.minor.patch` from text such as `0.11.0` or `0.12.0-rc.1`.
-fn version_of_text(text: &str) -> Option<(u64, u64, u64)> {
+pub(crate) fn version_of_text(text: &str) -> Option<(u64, u64, u64)> {
     let core = text
         .trim()
         .trim_start_matches('v')
