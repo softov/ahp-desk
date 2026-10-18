@@ -901,19 +901,7 @@ async fn install_new(
     steps
         .run(
             "server",
-            run_step(
-                session,
-                "server",
-                &prefix,
-                &format!(
-                    "{quiet} PATH={}:\"$PATH\" {} install --prefix {} @ahpd/server@latest",
-                    quote(&node.bin_dir),
-                    quote(&node.npm),
-                    quote(&prefix)
-                ),
-                &line,
-                steps.cancel,
-            ),
+            server_step(session, &prefix, &node.bin_dir, &node.npm, "latest", steps),
         )
         .await?;
     let ahpd = FoundOnServer {
@@ -1229,6 +1217,165 @@ async fn use_found(
         ahpd_port: port,
         by_desk: false,
     })
+}
+
+/// Installs `@ahpd/server@<version>` into the desk's install folder with the
+/// npm next to the Node in `bin_dir`.
+async fn server_step(
+    session: &Session,
+    prefix: &str,
+    bin_dir: &str,
+    npm: &str,
+    version: &str,
+    steps: &Steps<'_>,
+) -> Result<(), String> {
+    let quiet = QUIET_NPM
+        .iter()
+        .map(|(key, value)| format!("{key}={value}"))
+        .collect::<Vec<_>>()
+        .join(" ");
+    run_step(
+        session,
+        "server",
+        prefix,
+        &format!(
+            "{quiet} PATH={}:\"$PATH\" {} install --prefix {} {}",
+            quote(bin_dir),
+            quote(npm),
+            quote(prefix),
+            quote(&format!("@ahpd/server@{version}"))
+        ),
+        &|text| steps.line(text),
+        steps.cancel,
+    )
+    .await
+}
+
+/// Updates the ahpd the desk installed over SSH to `version` (`latest`, or
+/// an npm version): connects, finds the desk's install and the Node its unit
+/// runs, installs the version beside the same backends, restarts the unit and
+/// waits for it on `port`. The unit, the token, the folder and the backends
+/// stay, so the host's address and token still hold. Answers the version now
+/// running.
+pub async fn update(
+    target: &SshTarget,
+    check: crate::ssh::ServerCheck,
+    keys: Keys<'_>,
+    version: &str,
+    port: u16,
+    send: &(dyn Fn(InstallEvent) + Sync),
+    cancel: &AtomicBool,
+) -> Result<String, String> {
+    // A version is a word npm reads; anything else never reaches a shell.
+    if version.is_empty()
+        || !version
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || ".-+".contains(c))
+    {
+        return Err(format!("{version:?} is not an npm version"));
+    }
+    let steps = Steps { send, cancel };
+    let session = steps
+        .run("connect", async {
+            ssh::open(target, check, keys)
+                .await
+                .map(|(session, _)| session)
+                .map_err(|err| err.to_string())
+        })
+        .await?;
+    let (probed, found, node) = steps
+        .run("probe", async {
+            let probed = probe(&session).await?;
+            match probed.found.clone() {
+                Some(found) if found.by_desk => {
+                    let node = found.node.clone().filter(|node| !node.is_empty()).ok_or(
+                        "the desk's ahpd unit names no Node in its ExecStart".to_string(),
+                    )?;
+                    Ok((probed, found, node))
+                }
+                Some(found) => Err(format!(
+                    "the ahpd on the server is {} at {}, not the desk's install, so it updates through ahpd",
+                    found.version, found.path
+                )),
+                None => Err(format!(
+                    "the desk's install is not on the server: no ahpd under ~/{INSTALL_DIR} with its unit"
+                )),
+            }
+        })
+        .await?;
+    let prefix = format!("{}/{INSTALL_DIR}", probed.home);
+    let bin_dir = node
+        .rsplit_once('/')
+        .map_or(".", |(dir, _)| dir)
+        .to_string();
+    let npm = format!("{bin_dir}/npm");
+    steps
+        .run(
+            "server",
+            server_step(&session, &prefix, &bin_dir, &npm, version, &steps),
+        )
+        .await?;
+    steps
+        .run(
+            "start",
+            run_short(
+                &session,
+                "start",
+                &systemctl_user(probed.runtime_dir.as_deref(), "restart ahpd.service"),
+            ),
+        )
+        .await?;
+    let (_, now) = steps
+        .run(
+            "ready",
+            ready_for_desk(&session, &probed, &node, &found, port, &steps),
+        )
+        .await?;
+    Ok(now)
+}
+
+/// `update` for host `id`, signed in as the host signs in; refused before any
+/// connection for a host not reached over SSH or whose ahpd the desk did not
+/// install.
+#[cfg_attr(not(test), allow(dead_code))] // plan 09 task 05 makes it the command `update_ssh_ahpd`
+pub async fn update_host(
+    store: &HostStore,
+    known: &KnownKeys,
+    id: &str,
+    version: &str,
+    send: &(dyn Fn(InstallEvent) + Sync),
+    cancel: &AtomicBool,
+) -> Result<String, String> {
+    let ssh = store
+        .ssh(id)?
+        .ok_or_else(|| format!("{id} is not reached over SSH"))?;
+    if !ssh.by_desk {
+        return Err(format!(
+            "the desk did not install the ahpd of {id}, so it updates through ahpd"
+        ));
+    }
+    let target = SshTarget::new(
+        &ssh.address,
+        ssh.port,
+        &ssh.user,
+        ssh.key_file.clone().map(Into::into),
+    );
+    let keys = Keys {
+        id,
+        secrets: store.secrets(),
+        kept_password: store.ssh_password(id).ok().flatten(),
+        signed_in_before: ssh.sign_in,
+    };
+    update(
+        &target,
+        known.checker(&target.address, target.port),
+        keys,
+        version,
+        ssh.remote_port,
+        send,
+        cancel,
+    )
+    .await
 }
 
 /// Installs ahpd on the server the form names, or uses the one found there.
@@ -1846,7 +1993,13 @@ mod tests {
             ))
             .await;
             println!("status from a login shell: {status}");
-            let (_, file) = shell(format!("cat {home}/{INSTALL_DIR}/connection-token")).await;
+            // Read without `shell`, which prints what it ran and what it said.
+            let (_, file) = exec_capture(
+                &session,
+                &format!("cat {home}/{INSTALL_DIR}/connection-token"),
+            )
+            .await
+            .unwrap();
             assert_eq!(installed.token.as_deref(), Some(file.trim()));
 
             let mut second = request.clone();
@@ -2382,5 +2535,280 @@ mod tests {
         let (session, _) = ssh::open(&target, check, keys).await.unwrap();
         let probe = probe(&session).await.unwrap();
         println!("{}", serde_json::to_string_pretty(&probe).unwrap());
+    }
+
+    /// By hand, on the test server Softov names, as `ssh_a_real_install`:
+    /// installs the newest ahpd, updates it to an older one and back, checking
+    /// each time that the service runs that version and keeps its token; then
+    /// removes what it installed and puts `~/.config/ahpd` back.
+    #[tokio::test]
+    #[ignore]
+    async fn ssh_a_real_update() {
+        const OLDER: &str = "0.11.0";
+        let (target, check) = crate::ssh::tests::real_target();
+        drop(check);
+        let fingerprint = std::env::var("AHP_DESK_SSH_TEST_KEY").unwrap();
+        let trusted = move || -> crate::ssh::ServerCheck {
+            let fingerprint = fingerprint.clone();
+            Box::new(move |key| {
+                let offered = crate::ssh::known_keys::fingerprint(key);
+                if offered.sha256 == fingerprint {
+                    KeyCheck::Known
+                } else {
+                    KeyCheck::New { offered }
+                }
+            })
+        };
+        let secrets = Secrets::default();
+        let keys = || Keys {
+            id: "real",
+            secrets: &secrets,
+            kept_password: None,
+            signed_in_before: None,
+        };
+        let (session, _) = ssh::open(&target, trusted(), keys()).await.unwrap();
+        let shell = |command: String| {
+            let session = &session;
+            async move {
+                let (code, said) = exec_capture(session, &command).await.unwrap();
+                println!("$ {command}\n{said}");
+                (code, said)
+            }
+        };
+        let (_, home) = shell("printf %s \"$HOME\"".into()).await;
+        let backup = format!("{home}/.config/ahpd.desk-test-backup");
+        let config = format!("{home}/.config/ahpd");
+        let (code, _) = shell(format!(
+            "test ! -e {b} && if [ -e {c} ]; then cp -a {c} {b}; fi",
+            b = quote(&backup),
+            c = quote(&config)
+        ))
+        .await;
+        assert_eq!(
+            code, 0,
+            "a backup from an earlier run is still there: {backup}"
+        );
+        let clean = format!(
+            "systemctl --user disable --now ahpd.service 2>/dev/null; rm -f {unit}; systemctl --user daemon-reload; rm -rf {prefix}",
+            unit = quote(&format!("{home}/{UNIT_FILE}")),
+            prefix = quote(&format!("{home}/{INSTALL_DIR}"))
+        );
+        let restore = format!(
+            "rm -rf {c}; if [ -e {b} ]; then mv {b} {c}; fi",
+            b = quote(&backup),
+            c = quote(&config)
+        );
+        let send = |event: InstallEvent| match event {
+            InstallEvent::Line { text } => println!("  {text}"),
+            InstallEvent::Step { id, status } => println!("[{id}] {status:?}"),
+        };
+        let cancel = AtomicBool::new(false);
+        let mut request = request(&["@ahpd/agent-claude"]);
+        request.target = ProbeTarget {
+            id: "real".into(),
+            address: target.address.clone(),
+            port: target.port,
+            user: target.user.clone(),
+            key_file: target
+                .key_file
+                .as_ref()
+                .map(|path| path.display().to_string()),
+        };
+        request.ahpd_port = 9387;
+
+        let checked = async {
+            let installed = install(&target, trusted(), keys(), &request, &send, &cancel).await?;
+            let token = format!("{home}/{INSTALL_DIR}/connection-token");
+            let (_, before) = shell(format!("sha256sum {}", quote(&token))).await;
+            for version in [OLDER, "latest"] {
+                let now = update(&target, trusted(), keys(), version, 9387, &send, &cancel).await?;
+                let wanted = if version == "latest" {
+                    installed.version.as_str()
+                } else {
+                    version
+                };
+                assert_eq!(now, wanted);
+                let (_, active) = shell("systemctl --user is-active ahpd.service".into()).await;
+                assert_eq!(active.trim(), "active");
+                let (_, after) = shell(format!("sha256sum {}", quote(&token))).await;
+                assert_eq!(after, before, "the token file is left as it was");
+            }
+            Ok::<(), String>(())
+        }
+        .await;
+        shell(clean).await;
+        shell(restore).await;
+        checked.unwrap();
+    }
+
+    const DESK_INSTALL: &str = "deskUnit=yes\nahpd=/home/ana/.local/share/ahpd/node_modules/.bin/ahpd\nahpdNode=/home/ana/.local/share/ahpd/node/bin/node\nahpdVersion=0.11.0\nahpdDesk=yes\n";
+
+    /// Runs an update against the test server and answers its result, the
+    /// steps in the order they ran, and the commands the server saw.
+    async fn run_update(
+        server: &TestServer,
+        version: &str,
+    ) -> (
+        Result<String, String>,
+        Vec<(String, StepStatus)>,
+        Vec<String>,
+    ) {
+        let secrets = Secrets::default();
+        secrets.set_password("dev", PASSWORD);
+        let keys = Keys {
+            id: "dev",
+            secrets: &secrets,
+            kept_password: None,
+            signed_in_before: None,
+        };
+        let events = Mutex::new(Vec::new());
+        let send = |event: InstallEvent| events.lock().unwrap().push(event);
+        let cancel = AtomicBool::new(false);
+        let done = update(
+            &server.target(None),
+            Box::new(|_| KeyCheck::Known),
+            keys,
+            version,
+            9300,
+            &send,
+            &cancel,
+        )
+        .await;
+        let steps = events
+            .into_inner()
+            .unwrap()
+            .into_iter()
+            .filter_map(|event| match event {
+                InstallEvent::Step { id, status } if status != StepStatus::Running => {
+                    Some((id, status))
+                }
+                _ => None,
+            })
+            .collect();
+        (done, steps, server.commands())
+    }
+
+    #[tokio::test]
+    async fn update_installs_the_version_with_the_units_node_restarts_and_waits() {
+        let server = TestServer::start().await;
+        answer_install(&server, &format!("{DEBIAN}{DESK_INSTALL}"));
+        let (done, steps, commands) = run_update(&server, "0.12.0").await;
+        assert_eq!(done.unwrap(), "0.12.0");
+        assert_eq!(
+            ids(&steps),
+            ["connect", "probe", "server", "start", "ready"]
+        );
+        let ran: Vec<&str> = commands
+            .iter()
+            .filter_map(|command| command.strip_prefix("# ahp-desk "))
+            .map(|rest| rest.split('\n').next().unwrap())
+            .collect();
+        assert_eq!(
+            ran,
+            ["probe", "found", "server", "start", "ready", "token", "version"]
+        );
+        let of = |id: &str| {
+            commands
+                .iter()
+                .find(|command| command.starts_with(&format!("# ahp-desk {id}\n")))
+                .unwrap()
+                .clone()
+        };
+        assert!(of("server").contains(
+            "/home/ana/.local/share/ahpd/node/bin/npm install --prefix /home/ana/.local/share/ahpd @ahpd/server@0.12.0"
+        ));
+        assert!(of("server").contains("PATH=/home/ana/.local/share/ahpd/node/bin:"));
+        assert!(of("start").ends_with("systemctl --user restart ahpd.service"));
+        assert!(of("ready").contains("/home/ana/.local/share/ahpd/node/bin/node"));
+        assert!(of("ready").ends_with(" 9300"));
+    }
+
+    #[tokio::test]
+    async fn update_on_a_server_without_the_desks_install_stops_after_the_probe() {
+        let server = TestServer::start().await;
+        answer_install(&server, DEBIAN);
+        let (done, steps, commands) = run_update(&server, "latest").await;
+        assert!(done.unwrap_err().contains("not on the server"));
+        assert_eq!(
+            steps,
+            [
+                ("connect".to_string(), StepStatus::Done),
+                ("probe".to_string(), StepStatus::Failed)
+            ]
+        );
+        assert!(!commands.iter().any(|c| c.starts_with("# ahp-desk server")));
+    }
+
+    #[tokio::test]
+    async fn update_of_an_ahpd_the_desk_did_not_install_is_refused() {
+        let server = TestServer::start().await;
+        answer_install(
+            &server,
+            &format!("{DEBIAN}ahpd=/usr/local/bin/ahpd\nahpdVersion=0.11.0\n"),
+        );
+        let (done, _, commands) = run_update(&server, "latest").await;
+        assert!(done.unwrap_err().contains("updates through ahpd"));
+        assert!(!commands.iter().any(|c| c.starts_with("# ahp-desk server")));
+    }
+
+    #[tokio::test]
+    async fn update_of_a_version_npm_would_not_read_is_refused_before_connecting() {
+        let server = TestServer::start().await;
+        let (done, steps, _) = run_update(&server, "1.0; rm -rf ~").await;
+        assert!(done.unwrap_err().contains("not an npm version"));
+        assert!(steps.is_empty());
+        assert_eq!(server.sign_in_attempts(), 0);
+    }
+
+    #[tokio::test]
+    async fn update_host_refuses_a_host_with_no_ssh_or_not_installed_by_the_desk_without_connecting(
+    ) {
+        use crate::hosts::{HostInput, HostKind, SshHostView};
+        let server = TestServer::start().await;
+        let scratch = crate::ssh::known_keys::tests::Scratch::new();
+        let store = HostStore::load(
+            scratch.0.join("hosts.json"),
+            Box::new(crate::tokens::test_vaults::Memory::default()),
+        )
+        .unwrap();
+        let host = |id: &str, ssh: Option<SshHostView>| HostInput {
+            id: id.into(),
+            name: id.into(),
+            kind: HostKind::Url,
+            url: "ws://127.0.0.1:9187".into(),
+            ahpd_path: None,
+            on_desk: None,
+            ssh,
+        };
+        store.save(host("plain", None), None).unwrap();
+        store
+            .save(
+                host(
+                    "found",
+                    Some(SshHostView {
+                        address: "127.0.0.1".into(),
+                        port: server.target(None).port,
+                        user: "tester".into(),
+                        sign_in: None,
+                        key_file: None,
+                        reach: Reach::Port,
+                        remote_port: 9187,
+                        folder: None,
+                        by_desk: false,
+                        local_port: None,
+                    }),
+                ),
+                None,
+            )
+            .unwrap();
+        let known = scratch.known();
+        let send = |_: InstallEvent| {};
+        let cancel = AtomicBool::new(false);
+        let plain = update_host(&store, &known, "plain", "latest", &send, &cancel).await;
+        assert!(plain.unwrap_err().contains("not reached over SSH"));
+        let found = update_host(&store, &known, "found", "latest", &send, &cancel).await;
+        assert!(found.unwrap_err().contains("updates through ahpd"));
+        assert_eq!(server.sign_in_attempts(), 0);
+        assert!(server.commands().is_empty());
     }
 }

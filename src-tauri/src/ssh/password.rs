@@ -74,14 +74,14 @@ mod tests {
     fn host() -> Host {
         Host {
             id: "dev".into(),
-            name: "dev02".into(),
+            name: "server.example".into(),
             kind: HostKind::Url,
             url: "ws://127.0.0.1:9187".into(),
             ahpd_path: None,
             token: None,
             started_by_desk: false,
             ssh: Some(SshHost {
-                address: "dev02".into(),
+                address: "server.example".into(),
                 port: 22,
                 user: "me".into(),
                 sign_in: None,

@@ -1,6 +1,6 @@
 ---
 title: An SSH-installed ahpd can be updated over the same SSH access, for plan 09's Update
-status: todo
+status: done
 depends: [task-05-install.md]
 layer: "src-tauri"
 refs:
@@ -33,3 +33,10 @@ This task adds no command and no shell call; plan 09's task 05 does.
 - By hand on the test machine only: the ignored test `ssh_a_real_update` installs a pinned older `@ahpd/server`, updates it to the newest, and checks the newer version runs, the service is active, and the token file is unchanged; it removes what it installed at the end.
 
 ## Resume
+
+- 2026-10-18: `src-tauri/src/ssh_install.rs` has `update(target, check, keys, version, port, send, cancel)`, which answers the version now running, and `update_host(store, known, id, version, send, cancel)`, which signs in as the host does and refuses a host with no `ssh` details or with `byDesk` false before any connection; plan 09's task 05 makes `update_host` the command `update_ssh_ahpd`, with its `Channel` and `InstallControl`.
+- The steps are `connect`, `probe`, `server`, `start` and `ready`: the probe finds the desk's install and the Node its unit's `ExecStart` names, and refuses an ahpd the desk did not install, or none; npm is the one next to that Node.
+- `server_step()` is the install's and the update's `server` step, `latest` for an install; a version other than an npm word (letters, digits, `.`, `-`, `+`) is refused before connecting.
+- Verified: `cargo test` (122: the update's commands in order with the version asked; no desk install; an ahpd the desk did not install; a version npm would not read; `update_host`'s two refusals with no connection), `cargo clippy --all-targets -- -D warnings`, `cargo fmt`.
+- By hand, `ssh_a_real_update` on the test machine Softov named, twice: installed the newest ahpd, updated it to 0.11.0 and back to the newest, each time active, on that version, with the token file's checksum unchanged; it removed what it installed after.
+- `ssh_a_real_install` no longer prints the token file it compares, and `ssh_a_real_update` compares a checksum.

@@ -111,7 +111,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | [05 - the install, or the found ahpd: @ahpd/server and the backends, the folder, the token file, the user unit, the health wait, with steps and cancel](task-05-install.md) | done | 04 |
 | [06 - reach it: the tunnel on a kept local port (host kind `ssh`) or the open port (a URL host)](task-06-reach.md) | done | 05 |
 | [07 - Add host and the first run: "A server over SSH"](task-07-add-host-ssh.md) | done | 02, 05, 06 |
-| [08 - update over SSH, for plan 09](task-08-update-over-ssh.md) | todo | 05 |
+| [08 - update over SSH, for plan 09](task-08-update-over-ssh.md) | done | 05 |
 | [10 - Remove offers to uninstall the desk's ahpd on the server](task-10-uninstall-over-ssh.md) | todo | 05, 06, 07 |
 | [09 - end to end on the test machine](task-09-end-to-end.md) | todo | 01 to 08, 10 |
 
@@ -124,8 +124,8 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 
 ## Resume state
 
-- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 07, 2026-10-18, with their by-hand checks, task 06's window checks among task 07's.
-- **Next action:** task 08.
+- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 08, 2026-10-18, with their by-hand checks, task 06's window checks among task 07's.
+- **Next action:** task 10, then task 09.
 - **Open questions:** how a host whose server key changed after it was added gets the key's question (task 07's Resume).
 - **Watch out for:** doop's `AcceptAllHandler` must not be copied; the Answers row on the server key replaces it.
   The end to end and every real SSH test run against the test machine only.

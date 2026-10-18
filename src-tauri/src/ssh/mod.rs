@@ -613,9 +613,12 @@ pub(crate) mod tests {
 
     #[test]
     fn ssh_the_address_may_name_its_port() {
-        assert_eq!(SshTarget::new("dev02", 22, "u", None).port, 22);
-        let target = SshTarget::new("dev02:2222", 22, "u", None);
-        assert_eq!((target.address.as_str(), target.port), ("dev02", 2222));
+        assert_eq!(SshTarget::new("server.example", 22, "u", None).port, 22);
+        let target = SshTarget::new("server.example:2222", 22, "u", None);
+        assert_eq!(
+            (target.address.as_str(), target.port),
+            ("server.example", 2222)
+        );
         let v6 = SshTarget::new("fe80::1", 22, "u", None);
         assert_eq!((v6.address.as_str(), v6.port), ("fe80::1", 22));
     }

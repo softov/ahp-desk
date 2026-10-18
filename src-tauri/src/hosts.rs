@@ -819,7 +819,7 @@ mod tests {
     fn ssh_input(id: &str) -> HostInput {
         let mut host = input(id, id);
         host.ssh = Some(SshHostView {
-            address: "dev02".into(),
+            address: "server.example".into(),
             port: 2222,
             user: "me".into(),
             sign_in: None,
@@ -893,7 +893,7 @@ mod tests {
         let ssh = reloaded.ssh("dev").unwrap().unwrap();
         assert_eq!(
             (ssh.address.as_str(), ssh.port, ssh.user.as_str()),
-            ("dev02", 2222, "me")
+            ("server.example", 2222, "me")
         );
         assert_eq!(ssh.key_file.as_deref(), Some("C:/keys/id_ed25519"));
         assert_eq!(reloaded.ssh("dev").unwrap(), store.ssh("dev").unwrap());
