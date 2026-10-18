@@ -1,6 +1,6 @@
 ---
 title: The embedder gives the mode, each host's token and the host to show
-status: blocked
+status: done
 depends: [task-03-the-token-rule.md]
 layer: "packages/ahpw-embedder"
 refs:
@@ -38,5 +38,5 @@ A window of one host gets the embedder it has now.
   It gives the `focus=` host once, then drops it from the address, so a reload keeps the person's filter.
 - `manageHosts({ edit })` reaches `show_host_list`, which emits `host-list-edit`; the host list opens that host's form.
 - Verified against ahpw's local contract: `tsc` with `@ahpd/web/embed` mapped to ahpw's build, and the embedder's 16 tests.
-- **Blocked:** step 1, the `@ahpd/web` pins; ahpw has not released the hosts plan 02 contract, and the pinned 0.3.1 types refuse the new fields.
-  Until then a build needs `packages/ahpw-embedder/node_modules/@ahpd/web` pointed at a local ahpw.
+- Done 2026-10-18: both `@ahpd/web` pins on 0.5.0, the release with ahpw hosts plan 02, and the local ahpw link in `packages/ahpw-embedder/node_modules` gone.
+- Verified on 0.5.0 from npm: `pnpm typecheck`, `pnpm test` (the embedder's 16 and the shell's 24) and `pnpm lint` pass.

@@ -26,4 +26,4 @@ What exists today, and the first release that plans 01 to 10 build: [00-desk.md]
 | [09 - The desk says what can be updated, and updates it](desk/09-update-alerts/plan.md) | planned | task 01 and task 07; task 04 blocked on ahpd's update command |
 | [10 - Install ahpd on a Linux server over SSH](desk/10-ssh-install/plan.md) | planned | task 01 |
 | [11 - VS Code as a host](desk/11-vscode-hosts/plan.md) | draft | write the task files |
-| [12 - A window with every host](desk/12-a-window-with-every-host/plan.md) | active | task 04 (pins) |
+| [12 - A window with every host](desk/12-a-window-with-every-host/plan.md) | built | - |

@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@ahpd/web':
-        specifier: 0.3.1
-        version: 0.3.1
+        specifier: 0.5.0
+        version: 0.5.0
       '@tauri-apps/cli':
         specifier: ^2.11.2
         version: 2.12.1
@@ -22,8 +22,8 @@ importers:
         version: 2.12.3
     devDependencies:
       '@ahpd/web':
-        specifier: 0.3.1
-        version: 0.3.1
+        specifier: 0.5.0
+        version: 0.5.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -76,8 +76,8 @@ importers:
 
 packages:
 
-  '@ahpd/web@0.3.1':
-    resolution: {integrity: sha512-Rfky6nz1oEqVIMD7SHwnP2NLle8VksJDvVUftmS3wmV10sXdHFJpTIVR1/zsoBX8Gf8ktd4Y1YHqgsD7U4rJcw==}
+  '@ahpd/web@0.5.0':
+    resolution: {integrity: sha512-D9RSu/jLysMFMk39iIoJiOvgMJ9hCVOQX3By2SXt1csLnN6BYgeiBye4kXcowTNVIlocQ+D6s7pPSbfqoptSzQ==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
@@ -85,6 +85,10 @@ packages:
     peerDependenciesMeta:
       '@ahpd/sdk':
         optional: true
+
+  '@cofold/bood@0.2.0':
+    resolution: {integrity: sha512-CCFz1hhYquO3B0vMTMDSgbQMMUdMAIJmqJkj/QwAXANlOV4tM9lT3nIzEb46n/VJygIr8oSd4AkDlqfBZcEwwQ==}
+    engines: {node: '>=22'}
 
   '@cofold/commands@0.3.0':
     resolution: {integrity: sha512-519EMb9ZL679ec/hJdMuVMQo0P2yvvMDCX5W9h4jVYJPqMU1lnhQjN9hvroFSCKqawVus3fXBIJQ5oUrXfe2jQ==}
@@ -647,12 +651,15 @@ packages:
 
 snapshots:
 
-  '@ahpd/web@0.3.1':
+  '@ahpd/web@0.5.0':
     dependencies:
+      '@cofold/bood': 0.2.0
       '@cofold/commands': 0.3.0
       '@cofold/config': 0.3.1
       '@cofold/remote': 0.5.0
       '@cofold/terminal': 0.3.0
+
+  '@cofold/bood@0.2.0': {}
 
   '@cofold/commands@0.3.0':
     dependencies:

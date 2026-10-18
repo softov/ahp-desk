@@ -1,7 +1,7 @@
 ---
 title: A window with every host
 domain: desk
-status: active
+status: built
 priority: medium
 created: 2026-10-16
 revalidated: 2026-10-16
@@ -69,7 +69,7 @@ Settings: hosts open in one window with every host
 | [01 - the setting "Hosts open in", in Settings and settings.json](task-01-the-setting-hosts-open-in.md) | done | - |
 | [02 - the window with every host opens, focuses and shows the host picked](task-02-the-window-with-every-host.md) | done | 01 |
 | [03 - the window with every host may read every token](task-03-the-token-rule.md) | done | 02 |
-| [04 - the embedder gives the mode, each host's token and the host to show](task-04-the-embedder-mode-and-tokens.md) | blocked | 03, ahpw hosts plan 02 task 01 |
+| [04 - the embedder gives the mode, each host's token and the host to show](task-04-the-embedder-mode-and-tokens.md) | done | 03, ahpw hosts plan 02 task 01 |
 | [05 - two hosts end to end, in both settings](task-05-two-hosts-end-to-end.md) | done | 04, ahpw hosts plan 02 |
 
 ## Risks and tradeoffs
@@ -78,8 +78,8 @@ Settings: hosts open in one window with every host
 
 ## Resume state
 
-- **Done so far:** tasks 01 to 03 and 05, and task 04's code, 2026-10-16.
-- **Next action:** task 04 step 1, the `@ahpd/web` pins, once ahpw releases hosts plan 02; then `implemented.md` and `built`.
+- **Done so far:** every task; the `@ahpd/web` pins on 0.5.0, 2026-10-18.
+- **Next action:** none; see [implemented.md](implemented.md).
 - **Open questions:** none.
 - **Watch out for:** the app-window spec's scenarios change with this plan, and a pinned `@ahpd/web` without the new contract cannot run multi.
 
@@ -88,4 +88,4 @@ Settings: hosts open in one window with every host
 - [x] With "every host", one window shows two hosts, and Open on either focuses it filtered to that host.
 - [x] With "per host", the desk works as today.
 - [x] `specs/app-window.md` and `specs/tray-and-settings.md` say what the desk now does.
-- [ ] `plans/index.md` updated.
+- [x] `plans/index.md` updated.
