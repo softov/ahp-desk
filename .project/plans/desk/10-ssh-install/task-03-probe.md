@@ -45,7 +45,7 @@ refs:
 - Cargo tests for `found_ahpd()`'s parse: a running ahpd with `@ahpd/agent-claude` ready; a stopped one with no plugin; a 0.7.0 (`supported: false`).
 - Cargo test against task 01's `test_server.rs`: `probe()` sends one command and parses its answer, and a second only when an ahpd is found.
 - `pnpm test` and `pnpm lint` pass.
-- By hand on dev02 only: the ignored test `ssh_a_real_probe` prints dev02's probe, which is recorded in this file's Resume.
+- By hand on the test machine only: the ignored test `ssh_a_real_probe` prints the test machine's probe, which is recorded in this file's Resume.
 
 ## Resume
 

@@ -32,3 +32,31 @@ export function hostId(name: string, taken: readonly string[]): string {
   for (let n = 2; taken.includes(id); n += 1) id = `${base}-${n}`;
   return id;
 }
+
+/** The server Add host over SSH names, its fields trimmed, or the field that is wrong. */
+export function sshTarget(
+  host: string,
+  port: string,
+  user: string,
+): { ok: true; host: string; port: number; user: string } | { ok: false; field: 'host' | 'port' | 'user' } {
+  const name = host.trim();
+  // A name, an IPv4 or an IPv6 address: no spaces, nothing a shell or URL would split on.
+  if (name === '' || !/^[A-Za-z0-9.:_-]+$/.test(name)) return { ok: false, field: 'host' };
+  const number = portOf(port);
+  if (number === null) return { ok: false, field: 'port' };
+  const login = user.trim();
+  if (login === '' || /\s/.test(login)) return { ok: false, field: 'user' };
+  return { ok: true, host: name, port: number, user: login };
+}
+
+/** The port ahpd listens on, on the server: from 1 to 65535, or `null`. */
+export function ahpdPort(text: string): number | null {
+  return portOf(text);
+}
+
+function portOf(text: string): number | null {
+  const trimmed = text.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const port = Number(trimmed);
+  return port >= 1 && port <= 65535 ? port : null;
+}

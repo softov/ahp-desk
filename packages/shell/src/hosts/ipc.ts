@@ -163,7 +163,10 @@ export interface Probe {
   found: FoundOnServer | null;
   /** Why the desk cannot use or install ahpd there; null when it can. */
   refusal: string | null;
-  warnings: string[];
+  /** How the sign-in went through, which the host keeps. */
+  signIn: SshHost['signIn'] | null;
+  /** An ahpd config already there with no ahpd found, which the desk's ahpd will use. */
+  ahpdConfig: string | null;
 }
 
 /** Signs in to the server and probes it; rejects with an `SshError` the form reads with `sshError`. */
@@ -310,9 +313,12 @@ export function hostToken(id: string): Promise<string | null> {
   return invoke<string | null>('host_token', { id });
 }
 
-/** Saves the host. `token`: null keeps the one it has, `''` deletes it. */
-export function saveHost(host: Host, token: string | null): Promise<void> {
-  return invoke('save_host', { host, token });
+/**
+ * Saves the host. `token`: null keeps the one it has, `''` deletes it.
+ * `sshPassword`: null keeps the one kept, `''` forgets it, a value keeps it.
+ */
+export function saveHost(host: Host, token: string | null, sshPassword: string | null): Promise<void> {
+  return invoke('save_host', { host, token, sshPassword });
 }
 
 export function removeHost(id: string): Promise<void> {

@@ -158,7 +158,9 @@ export function HostList({
                 title={t(`status.${status.kind}`)}
               />
               <span className="name">
-                {host.name}
+                <span className="name-text" title={host.name}>
+                  {host.name}
+                </span>
                 {host.tokenInFile === true && (
                   <span className="warn" title={t('hosts.noKeyring')}>
                     {t('hosts.tokenInFile')}

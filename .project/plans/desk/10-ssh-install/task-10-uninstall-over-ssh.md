@@ -43,7 +43,7 @@ An ahpd the desk found on the server and did not install is left as it is, and R
 - Cargo tests: `uninstall_script()` with a home with a space; the guard refuses a prefix outside `<home>/.local/share/ahpd`; the step ids in order; `stop` is `skipped` with no unit.
 - Cargo test against task 01's `test_server.rs` with canned answers: the commands in order, none touching `~/.config/ahpd`; a host with `byDesk` false refused with no connection; a failing `systemctl --user disable` stops before `files` and the host is kept; a server that does not answer fails at `connect` and the host is kept.
 - `pnpm typecheck`, `pnpm test` and `pnpm lint` pass; `i18n.test.ts` passes with the new words in en, pt-BR and es.
-- By hand on dev02 only: the ignored test `ssh_a_real_uninstall` installs with task 05's code, uninstalls, and checks that `systemctl --user status ahpd` knows no unit, that `~/.local/share/ahpd` and the unit file are gone, and that nothing listens on the ahpd port (`ss -ltn`).
-- By hand on the debug desk over CDP, against dev02 only: "Remove and uninstall" on a tunnelled host shows the steps and ends with the host gone from the list; "Remove from the desk only" leaves the server's ahpd running; the question in en, pt-BR and es at the window's smallest size.
+- By hand on the test machine only: the ignored test `ssh_a_real_uninstall` installs with task 05's code, uninstalls, and checks that `systemctl --user status ahpd` knows no unit, that `~/.local/share/ahpd` and the unit file are gone, and that nothing listens on the ahpd port (`ss -ltn`).
+- By hand on the debug desk over CDP, against the test machine only: "Remove and uninstall" on a tunnelled host shows the steps and ends with the host gone from the list; "Remove from the desk only" leaves the server's ahpd running; the question in en, pt-BR and es at the window's smallest size.
 
 ## Resume

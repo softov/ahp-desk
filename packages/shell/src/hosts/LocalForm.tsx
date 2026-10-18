@@ -13,20 +13,11 @@ import {
   type OnDesk,
 } from './ipc.js';
 import { t } from '../i18n.js';
+import { BackendsField, hasBackend, startingBackends } from './BackendsField.js';
+import { FoundAhpdField } from './FoundAhpd.js';
 import { InstallSteps } from './InstallSteps.js';
 import type { Saved } from './HostForm.js';
 import { hostId } from './url.js';
-
-/** The backends Add host offers, in `ahpd configure`'s order, and the bots. */
-const BACKENDS = [
-  { name: 'Claude', pkg: '@ahpd/agent-claude' },
-  { name: 'cofold', pkg: '@ahpd/agent-cofold' },
-  { name: 'pi', pkg: '@ahpd/agent-pi' },
-] as const;
-const BOT = '@ahpd/bot';
-
-/** The oldest ahpd the desk runs, as `local_ahpd::OLDEST_SUPPORTED`. */
-const NEEDED = '0.8.0';
 
 /** Where the ahpd search stands: looking, done, or failed. */
 type Search = { kind: 'looking' } | { kind: 'done'; found: FoundAhpd | null } | { kind: 'failed'; error: string };
@@ -35,7 +26,7 @@ type Search = { kind: 'looking' } | { kind: 'done'; found: FoundAhpd | null } | 
 type Phase = 'form' | 'installing' | 'adding' | 'starting';
 
 /** An error's first line, and what ahpd wrote under it, such as its log, in a box. */
-function ErrorText({ text }: { text: string }) {
+export function ErrorText({ text }: { text: string }) {
   const [head, ...rest] = text.split('\n');
   return (
     <>
@@ -117,31 +108,20 @@ export function LocalForm({
     if (typeof picked === 'string') setFolder(picked);
   };
 
-  const toggle = (pkg: string, on: boolean) => {
-    const next = new Set(backends);
-    if (on) next.add(pkg);
-    else next.delete(pkg);
-    setBackends(next);
-  };
-
   const found = search.kind === 'done' ? search.found : null;
   const install = retryInstall || (search.kind === 'done' && found === null);
   const usable = found?.supported === true || install;
   // What the found ahpd has ready, ticked and fixed; the desk's own install starts with none.
   const has = new Set(install ? [] : (found?.plugins ?? []));
   const added = [...backends].filter((pkg) => !has.has(pkg));
-  // A ready plugin the desk does not offer counts, as the list cannot tell a backend from another plugin.
-  const hasBackend =
-    BACKENDS.some((one) => backends.has(one.pkg) || has.has(one.pkg)) ||
-    [...has].some((pkg) => pkg !== BOT && !BACKENDS.some((one) => one.pkg === pkg));
-  const ready = phase === 'form' && saved === null && name.trim() !== '' && usable && hasBackend && folder !== null;
+  const ready =
+    phase === 'form' && saved === null && name.trim() !== '' && usable && hasBackend(has, backends) && folder !== null;
 
   // A found ahpd that already has a backend gets nothing ticked for it; one with none starts on Claude.
   const foundPlugins = found?.plugins.join(' ');
   useEffect(() => {
     if (foundPlugins === undefined) return;
-    const ready = foundPlugins.split(' ').filter((pkg) => pkg !== '' && pkg !== BOT);
-    setBackends(new Set(ready.length > 0 ? [] : ['@ahpd/agent-claude']));
+    setBackends(startingBackends(foundPlugins.split(' ')));
   }, [foundPlugins]);
 
   const save = async (event: FormEvent) => {
@@ -170,6 +150,7 @@ export function LocalForm({
       await saveHost(
         { id, name: name.trim(), kind: 'local', url: 'ws://127.0.0.1:9187', ahpdPath: ahpdPath ?? undefined, onDesk },
         null,
+        null,
       );
       setSaved({ id, name: name.trim() });
       await startLocalAhpd(id);
@@ -193,32 +174,26 @@ export function LocalForm({
           <span>{t('form.name')}</span>
           <input value={name} onChange={(event) => setName(event.target.value)} disabled={phase !== 'form'} />
         </label>
-        <div className="field">
-          <span>{t('local.ahpd')}</span>
-          {/* One line, with Change beside it, except for the too-old note and its command. */}
-          <div className={found !== null && !found.supported ? 'found' : 'found found--line'}>
-            {search.kind === 'looking' && <p>{t('local.looking')}</p>}
-            {search.kind === 'failed' && <p className="result bad">{search.error}</p>}
-            {found !== null && found.supported && <p title={found.path}>{foundLine(found)}</p>}
-            {found !== null && !found.supported && (
-              <>
-                <p>{t('local.tooOld', { version: found.version, needed: NEEDED })}</p>
-                <code>npm i -g @ahpd/server</code>
-              </>
-            )}
-            {install && <p>{t('local.none')}</p>}
-            <div className="found-actions">
-              {found !== null && !found.supported && (
-                <button type="button" onClick={() => look(ahpdPath)} disabled={phase !== 'form'}>
-                  {t('local.checkAgain')}
-                </button>
-              )}
-              <button type="button" onClick={() => void change()} disabled={phase !== 'form'}>
-                {t('local.change')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <FoundAhpdField
+          label={t('local.ahpd')}
+          line={
+            <>
+              {search.kind === 'looking' && <p>{t('local.looking')}</p>}
+              {search.kind === 'failed' && <p className="result bad">{search.error}</p>}
+              {found !== null && found.supported && <p title={found.path}>{foundLine(found)}</p>}
+              {install && <p>{t('local.none')}</p>}
+            </>
+          }
+          tooOld={found !== null && !found.supported ? found.version : null}
+          update="npm i -g @ahpd/server"
+          onCheckAgain={() => look(ahpdPath)}
+          actions={
+            <button type="button" onClick={() => void change()} disabled={phase !== 'form'}>
+              {t('local.change')}
+            </button>
+          }
+          disabled={phase !== 'form'}
+        />
         {usable && (
           <div className="field">
             <span>{t('local.folder')}</span>
@@ -232,25 +207,7 @@ export function LocalForm({
             </div>
           </div>
         )}
-        {usable && (
-          <div className="field">
-            <span>{t('local.backends')}</span>
-            <div className="checks">
-              {[...BACKENDS, { name: t('local.bot'), pkg: BOT }].map((one) => (
-                <label className="check" key={one.pkg}>
-                  <input
-                    type="checkbox"
-                    checked={has.has(one.pkg) || backends.has(one.pkg)}
-                    onChange={(event) => toggle(one.pkg, event.target.checked)}
-                    disabled={phase !== 'form' || has.has(one.pkg)}
-                  />
-                  <span>{one.name}</span>
-                  <small>{has.has(one.pkg) ? t('local.installed') : one.pkg}</small>
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
+        {usable && <BackendsField has={has} backends={backends} onChange={setBackends} disabled={phase !== 'form'} />}
         <label className="check">
           <input
             type="checkbox"

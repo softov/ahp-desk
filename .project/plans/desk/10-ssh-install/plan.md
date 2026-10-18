@@ -110,34 +110,34 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | [04 - Node: the server's own, or the newest 22 downloaded there](task-04-node.md) | done | 03 |
 | [05 - the install, or the found ahpd: @ahpd/server and the backends, the folder, the token file, the user unit, the health wait, with steps and cancel](task-05-install.md) | done | 04 |
 | [06 - reach it: the tunnel on a kept local port (host kind `ssh`) or the open port (a URL host)](task-06-reach.md) | done | 05 |
-| [07 - Add host and the first run: "A server over SSH"](task-07-add-host-ssh.md) | todo | 02, 05, 06 |
+| [07 - Add host and the first run: "A server over SSH"](task-07-add-host-ssh.md) | done | 02, 05, 06 |
 | [08 - update over SSH, for plan 09](task-08-update-over-ssh.md) | todo | 05 |
 | [10 - Remove offers to uninstall the desk's ahpd on the server](task-10-uninstall-over-ssh.md) | todo | 05, 06, 07 |
-| [09 - end to end on dev02](task-09-end-to-end.md) | todo | 01 to 08, 10 |
+| [09 - end to end on the test machine](task-09-end-to-end.md) | todo | 01 to 08, 10 |
 
 ## Risks and tradeoffs
 
-- The end to end runs on dev02, which Softov offered for it on 2026-10-13; never on dev01 or another host in use.
+- The end to end runs on the test machine, which Softov offered for it on 2026-10-13; never on a host in use.
 - A tunnelled host is down whenever the desk is closed; the form says so.
 - A password kept in `hosts.json` on a machine with no keyring is readable by anything that reads the desk's files; the checkbox and the host's row say so.
 - Using an ahpd found on the server means the desk changes the plugins of an ahpd it did not install, only when the person ticks a backend.
 
 ## Resume state
 
-- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 06, 2026-10-18, with their by-hand checks; task 06's window checks run with task 07's.
-- **Next action:** task 07.
-- **Open questions:** none.
+- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 07, 2026-10-18, with their by-hand checks, task 06's window checks among task 07's.
+- **Next action:** task 08.
+- **Open questions:** how a host whose server key changed after it was added gets the key's question (task 07's Resume).
 - **Watch out for:** doop's `AcceptAllHandler` must not be copied; the Answers row on the server key replaces it.
-  The end to end and every real SSH test run against dev02 only.
+  The end to end and every real SSH test run against the test machine only.
   Task 10 runs before task 09, the end to end, which covers it.
 
 ## Final verification checklist
 
-- [ ] On dev02, each sign-in installs ahpd and connects, by tunnel and by open port.
+- [ ] On the test machine, each sign-in installs ahpd and connects, by tunnel and by open port.
 - [ ] A new server key is refused until Trust; a changed one is refused with both fingerprints and forgotten from the refusal.
-- [ ] An ahpd already on dev02 is used, with the backends it lacks offered, and nothing installed beside it.
+- [ ] An ahpd already on the test machine is used, with the backends it lacks offered, and nothing installed beside it.
 - [ ] Update over SSH installs the newer ahpd and the host comes back.
-- [ ] Remove with uninstall leaves no unit, no install and no token of the desk's on dev02, and `~/.config/ahpd` as it was.
+- [ ] Remove with uninstall leaves no unit, no install and no token of the desk's on the test machine, and `~/.config/ahpd` as it was.
 - [ ] A found ahpd that was off is started with no unit, and Remove leaves it running.
 - [ ] A terminal `ahpd status` on the server sees the desk's ahpd: a pending check, waiting on ahpd (task 05).
 - [ ] `plans/index.md` updated.

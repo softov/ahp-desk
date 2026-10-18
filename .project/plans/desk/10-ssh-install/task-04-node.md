@@ -32,7 +32,7 @@ Nothing large goes from the desk.
 - Run in `sh` on this machine's Git Bash against a scratch folder with a canned `SHASUMS256.txt`: the line for the CPU is picked, a missing one is refused, and a wrong sum deletes the archive.
 - Cargo test against task 01's `test_server.rs`: `Own` sends no download; a script that exits non-zero fails `node()` with its last lines.
 - `pnpm test` and `pnpm lint` pass.
-- By hand on dev02 only: the ignored test `ssh_a_real_node_download`, with the download forced into a scratch folder, ends with `node -v` printing a 22 version; a second run replaces it whole.
+- By hand on the test machine only: the ignored test `ssh_a_real_node_download`, with the download forced into a scratch folder, ends with `node -v` printing a 22 version; a second run replaces it whole.
 
 ## Resume
 

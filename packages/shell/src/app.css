@@ -370,11 +370,18 @@ button.choice:hover:not(:disabled) {
 }
 
 .sign-in .question {
+  min-width: 0;
   margin-right: auto;
 }
 
 .sign-in input {
-  width: 180px;
+  flex: 0 1 180px;
+  min-width: 110px;
+}
+
+.sign-in button {
+  flex: none;
+  white-space: nowrap;
 }
 
 /* As ahpw's host switcher: filled connected, half connecting, hollow down. */
@@ -404,6 +411,13 @@ button.choice:hover:not(:disabled) {
   flex-direction: column;
   font-weight: 600;
   min-width: 0;
+}
+
+.name-text,
+.sign-in .question {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .name .warn {
@@ -558,8 +572,11 @@ input[type='radio'] {
   border-radius: var(--oo-radius-sm) 0 0 var(--oo-radius-sm);
 }
 
-.segmented button:last-child {
+.segmented button + button {
   margin-left: -1px;
+}
+
+.segmented button:last-child {
   border-radius: 0 var(--oo-radius-sm) var(--oo-radius-sm) 0;
 }
 
@@ -602,6 +619,136 @@ input[type='radio'] {
 .found-actions {
   display: flex;
   gap: 8px;
+}
+
+/* A field's words where an input would be, as Edit host's SSH server. */
+.field-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 5px;
+  font-size: var(--oo-font-size-sm);
+}
+
+.field-text p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.found p.muted,
+.found .hint-inline {
+  color: var(--oo-color-muted);
+}
+
+.found .hint-inline {
+  font-size: var(--oo-font-size-xs);
+}
+
+.hint.bad {
+  color: var(--oo-color-danger);
+}
+
+/* Host, Port and User on one line, as mockup 02 draws them. */
+.ssh-server {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ssh-server > input {
+  flex: 1;
+  min-width: 0;
+}
+
+.fields .ssh-server label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ssh-port {
+  width: calc(6ch + 18px);
+}
+
+.ssh-user {
+  width: 10ch;
+}
+
+/* The reach: each choice with its note after it. */
+.fields .reach {
+  display: grid;
+  gap: 6px;
+  padding-top: 5px;
+}
+
+.fields .reach label.check {
+  align-items: baseline;
+  margin-left: 0;
+}
+
+.fields .reach small {
+  color: var(--oo-color-muted);
+  font-size: var(--oo-font-size-xs);
+}
+
+/* The server key to trust, or the warning of a changed one. */
+.server-key {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--oo-color-border);
+  border-radius: var(--oo-radius-sm);
+  font-size: var(--oo-font-size-sm);
+}
+
+.server-key.bad {
+  border-color: var(--oo-color-danger);
+}
+
+.server-key p {
+  margin: 0;
+}
+
+.server-key .hint {
+  margin: 0;
+}
+
+.server-key code {
+  justify-self: start;
+  max-width: 100%;
+  padding: 3px 6px;
+  border: 1px solid var(--oo-color-border);
+  border-radius: var(--oo-radius-sm);
+  font-size: var(--oo-font-size-xs);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* The named steps of an install over SSH, above its lines. */
+.step-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  max-width: 520px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--oo-font-size-sm);
+}
+
+.step-list .step-running {
+  color: var(--oo-color-accent);
+}
+
+.step-list .step-done,
+.step-list .step-skipped {
+  color: var(--oo-color-muted);
+}
+
+.step-list .step-failed {
+  color: var(--oo-color-danger);
 }
 
 /* Two columns, so the form fits the window at its smallest. */

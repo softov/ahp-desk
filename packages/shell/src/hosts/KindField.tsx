@@ -1,9 +1,9 @@
 import { t } from '../i18n.js';
 
-export type AddKind = 'local' | 'url';
+export type AddKind = 'local' | 'url' | 'ssh';
 
 /**
- * Add host's Kind: This computer or URL. This computer is one host, so once it
+ * Add host's Kind: This computer, URL or a server over SSH. This computer is one host, so once it
  * is in the list it cannot be picked again.
  */
 export function KindField({
@@ -31,6 +31,9 @@ export function KindField({
         </button>
         <button type="button" role="radio" aria-checked={kind === 'url'} onClick={() => onKind('url')}>
           {t('add.url')}
+        </button>
+        <button type="button" role="radio" aria-checked={kind === 'ssh'} onClick={() => onKind('ssh')}>
+          {t('add.ssh')}
         </button>
       </div>
     </div>

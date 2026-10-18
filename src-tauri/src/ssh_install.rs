@@ -175,8 +175,13 @@ pub struct Probe {
     pub found: Option<FoundOnServer>,
     /// Why the desk cannot use or install ahpd here; none when it can.
     pub refusal: Option<String>,
-    /// What the person should know, without stopping.
-    pub warnings: Vec<String>,
+    /// How the sign-in went through, which the host keeps, so a tunnel after a
+    /// restart knows what to ask; set by `probe_ssh_server`.
+    pub sign_in: Option<crate::ssh::SignIn>,
+    /// An ahpd config already on the server with no ahpd found, from one set
+    /// up before: the desk's ahpd uses it, and a plugin there that the newest
+    /// ahpd cannot load stops the install.
+    pub ahpd_config: Option<String>,
 }
 
 /// The probe of a server from what the probe script printed. A found ahpd
@@ -251,24 +256,10 @@ pub fn parse_probe(text: &str) -> Probe {
         refusal = Some(reason.clone());
     }
 
-    let mut warnings = Vec::new();
-    if let (None, Some(config)) = (&found, get("ahpdConfig")) {
-        warnings.push(format!(
-            "{config} is already there, from an ahpd set up before; the desk's ahpd uses it, \
-             and a plugin there that the newest ahpd cannot load stops the install."
-        ));
-    }
-    match &found {
-        None if !linger => warnings.push(format!(
-            "Lingering is off for {user}, so ahpd stops when {user} logs out. \
-             An administrator turns it on with: sudo loginctl enable-linger {user}"
-        )),
-        Some(found) if !found.by_desk => warnings.push(
-            "This ahpd has no service, so it will not come back after the server restarts."
-                .to_string(),
-        ),
-        _ => {}
-    }
+    let ahpd_config = match &found {
+        None => get("ahpdConfig").map(str::to_string),
+        Some(_) => None,
+    };
 
     Probe {
         os,
@@ -283,7 +274,8 @@ pub fn parse_probe(text: &str) -> Probe {
         node,
         found,
         refusal,
-        warnings,
+        sign_in: None,
+        ahpd_config,
     }
 }
 
@@ -1331,15 +1323,17 @@ pub async fn probe_ssh_server(
         kept_password: store.ssh_password(&target.id).ok().flatten(),
         signed_in_before: saved.and_then(|ssh| ssh.sign_in),
     };
-    let (session, _) = ssh::open(
+    let (session, way) = ssh::open(
         &ssh_target,
         known.checker(&ssh_target.address, ssh_target.port),
         keys,
     )
     .await?;
-    probe(&session)
+    let mut probed = probe(&session)
         .await
-        .map_err(|why| SignInError::Connect(ConnectError::Failed { why }))
+        .map_err(|why| SignInError::Connect(ConnectError::Failed { why }))?;
+    probed.sign_in = Some(way);
+    Ok(probed)
 }
 
 #[cfg(test)]
@@ -1355,7 +1349,7 @@ mod tests {
     fn probe_debian_with_node_22_and_lingering_uses_its_own_node() {
         let probe = parse_probe(DEBIAN);
         assert_eq!(probe.refusal, None);
-        assert!(probe.warnings.is_empty());
+        assert!(probe.linger && probe.ahpd_config.is_none());
         assert_eq!(
             probe.pretty.as_deref(),
             Some("Debian GNU/Linux 12 (bookworm)")
@@ -1376,7 +1370,7 @@ mod tests {
         let probe = parse_probe("os=Linux\narch=x86_64\nlibc=glibc\nhome=/home/bo\nuser=bo\nsystemd=yes\nlinger=no\nfetch=wget\ntar=yes\n");
         assert_eq!(probe.refusal, None);
         assert_eq!(probe.node, NodeOnServer::Download { cpu: Cpu::X64 });
-        assert!(probe.warnings[0].contains("sudo loginctl enable-linger bo"));
+        assert!(!probe.linger);
     }
 
     #[test]
@@ -1436,7 +1430,6 @@ mod tests {
             ("/usr/local/bin/ahpd", "0.12.0")
         );
         assert!(found.supported && !found.by_desk && found.node.is_none());
-        assert!(probe.warnings[0].contains("will not come back"));
     }
 
     #[test]
@@ -1449,7 +1442,6 @@ mod tests {
             found.node.as_deref(),
             Some("/home/ana/.local/share/ahpd/node/bin/node")
         );
-        assert!(probe.warnings.is_empty());
         assert!(ahpd_command(&found, "/home/ana", "status --json").starts_with(
             "AHPD_PLUGIN_ROOT=/home/ana/.local/share/ahpd PATH=/home/ana/.local/share/ahpd/node/bin:\"$PATH\" /home/ana/.local/share/ahpd/node/bin/node "
         ));
@@ -2267,10 +2259,10 @@ mod tests {
     }
 
     #[test]
-    fn probe_an_ahpd_config_already_there_is_warned_about() {
+    fn probe_an_ahpd_config_already_there_is_named() {
         let probe = parse_probe(&format!("{DEBIAN}ahpdConfig=/home/ana/.config/ahpd\n"));
         assert_eq!(probe.refusal, None);
-        assert!(probe.warnings[0].starts_with("/home/ana/.config/ahpd is already there"));
+        assert_eq!(probe.ahpd_config.as_deref(), Some("/home/ana/.config/ahpd"));
     }
 
     #[tokio::test]

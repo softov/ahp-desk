@@ -427,21 +427,26 @@ async fn try_agent(session: &mut Session, user: &str) -> Result<bool, String> {
         let agent = AgentClient::connect_env()
             .await
             .map_err(|err| format!("none reachable ({err})"))?;
-        agent_sign_in(session, user, agent).await
+        agent_sign_in(session, user, agent)
+            .await?
+            .ok_or_else(|| "none reachable (it did not answer)".to_string())
     }
     #[cfg(windows)]
     {
         let mut reached = false;
         if let Ok(agent) = AgentClient::connect_named_pipe(r"\\.\pipe\openssh-ssh-agent").await {
-            reached = true;
-            if agent_sign_in(session, user, agent).await? {
-                return Ok(true);
+            match agent_sign_in(session, user, agent).await? {
+                Some(true) => return Ok(true),
+                Some(false) => reached = true,
+                None => {}
             }
         }
+        // Pageant's handle opens whether or not Pageant runs; only an answer counts.
         if let Ok(agent) = AgentClient::connect_pageant().await {
-            reached = true;
-            if agent_sign_in(session, user, agent).await? {
-                return Ok(true);
+            match agent_sign_in(session, user, agent).await? {
+                Some(true) => return Ok(true),
+                Some(false) => reached = true,
+                None => {}
             }
         }
         if reached {
@@ -452,18 +457,18 @@ async fn try_agent(session: &mut Session, user: &str) -> Result<bool, String> {
     }
 }
 
+/// Signs in with a key `agent` holds; `None` when the agent does not answer.
 async fn agent_sign_in<S>(
     session: &mut Session,
     user: &str,
     mut agent: AgentClient<S>,
-) -> Result<bool, String>
+) -> Result<Option<bool>, String>
 where
     S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
-    let identities = agent
-        .request_identities()
-        .await
-        .map_err(|err| err.to_string())?;
+    let Ok(identities) = agent.request_identities().await else {
+        return Ok(None);
+    };
     let hash = session
         .best_supported_rsa_hash()
         .await
@@ -479,11 +484,11 @@ where
             .await
         {
             if auth.success() {
-                return Ok(true);
+                return Ok(Some(true));
             }
         }
     }
-    Ok(false)
+    Ok(Some(false))
 }
 
 /// Runs `command` on the server and answers its exit code with its stdout

@@ -30,6 +30,6 @@ This task adds no command and no shell call; plan 09's task 05 does.
 
 - Cargo test against task 01's `test_server.rs`: the commands in order, with the version asked; a host with no `ssh` details refused; a host with `byDesk` false refused with no connection; a server with no desk install refused.
 - `pnpm test` and `pnpm lint` pass.
-- By hand on dev02 only: the ignored test `ssh_a_real_update` installs a pinned older `@ahpd/server`, updates it to the newest, and checks the newer version runs, the service is active, and the token file is unchanged; it removes what it installed at the end.
+- By hand on the test machine only: the ignored test `ssh_a_real_update` installs a pinned older `@ahpd/server`, updates it to the newest, and checks the newer version runs, the service is active, and the token file is unchanged; it removes what it installed at the end.
 
 ## Resume

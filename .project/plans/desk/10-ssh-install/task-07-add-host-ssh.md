@@ -1,6 +1,6 @@
 ---
 title: Add host and the first run offer "A server over SSH", which signs in, trusts the key, uses the ahpd found or installs one, and connects
-status: todo
+status: done
 depends: [task-02-server-key.md, task-05-install.md, task-06-reach.md]
 layer: "packages/shell, src-tauri"
 refs:
@@ -70,8 +70,26 @@ It shows what the probe found: an ahpd already on the server, which it uses, or 
 - `ahpdPort` tests: 9187, 1 and 65535 pass; 0, 65536, empty and text refused.
 - `i18n.test.ts` passes: every new word in en, pt-BR and es, with its placeholders.
 - `pnpm typecheck`, `pnpm test` and `pnpm lint` pass.
-- By hand on the debug desk over CDP, with a host list in `AHP_DESK_CONFIG_DIR`, against dev02 only: the form in en, pt-BR and es at the window's smallest size; the new key's question shows the same fingerprint as `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on dev02, and Trust connects; with the desk's entry edited to another key, the refusal shows both fingerprints and "Forget the old key" leads back to the trust question; an install by tunnel on another ahpd port and one by open port each end with the host connected and its app window open; a second Add host on the same server finds that ahpd and offers only the backends it lacks; the first run reaches the same end.
+- By hand on the debug desk over CDP, with a host list in `AHP_DESK_CONFIG_DIR`, against the test machine only: the form in en, pt-BR and es at the window's smallest size; the new key's question shows the same fingerprint as `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the test machine, and Trust connects; with the desk's entry edited to another key, the refusal shows both fingerprints and "Forget the old key" leads back to the trust question; an install by tunnel on another ahpd port and one by open port each end with the host connected and its app window open; a second Add host on the same server finds that ahpd and offers only the backends it lacks; the first run reaches the same end.
 - By hand over CDP, with the page's `ssh_keyring_works` answer patched to false in `window.__TAURI_INTERNALS__.invoke`: the checkbox names the plain file, in en, pt-BR and es, and is not cut at the window's smallest size; the save with no keyring itself is task 01's Cargo tests.
 - By hand, task 06's window checks, on a host the form added, with a host list in `AHP_DESK_CONFIG_DIR`: a tunnelled host connects and its app window opens; with the desk closed, nothing on the server listens beyond 127.0.0.1 (`ss -ltn`); restarting the desk opens the tunnel again on the same local port and the window keeps its tabs; a host signed in with a key with a passphrase shows Sign in after the restart, and opens once it is typed; an open-port host connects from the desk.
 
 ## Resume
+
+- 2026-10-18: `packages/shell/src/hosts/SshForm.tsx` has the form and its phases; `ServerKey.tsx` the new key's question and the changed key's refusal; `BackendsField.tsx` (`BACKENDS`, `BOT`, `hasBackend`, `startingBackends`) and `FoundAhpd.tsx` (`FoundAhpdField`) are shared with `LocalForm.tsx`.
+- `InstallSteps` takes `steps` too, and `withStep()` keeps each step's last status; `KindField`, `App` and `FirstRun` offer "A server over SSH"; `saveHost(host, token, sshPassword)` and `save_host` keep, forget or leave the password; `url.ts` has `sshTarget()` and `ahpdPort()`.
+- The probe answers `signIn`, which the host keeps, and `ahpdConfig` in place of its English `warnings`: the form says lingering, a found ahpd that is off, and an old config folder in its own words, in three languages.
+- A found ahpd the desk installed shows no "it is off" note: its unit is restarted on every save, and `ahpd status` from a shell does not see the ahpd systemd runs (the plan's pending check).
+- Edit host shows an SSH host's server, port, reach and folder as text, keeps `ssh` on save, and takes a password: typed with Remember, it is kept; typed without, the kept one is forgotten and the typed one is held until the desk quits; empty, nothing changes (defaulted: the form had no other way to replace a kept password).
+- An SSH agent that does not answer counts as none: Pageant's handle opens whether or not Pageant runs, which showed "agent: early eof".
+- `App` reconnects a host as soon as its tunnel comes up, so a new or reopened tunnel never shows down until the client's next retry.
+- The host list ellipsizes a long name, and the row's Sign in keeps its buttons on one line at the window's smallest size.
+- Verified: `cargo test` (117), `cargo clippy --all-targets -- -D warnings`, `cargo fmt --check`, `pnpm typecheck`, `pnpm test` (27, with `url.test.ts` and `i18n.test.ts`).
+- By hand on a release build over CDP, with a scratch `AHP_DESK_CONFIG_DIR` and home, against the test machine Softov named: the new key's question showed the fingerprint Softov matched, and Trust connected; with the desk's entry changed to another key, the refusal showed both fingerprints and "Forget the old key" led back to the question.
+- Installed by tunnel on ahpd port 9287 and, through the first run, by open port on 9187 with a key with a passphrase: each ended with the host connected and its app window open; a second Add host found that ahpd, offered only the backends it lacked, and connected with nothing installed.
+- Task 06's window checks: with the desk closed, ahpd listened on 127.0.0.1 only; a restart opened the tunnel again on the same local port; the host with a passphrase showed Sign in after the restart and connected once it was typed; the open-port host connected.
+- The form in en, pt-BR and es at 480x300 and 640x400; the key file was picked through the real dialog.
+- Not run: the no-keyring checkbox by patching `ssh_keyring_works`, since `window.__TAURI_INTERNALS__.invoke` is read-only; its words are in `i18n.test.ts` and the save is task 01's Cargo test.
+- Not shown: that the app window keeps its tabs across a restart, as no tab was open before it.
+- The test machine was left as before the task: the desk's ahpd, unit and config removed, and the key added for the passphrase check taken out of `authorized_keys`.
+- Open: a host whose server key changed after it was added shows "tunnel down" with Retry, which cannot fix it; neither the row nor Edit host offers the key's question.

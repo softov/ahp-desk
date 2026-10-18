@@ -20,13 +20,13 @@ None, unless a run finds a defect; each fix goes in the task that owns the code,
 ## Steps
 
 1. Set up, with the desk on a scratch host list (`AHP_DESK_CONFIG_DIR`):
-   - a local npm registry holding two ahpd releases that have task 03's command, the older one installed; `npm_config_registry` set for the desk, for the URL host's ahpd and on dev02;
+   - a local npm registry holding two ahpd releases that have task 03's command, the older one installed; `npm_config_registry` set for the desk, for the URL host's ahpd and on the test machine;
    - a URL host on the older release, added with its deployment token, and the same address added a second time with a person's token;
-   - an SSH-installed host on dev02 on the older release (plan 10), never dev01 or a host in use;
+   - an SSH-installed host on the test machine on the older release (plan 10), never a host in use;
    - the local host from plan 03, whose updates stay with plan 03 task 07.
 2. Host rows:
    - each older ahpd says "ahpd X available", in English, Portuguese (Brasil) and Spanish;
-   - Update on the deployment-token host and on the dev02 host; the notice without Update on the person's-token host;
+   - Update on the deployment-token host and on the the test machine host; the notice without Update on the person's-token host;
    - with a session running a turn on a host, Update names it and waits; Cancel leaves it running;
    - each Update ends with the row connected on the newer version and no notice;
    - the local host row shows only plan 03's own notice.
@@ -39,7 +39,7 @@ None, unless a run finds a defect; each fix goes in the task that owns the code,
 
 ## Validation
 
-- Each step above passes on Windows (the desk) with dev02 (the SSH host); a step that fails is fixed in its task and run again from that step.
+- Each step above passes on Windows (the desk) with the test machine (the SSH host); a step that fails is fixed in its task and run again from that step.
 - `pnpm test` and `pnpm lint` pass on the build that ran.
 
 ## Resume

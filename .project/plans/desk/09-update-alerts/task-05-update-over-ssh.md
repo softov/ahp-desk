@@ -54,6 +54,6 @@ It waits for plan 10 task 08, which writes the update over SSH as a function; th
 
 - A unit test in `updates.rs`: `update_ssh_ahpd` on a host with no SSH details is refused with why, before any connection.
 - `pnpm typecheck`, `pnpm test` and `pnpm lint` pass.
-- By hand on dev02 (never dev01 or a host in use), with an older `@ahpd/server` installed there by the desk over SSH: the row shows Update; a click installs the newer one, the service restarts, the row comes back connected on the newer version with no notice, by tunnel and by open port.
+- By hand on the test machine (never a host in use), with an older `@ahpd/server` installed there by the desk over SSH: the row shows Update; a click installs the newer one, the service restarts, the row comes back connected on the newer version with no notice, by tunnel and by open port.
 
 ## Resume

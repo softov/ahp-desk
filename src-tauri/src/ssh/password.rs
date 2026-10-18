@@ -20,7 +20,6 @@ pub fn keyring_works(vault: &dyn Vault) -> bool {
 /// Keeps `password` for `host`: in the vault, or in `host.ssh.password` when
 /// the vault fails. The form calls it on a failing vault only when the person
 /// ticked the box that names the plain file.
-#[cfg_attr(not(test), allow(dead_code))] // the form keeps a password from plan 10 task 07
 pub fn keep(vault: &dyn Vault, host: &mut Host, password: &str) {
     let Some(ssh) = host.ssh.as_mut() else {
         return;

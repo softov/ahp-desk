@@ -410,7 +410,6 @@ impl HostStore {
     }
 
     /// Keeps the SSH password the person asked to keep, as `password::keep` does.
-    #[cfg_attr(not(test), allow(dead_code))] // the form keeps a password from plan 10 task 07
     pub fn keep_ssh_password(&self, id: &str, password: &str) -> Result<Vec<HostView>, String> {
         let mut hosts = self.lock();
         let host = hosts
@@ -421,6 +420,21 @@ impl HostStore {
             return Err(format!("{id} has no SSH details"));
         }
         password::keep(self.vault.as_ref(), host, password);
+        write_json(&self.path, &hosts[..])?;
+        Ok(hosts.iter().map(HostView::from).collect())
+    }
+
+    /// Forgets the SSH password kept for a host, in the keyring and in the file.
+    pub fn forget_ssh_password(&self, id: &str) -> Result<Vec<HostView>, String> {
+        let mut hosts = self.lock();
+        let host = hosts
+            .iter_mut()
+            .find(|host| host.id == id)
+            .ok_or_else(|| format!("no host {id}"))?;
+        password::forget(self.vault.as_ref(), id);
+        if let Some(ssh) = host.ssh.as_mut() {
+            ssh.password = None;
+        }
         write_json(&self.path, &hosts[..])?;
         Ok(hosts.iter().map(HostView::from).collect())
     }
@@ -516,8 +530,16 @@ pub fn save_host(
     store: State<'_, HostStore>,
     host: HostInput,
     token: Option<String>,
+    ssh_password: Option<String>,
 ) -> Result<(), String> {
-    let list = store.save(host, token)?;
+    let id = host.id.clone();
+    let mut list = store.save(host, token)?;
+    // `None` keeps what is kept, `""` forgets it, a value keeps it as Remember asked.
+    match ssh_password.as_deref() {
+        None => {}
+        Some("") => list = store.forget_ssh_password(&id)?,
+        Some(password) => list = store.keep_ssh_password(&id, password)?,
+    }
     app.emit(HOSTS_CHANGED, list).map_err(|err| err.to_string())
 }
 
@@ -930,6 +952,11 @@ mod tests {
         store.secrets().set_passphrase("dev", "typed");
         store.remove("dev").unwrap();
         assert!(!store.secrets().holds("dev"));
+        store.save(ssh_input("dev"), None).unwrap();
+        store.keep_ssh_password("dev", "again").unwrap();
+        store.forget_ssh_password("dev").unwrap();
+        assert_eq!(store.ssh_password("dev").unwrap(), None);
+        store.remove("dev").unwrap();
         store.save(ssh_input("dev"), None).unwrap();
         assert_eq!(store.ssh_password("dev").unwrap(), None);
     }

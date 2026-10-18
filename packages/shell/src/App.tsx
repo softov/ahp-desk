@@ -4,7 +4,17 @@ import { HostForm } from './hosts/HostForm.js';
 import { HostList } from './hosts/HostList.js';
 import { KindField, type AddKind } from './hosts/KindField.js';
 import { LocalForm } from './hosts/LocalForm.js';
-import { listHosts, onAddAsked, onEditAsked, onHostsChanged, setTrayWords, type ShellHost } from './hosts/ipc.js';
+import { SshForm } from './hosts/SshForm.js';
+import {
+  listHosts,
+  onAddAsked,
+  onEditAsked,
+  onHostsChanged,
+  onTunnelsChanged,
+  setTrayWords,
+  sshTunnelStates,
+  type ShellHost,
+} from './hosts/ipc.js';
 import { createHostStatuses, type HostStatuses } from './hosts/status.js';
 import { Footer } from './Footer.js';
 import { t, useLanguage } from './i18n.js';
@@ -71,6 +81,23 @@ export function App() {
     statuses.sync(hosts).catch((err: unknown) => console.error('host status sync failed', err));
   }, [hosts, statuses]);
 
+  // A tunnel that comes up is connected through at once, not at the client's next retry.
+  useEffect(() => {
+    const on = new Set<string>();
+    const stop = (async () => {
+      for (const [id, state] of Object.entries(await sshTunnelStates())) if (state.on) on.add(id);
+      return onTunnelsChanged((all) => {
+        for (const [id, state] of Object.entries(all)) {
+          if (state.on && !on.has(id))
+            statuses.retry(id).catch((err: unknown) => console.error('host retry failed', err));
+          if (state.on) on.add(id);
+          else on.delete(id);
+        }
+      });
+    })();
+    return () => void stop.then((unlisten) => unlisten());
+  }, [statuses]);
+
   return (
     <>
       {/* Settings opens from the host list; the first run has no way back to it. */}
@@ -94,6 +121,13 @@ export function App() {
           />
         ) : screen.host === null && addKind === 'local' && !localTaken ? (
           <LocalForm
+            taken={hosts.map((host) => host.id)}
+            kindField={<KindField kind={addKind} localTaken={localTaken} onKind={setAddKind} />}
+            onDone={() => setScreen({ kind: 'list' })}
+            onToList={() => setScreen({ kind: 'list' })}
+          />
+        ) : screen.host === null && addKind === 'ssh' ? (
+          <SshForm
             taken={hosts.map((host) => host.id)}
             kindField={<KindField kind={addKind} localTaken={localTaken} onKind={setAddKind} />}
             onDone={() => setScreen({ kind: 'list' })}

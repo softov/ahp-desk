@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { HostForm } from './hosts/HostForm.js';
 import { LocalForm } from './hosts/LocalForm.js';
+import { SshForm } from './hosts/SshForm.js';
 import { openHost } from './hosts/ipc.js';
 import { t } from './i18n.js';
 import { Mark } from './Mark.js';
@@ -11,11 +12,13 @@ type Step =
   | { kind: 'where' }
   | { kind: 'form' }
   | { kind: 'local' }
+  | { kind: 'ssh' }
   | { kind: 'opening'; id: string; name: string; error: string | null };
 
 /**
  * The first run, for a desk with no host: a welcome, where the host is,
- * the host form with Test or This computer's install and start, and Open.
+ * the host form with Test, This computer's install and start, or a server
+ * over SSH, and Open.
  * It ends when the new host's window opens; the desk then shows the host list.
  */
 export function FirstRun({ onFinished }: { onFinished: () => void }) {
@@ -84,6 +87,10 @@ export function FirstRun({ onFinished }: { onFinished: () => void }) {
               <strong>{t('firstRun.local')}</strong>
               <span>{t('firstRun.localHint')}</span>
             </button>
+            <button className="choice" onClick={() => setStep({ kind: 'ssh' })}>
+              <strong>{t('firstRun.ssh')}</strong>
+              <span>{t('firstRun.sshHint')}</span>
+            </button>
           </div>
           <footer className="actions">
             <button type="button" onClick={() => setStep({ kind: 'welcome' })}>
@@ -104,6 +111,15 @@ export function FirstRun({ onFinished }: { onFinished: () => void }) {
     case 'local':
       return (
         <LocalForm
+          taken={[]}
+          firstRun
+          onDone={(saved) => (saved === null ? setStep({ kind: 'where' }) : open(saved.id, saved.name))}
+          onToList={onFinished}
+        />
+      );
+    case 'ssh':
+      return (
+        <SshForm
           taken={[]}
           firstRun
           onDone={(saved) => (saved === null ? setStep({ kind: 'where' }) : open(saved.id, saved.name))}

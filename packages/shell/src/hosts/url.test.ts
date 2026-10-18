@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hostId, normalizeUrl, shortUrl, withToken } from './url.js';
+import { ahpdPort, hostId, normalizeUrl, shortUrl, sshTarget, withToken } from './url.js';
 
 describe('normalizeUrl', () => {
   it('adds ws:// to a bare address', () => {
@@ -42,5 +42,28 @@ describe('hostId', () => {
     expect(hostId('My Office', ['my-office'])).toBe('my-office-2');
     expect(hostId('Café!', [])).toBe('cafe');
     expect(hostId('***', [])).toBe('host');
+  });
+});
+
+describe('sshTarget', () => {
+  it('takes a name, an IPv4 and an IPv6 address, trimmed', () => {
+    expect(sshTarget(' server.example ', '22', ' me ')).toEqual({ ok: true, host: 'server.example', port: 22, user: 'me' });
+    expect(sshTarget('10.0.0.5', '2222', 'root')).toEqual({ ok: true, host: '10.0.0.5', port: 2222, user: 'root' });
+    expect(sshTarget('fe80::1', '22', 'me')).toEqual({ ok: true, host: 'fe80::1', port: 22, user: 'me' });
+  });
+
+  it('names the field that is wrong', () => {
+    expect(sshTarget('', '22', 'me')).toEqual({ ok: false, field: 'host' });
+    expect(sshTarget('dev 02', '22', 'me')).toEqual({ ok: false, field: 'host' });
+    expect(sshTarget('server.example', '0', 'me')).toEqual({ ok: false, field: 'port' });
+    expect(sshTarget('server.example', '65536', 'me')).toEqual({ ok: false, field: 'port' });
+    expect(sshTarget('server.example', '22', ' ')).toEqual({ ok: false, field: 'user' });
+  });
+});
+
+describe('ahpdPort', () => {
+  it('takes 1 to 65535 and refuses the rest', () => {
+    expect([ahpdPort('9187'), ahpdPort('1'), ahpdPort('65535')]).toEqual([9187, 1, 65535]);
+    expect([ahpdPort('0'), ahpdPort('65536'), ahpdPort(''), ahpdPort('port')]).toEqual([null, null, null, null]);
   });
 });

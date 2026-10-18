@@ -65,8 +65,8 @@ A passphrase, or a password not kept, that the person typed is held in memory un
 - Cargo tests in `src-tauri/src/ssh/password.rs` with `tokens::test_vaults::Memory` and a vault that always fails: kept in the vault and not in the host; with the failing vault, kept in `host.ssh.password`; read from either; forgotten from both; moved to the vault when it works; `keyring_works` answers false on the failing vault; `HostStore::remove` forgets it and drops the host's `Secrets`.
 - Cargo tests in `hosts.rs`: a host with `ssh` round-trips through `hosts.json`; a password is written there only by `keep` on a failing vault, and then `ssh_password_in_file` is true; a passphrase is never written there.
 - `pnpm test` and `pnpm lint` pass.
-- By hand, from this Windows machine to dev02 only: the ignored test `ssh_a_real_sign_in`, with `AHP_DESK_SSH_TEST=<user>@dev02`, signs in with the OpenSSH agent.
-  Its `check` accepts only the fingerprint in `AHP_DESK_SSH_TEST_KEY`, taken from `ssh-keygen -lf` on dev02's host key; the ignored tests of tasks 03 to 05 and 08 use the same check.
+- By hand, from this Windows machine to the test machine only: the ignored test `ssh_a_real_sign_in`, with `AHP_DESK_SSH_TEST=<user>@<test machine>`, signs in with the OpenSSH agent.
+  Its `check` accepts only the fingerprint in `AHP_DESK_SSH_TEST_KEY`, taken from `ssh-keygen -lf` on the test machine's host key; the ignored tests of tasks 03 to 05 and 08 use the same check.
 
 ## Resume
 
