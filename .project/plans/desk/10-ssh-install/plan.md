@@ -103,7 +103,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | Task | Status | Depends on |
 | --- | --- | --- |
 | [01 - an SSH session: agent, key file with passphrase, password in the keyring or the plain file, secrets held until quit](task-01-ssh-session.md) | done | - |
-| [02 - the server key: known_hosts, refuse a new one until Trust, refuse a changed one with Forget](task-02-server-key.md) | todo | 01 |
+| [02 - the server key: known_hosts, refuse a new one until Trust, refuse a changed one with Forget](task-02-server-key.md) | done | 01 |
 | [03 - the probe: Linux, CPU, systemctl --user, lingering, Node, an ahpd already there](task-03-probe.md) | todo | 01 |
 | [04 - Node: the server's own, or the newest 22 downloaded there](task-04-node.md) | todo | 03 |
 | [05 - the install, or the found ahpd: @ahpd/server and the backends, the folder, the token file, the user unit, the health wait, with steps and cancel](task-05-install.md) | todo | 04 |
@@ -122,8 +122,8 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 
 ## Resume state
 
-- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; task 01, 2026-10-18, with its by-hand sign-in.
-- **Next action:** task 02.
+- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 and 02, 2026-10-18, with task 01's by-hand sign-in.
+- **Next action:** task 03.
 - **Open questions:** none.
 - **Watch out for:** doop's `AcceptAllHandler` must not be copied; the Answers row on the server key replaces it.
   The end to end and every real SSH test run against dev02 only.

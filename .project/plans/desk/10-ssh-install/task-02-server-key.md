@@ -1,6 +1,6 @@
 ---
 title: A server's key is checked against known_hosts and the desk's confirmed keys; a new one is refused until Trust, and a changed one refused with Forget
-status: todo
+status: done
 depends: [task-01-ssh-session.md]
 layer: "src-tauri"
 refs:
@@ -44,3 +44,11 @@ A different one is refused with both fingerprints, and the refusal can forget th
 - `pnpm test` and `pnpm lint` pass.
 
 ## Resume
+
+- 2026-10-18: `src-tauri/src/ssh/known_keys.rs` has `KnownKeys` (`load`, `check`, `checker`, `confirm`, `forget`), `KeyCheck`, `Fingerprint` and `fingerprint()`, and the commands `confirm_ssh_key` and `forget_ssh_key`; `known_keys.json` sits beside `hosts.json`.
+- The check is a `ServerCheck` that answers a `KeyCheck`, which task 01's `Client` handler asks, rather than a second handler type; the desk's is `KnownKeys::checker(address, port)`, which keeps a refused key for `confirm`.
+- `connect()` answers `ConnectError::NewKey { offered }`, `ChangedKey { known, offered, inKnownHosts }` or `Failed { why }`; `SignInError::Connect` carries it, and both serialize for the shell as `kind` and `reason` (`SshError` and `sshError()` in `ipc.ts`).
+- known_hosts is read with `russh::keys::known_hosts::known_host_keys_path`, comparing keys of the same type only, as `russh` and OpenSSH do; a known_hosts `russh` cannot read is skipped with a log line, so the desk's own keys still count and an unknown key is asked, never passed.
+- `confirmed` is kept as seconds since 1970; the desk has no date library.
+- The test server can change its host key on the same port and counts sign-in attempts.
+- Verified: `cargo test` (79: 7 in `known_keys.rs`, 2 connection tests against the test server), `cargo clippy --all-targets -- -D warnings`, `pnpm typecheck`, `pnpm test`; the by-hand sign-in still passes.

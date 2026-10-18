@@ -1,11 +1,13 @@
 //! An SSH session to a server: the connection, the sign-in, and the commands
 //! run there. Built on `russh`, as doop's installer is, without its
-//! accept-any-key handler: the server key goes to the `check` the caller gives.
+//! accept-any-key handler: the server key goes to the `check` the caller gives,
+//! which is `KnownKeys::checker` in the desk.
 
 // Plan 10 builds this before its callers: the server key, the install and the
 // tunnel (tasks 02 to 06). Drop this once the install calls it.
 #![cfg_attr(not(test), allow(dead_code))]
 
+pub mod known_keys;
 pub mod password;
 #[cfg(test)]
 mod test_server;
@@ -23,6 +25,8 @@ use russh::keys::{decode_secret_key, PrivateKey, PrivateKeyWithHashAlg};
 use russh::ChannelMsg;
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncRead, AsyncWrite};
+
+use known_keys::{Fingerprint, KeyCheck};
 
 /// How often the session pings the server, so a tunnel notices a dead link.
 const KEEPALIVE: Duration = Duration::from_secs(15);
@@ -77,10 +81,55 @@ pub enum Need {
     Password,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+/// Why a connection did not open. A refused key is refused before any
+/// sign-in, so the person is asked nothing on it.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(tag = "reason", rename_all = "camelCase")]
+pub enum ConnectError {
+    /// A key neither `known_hosts` nor the desk knows; Trust records it and
+    /// the shell connects again.
+    #[serde(rename_all = "camelCase")]
+    NewKey {
+        offered: Fingerprint,
+    },
+    /// Another key than the one known; Forget removes the desk's, and one from
+    /// `known_hosts` is removed with `ssh-keygen -R <host>`.
+    #[serde(rename_all = "camelCase")]
+    ChangedKey {
+        known: Fingerprint,
+        offered: Fingerprint,
+        in_known_hosts: bool,
+    },
+    Failed {
+        why: String,
+    },
+}
+
+impl std::fmt::Display for ConnectError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConnectError::NewKey { offered } => write!(
+                f,
+                "the server's {} key {} is not trusted yet",
+                offered.key_type, offered.sha256
+            ),
+            ConnectError::ChangedKey { known, offered, .. } => write!(
+                f,
+                "the server's key changed from {} to {}",
+                known.sha256, offered.sha256
+            ),
+            ConnectError::Failed { why } => write!(f, "{why}"),
+        }
+    }
+}
+
+/// How a sign-in failed, as the shell reads it: `kind`, and for `connect`
+/// the `reason` of `ConnectError`.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
 pub enum SignInError {
     /// The server could not be reached, or its key was refused.
-    Connect(String),
+    Connect(ConnectError),
     /// The key file is encrypted and no passphrase that opens it is held;
     /// the form asks for it.
     Passphrase,
@@ -94,7 +143,7 @@ pub enum SignInError {
 impl std::fmt::Display for SignInError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SignInError::Connect(why) => write!(f, "cannot reach the server: {why}"),
+            SignInError::Connect(why) => write!(f, "cannot connect: {why}"),
             SignInError::Passphrase => write!(f, "the key file needs its passphrase"),
             SignInError::NeedsPerson {
                 what: Need::Passphrase,
@@ -170,12 +219,14 @@ impl Secrets {
     }
 }
 
-/// Answers whether the server key is the one to trust; task 02 writes the
-/// desk's check, and a test gives its own.
-pub type ServerCheck = Box<dyn Fn(&russh::keys::ssh_key::PublicKey) -> bool + Send + Sync>;
+/// What is known of a server key, answered at once: the desk's is
+/// `KnownKeys::checker`, and a test gives its own.
+pub type ServerCheck = Box<dyn Fn(&russh::keys::ssh_key::PublicKey) -> KeyCheck + Send + Sync>;
 
 pub struct Client {
     check: ServerCheck,
+    /// The answer on a refused key, which `connect` turns into its error.
+    refused: Arc<Mutex<Option<KeyCheck>>>,
 }
 
 impl client::Handler for Client {
@@ -185,26 +236,63 @@ impl client::Handler for Client {
         &mut self,
         key: &russh::keys::ssh_key::PublicKey,
     ) -> Result<bool, Self::Error> {
-        Ok((self.check)(key))
+        let answer = (self.check)(key);
+        if answer == KeyCheck::Known {
+            return Ok(true);
+        }
+        *self
+            .refused
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner()) = Some(answer);
+        Ok(false)
     }
 }
 
 pub type Session = Handle<Client>;
 
-/// Opens a connection to `target`, handing the server key to `check`.
-pub async fn connect(target: &SshTarget, check: ServerCheck) -> Result<Session, String> {
+/// Opens a connection to `target`, handing the server key to `check`; a key
+/// it does not know is refused as `NewKey` or `ChangedKey`.
+pub async fn connect(target: &SshTarget, check: ServerCheck) -> Result<Session, ConnectError> {
     let config = Arc::new(client::Config {
         keepalive_interval: Some(KEEPALIVE),
         keepalive_max: KEEPALIVE_MAX,
         ..Default::default()
     });
-    client::connect(
-        config,
-        (target.address.as_str(), target.port),
-        Client { check },
-    )
-    .await
-    .map_err(|err| err.to_string())
+    let refused = Arc::new(Mutex::new(None));
+    let client = Client {
+        check,
+        refused: refused.clone(),
+    };
+    client::connect(config, (target.address.as_str(), target.port), client)
+        .await
+        .map_err(|err| {
+            let refused = refused
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .take();
+            match refused {
+                Some(KeyCheck::New { offered }) => ConnectError::NewKey { offered },
+                Some(KeyCheck::Changed {
+                    known,
+                    offered,
+                    in_known_hosts,
+                }) => ConnectError::ChangedKey {
+                    known,
+                    offered,
+                    in_known_hosts,
+                },
+                Some(KeyCheck::Known) | None => ConnectError::Failed {
+                    why: err.to_string(),
+                },
+            }
+        })
+}
+
+/// A transport failure in the middle of a sign-in.
+fn failed(err: impl std::fmt::Display) -> SignInError {
+    SignInError::Connect(ConnectError::Failed {
+        why: err.to_string(),
+    })
 }
 
 /// The secrets a sign-in may use besides the agent and the key file.
@@ -271,7 +359,7 @@ pub async fn sign_in(
             let auth = session
                 .authenticate_password(&target.user, password)
                 .await
-                .map_err(|err| SignInError::Connect(err.to_string()))?;
+                .map_err(failed)?;
             if auth.success() {
                 return Ok(SignIn::Password);
             }
@@ -325,12 +413,12 @@ async fn publickey(
     let hash = session
         .best_supported_rsa_hash()
         .await
-        .map_err(|err| SignInError::Connect(err.to_string()))?
+        .map_err(failed)?
         .flatten();
     let auth = session
         .authenticate_publickey(user, PrivateKeyWithHashAlg::new(Arc::new(key), hash))
         .await
-        .map_err(|err| SignInError::Connect(err.to_string()))?;
+        .map_err(failed)?;
     Ok(auth.success())
 }
 
@@ -513,12 +601,13 @@ pub fn quote(s: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::known_keys::tests::Scratch;
     use super::test_server::{TestServer, PASSWORD, USER};
     use super::*;
     use std::sync::Mutex as StdMutex;
 
     fn trust_any() -> ServerCheck {
-        Box::new(|_| true)
+        Box::new(|_| KeyCheck::Known)
     }
 
     fn keys<'a>(secrets: &'a Secrets, before: Option<SignIn>) -> Keys<'a> {
@@ -664,17 +753,84 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn ssh_a_refused_server_key_does_not_connect() {
+    async fn ssh_a_new_server_key_is_refused_before_any_sign_in_until_trusted() {
         let server = TestServer::start().await;
+        let scratch = Scratch::new();
+        let known = scratch.known();
         let secrets = Secrets::default();
         secrets.set_password("dev", PASSWORD);
-        let refused = open(
-            &server.target(None),
-            Box::new(|_| false),
+        let target = server.target(None);
+        let Err(SignInError::Connect(ConnectError::NewKey { offered })) = open(
+            &target,
+            known.checker(&target.address, target.port),
             keys(&secrets, None),
         )
-        .await;
-        assert!(matches!(refused, Err(SignInError::Connect(_))));
+        .await
+        else {
+            panic!("a new key connected");
+        };
+        assert_eq!(
+            server.sign_in_attempts(),
+            0,
+            "nothing is asked on a refused key"
+        );
+        known
+            .confirm(&target.address, target.port, &offered.sha256)
+            .unwrap();
+        let (_, way) = open(
+            &target,
+            known.checker(&target.address, target.port),
+            keys(&secrets, None),
+        )
+        .await
+        .unwrap();
+        assert_eq!(way, SignIn::Password);
+    }
+
+    #[tokio::test]
+    async fn ssh_a_changed_server_key_is_refused_with_both_and_forget_asks_again() {
+        let server = TestServer::start().await;
+        let scratch = Scratch::new();
+        let known = scratch.known();
+        let secrets = Secrets::default();
+        secrets.set_password("dev", PASSWORD);
+        let target = server.target(None);
+        let connect = || {
+            open(
+                &target,
+                known.checker(&target.address, target.port),
+                keys(&secrets, None),
+            )
+        };
+        let Err(SignInError::Connect(ConnectError::NewKey { offered: first })) = connect().await
+        else {
+            panic!("a new key connected");
+        };
+        known
+            .confirm(&target.address, target.port, &first.sha256)
+            .unwrap();
+        server.change_host_key();
+        let Err(SignInError::Connect(ConnectError::ChangedKey {
+            known: old,
+            offered,
+            in_known_hosts,
+        })) = connect().await
+        else {
+            panic!("a changed key connected");
+        };
+        assert_eq!(old, first);
+        assert_ne!(offered, first);
+        assert!(!in_known_hosts);
+        known.forget(&target.address, target.port).unwrap();
+        let Err(SignInError::Connect(ConnectError::NewKey { offered: again })) = connect().await
+        else {
+            panic!("a forgotten key's server connected");
+        };
+        assert_eq!(again, offered);
+        known
+            .confirm(&target.address, target.port, &again.sha256)
+            .unwrap();
+        assert_eq!(connect().await.unwrap().1, SignIn::Password);
     }
 
     async fn signed_in(server: &TestServer) -> Session {
@@ -749,7 +905,12 @@ mod tests {
         let key_file = std::env::var_os("AHP_DESK_SSH_TEST_KEY_FILE").map(PathBuf::from);
         let (user, host) = at.split_once('@').expect("AHP_DESK_SSH_TEST=<user>@<host>");
         let check: ServerCheck = Box::new(move |key| {
-            key.fingerprint(russh::keys::HashAlg::Sha256).to_string() == trusted
+            let offered = known_keys::fingerprint(key);
+            if offered.sha256 == trusted {
+                KeyCheck::Known
+            } else {
+                KeyCheck::New { offered }
+            }
         });
         (SshTarget::new(host, 22, user, key_file), check)
     }

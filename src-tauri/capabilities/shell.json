@@ -30,6 +30,8 @@
     "allow-start-with-os",
     "allow-set-start-with-os",
     "allow-ssh-keyring-works",
+    "allow-confirm-ssh-key",
+    "allow-forget-ssh-key",
     "dialog:allow-open",
     {
       "identifier": "opener:allow-open-url",

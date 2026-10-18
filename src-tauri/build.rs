@@ -79,6 +79,8 @@ fn main() {
             "start_with_os",
             "set_start_with_os",
             "ssh_keyring_works",
+            "confirm_ssh_key",
+            "forget_ssh_key",
         ]),
     ))
     .expect("the Tauri build failed");

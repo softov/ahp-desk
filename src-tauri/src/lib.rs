@@ -15,6 +15,7 @@ use crate::app_window::AppWindows;
 use crate::hosts::HostStore;
 use crate::local_ahpd::LocalAhpd;
 use crate::settings::{CloseBehavior, SettingsStore};
+use crate::ssh::known_keys::KnownKeys;
 use crate::statuses::HostStatuses;
 use crate::tokens::Keyring;
 
@@ -62,6 +63,10 @@ pub fn run() {
                 Box::new(Keyring),
             )?);
             app.manage(SettingsStore::load(config.join("settings.json"))?);
+            app.manage(KnownKeys::load(
+                config.join("known_keys.json"),
+                app.path().home_dir()?.join(".ssh").join("known_hosts"),
+            )?);
             app.manage(AppWindows::default());
             app.manage(HostStatuses::default());
             app.manage(LocalAhpd::new(app.handle())?);
@@ -125,6 +130,8 @@ pub fn run() {
             settings::start_with_os,
             settings::set_start_with_os,
             ssh::password::ssh_keyring_works,
+            ssh::known_keys::confirm_ssh_key,
+            ssh::known_keys::forget_ssh_key,
         ])
         .build(tauri::generate_context!())
         .expect("ahp-desk failed to start")

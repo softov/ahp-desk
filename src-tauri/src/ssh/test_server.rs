@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use russh::keys::ssh_key::{Cipher, Kdf, LineEnding};
 use russh::keys::{Algorithm, PrivateKey, PublicKey};
@@ -21,33 +21,48 @@ pub struct TestServer {
     port: u16,
     /// The one key the server takes, which `key_file` writes out.
     client_key: PrivateKey,
+    /// What each new connection is served with, its host key among it.
+    config: Arc<Mutex<Arc<server::Config>>>,
+    /// Sign-in attempts of any kind, over every connection.
+    attempts: Arc<AtomicUsize>,
 }
 
 impl TestServer {
     pub async fn start() -> Self {
         let client_key = random_key();
-        let config = Arc::new(server::Config {
-            keys: vec![random_key()],
-            auth_rejection_time: std::time::Duration::from_millis(1),
-            auth_rejection_time_initial: Some(std::time::Duration::ZERO),
-            // The developer's agent may hold many keys, each one an attempt.
-            max_auth_attempts: 100,
-            ..Default::default()
-        });
+        let config = Arc::new(Mutex::new(Arc::new(config_with(random_key()))));
+        let attempts = Arc::new(AtomicUsize::new(0));
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let port = listener.local_addr().unwrap().port();
         let accepted = client_key.public_key().clone();
+        let (serving, counted) = (config.clone(), attempts.clone());
         tokio::spawn(async move {
             while let Ok((stream, _)) = listener.accept().await {
                 let handler = Handler {
                     accepted: accepted.clone(),
+                    attempts: counted.clone(),
                 };
-                if let Ok(running) = server::run_stream(config.clone(), stream, handler).await {
+                let config = serving.lock().unwrap().clone();
+                if let Ok(running) = server::run_stream(config, stream, handler).await {
                     tokio::spawn(running);
                 }
             }
         });
-        TestServer { port, client_key }
+        TestServer {
+            port,
+            client_key,
+            config,
+            attempts,
+        }
+    }
+
+    /// The server comes back with another host key, on the same port.
+    pub fn change_host_key(&self) {
+        *self.config.lock().unwrap() = Arc::new(config_with(random_key()));
+    }
+
+    pub fn sign_in_attempts(&self) -> usize {
+        self.attempts.load(Ordering::Relaxed)
     }
 
     pub fn target(&self, key_file: Option<&Path>) -> SshTarget {
@@ -83,6 +98,17 @@ impl TestServer {
     }
 }
 
+fn config_with(host_key: PrivateKey) -> server::Config {
+    server::Config {
+        keys: vec![host_key],
+        auth_rejection_time: std::time::Duration::from_millis(1),
+        auth_rejection_time_initial: Some(std::time::Duration::ZERO),
+        // The developer's agent may hold many keys, each one an attempt.
+        max_auth_attempts: 100,
+        ..Default::default()
+    }
+}
+
 fn random_key() -> PrivateKey {
     PrivateKey::random(&mut rand::rng(), Algorithm::Ed25519).unwrap()
 }
@@ -113,12 +139,23 @@ impl Drop for KeyFile {
 
 struct Handler {
     accepted: PublicKey,
+    attempts: Arc<AtomicUsize>,
 }
 
 impl server::Handler for Handler {
     type Error = russh::Error;
 
+    async fn auth_publickey_offered(
+        &mut self,
+        _user: &str,
+        _key: &PublicKey,
+    ) -> Result<Auth, Self::Error> {
+        self.attempts.fetch_add(1, Ordering::Relaxed);
+        Ok(Auth::Accept)
+    }
+
     async fn auth_password(&mut self, user: &str, password: &str) -> Result<Auth, Self::Error> {
+        self.attempts.fetch_add(1, Ordering::Relaxed);
         Ok(if user == USER && password == PASSWORD {
             Auth::Accept
         } else {

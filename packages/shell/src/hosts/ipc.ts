@@ -45,6 +45,42 @@ export function sshKeyringWorks(): Promise<boolean> {
   return invoke<boolean>('ssh_keyring_works');
 }
 
+/** A server key as OpenSSH shows it. */
+export interface Fingerprint {
+  keyType: string;
+  /** `SHA256:<base64>`, as `ssh-keygen -l` prints it. */
+  sha256: string;
+}
+
+/** Why an SSH connection did not open; a refused key is refused before any sign-in. */
+export type ConnectError =
+  | { reason: 'newKey'; offered: Fingerprint }
+  /** `inKnownHosts`: the old key is in `~/.ssh/known_hosts`, removed with `ssh-keygen -R <host>`, not by Forget. */
+  | { reason: 'changedKey'; known: Fingerprint; offered: Fingerprint; inKnownHosts: boolean }
+  | { reason: 'failed'; why: string };
+
+/** How an SSH sign-in failed, as a desk command rejects with it. */
+export type SshError =
+  | ({ kind: 'connect' } & ConnectError)
+  | { kind: 'passphrase' }
+  | { kind: 'needsPerson'; what: 'passphrase' | 'password' }
+  | { kind: 'refused'; tried: string[] };
+
+/** The `SshError` a desk command rejected with, or null for any other failure. */
+export function sshError(error: unknown): SshError | null {
+  return typeof error === 'object' && error !== null && 'kind' in error ? (error as SshError) : null;
+}
+
+/** Trusts the key the server last offered, only when it is the `fingerprint` the person was shown; then connect again. */
+export function confirmSshKey(address: string, port: number, fingerprint: string): Promise<void> {
+  return invoke('confirm_ssh_key', { address, port, fingerprint });
+}
+
+/** Forgets the desk's key for a server, so the next connection asks to trust its key as a first one. */
+export function forgetSshKey(address: string, port: number): Promise<void> {
+  return invoke('forget_ssh_key', { address, port });
+}
+
 /** An ahpd on this computer, and where it was found: the path set on the host, the desk's own install, or `PATH`. */
 export interface FoundAhpd {
   path: string;
