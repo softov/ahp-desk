@@ -36,6 +36,8 @@ const LAST_LINES: usize = 5;
 pub const INSTALL_DIR: &str = ".local/share/ahpd";
 /// The user unit the desk writes for the ahpd it installs, under the user's home.
 pub const UNIT_FILE: &str = ".config/systemd/user/ahpd.service";
+/// Where a long step on an ahpd the desk did not install keeps its pid file.
+const STEP_DIR: &str = ".cache/ahp-desk";
 /// The port an ahpd listens on unless the form names another.
 pub const AHPD_PORT: u16 = 9187;
 /// How many lines of the journal a `ready` that timed out shows.
@@ -1085,7 +1087,13 @@ async fn use_found(
             .map(|(key, value)| format!("{key}={value}"))
             .collect::<Vec<_>>()
             .join(" ");
-        let dir = format!("{}/{INSTALL_DIR}", probed.home);
+        // The step's pid file: in the desk's install for its own ahpd, else in a cache
+        // folder, so an ahpd the desk did not install gets nothing beside it.
+        let dir = if found.by_desk {
+            format!("{}/{INSTALL_DIR}", probed.home)
+        } else {
+            format!("{}/{STEP_DIR}", probed.home)
+        };
         steps
             .run("backends", async {
                 run_step(
@@ -2444,6 +2452,11 @@ mod tests {
             .unwrap();
         assert!(backends.contains("plugin install @ahpd/bot"), "{backends}");
         assert!(!backends.contains("agent-claude"));
+        assert!(
+            backends.contains("/home/ana/.cache/ahp-desk/.step.pid")
+                && !backends.contains(INSTALL_DIR),
+            "nothing goes in the desk's install folder: {backends}"
+        );
         let start = commands
             .iter()
             .find(|command| command.starts_with("# ahp-desk start\n"))

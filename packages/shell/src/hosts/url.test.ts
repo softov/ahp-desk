@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ahpdPort, hostId, normalizeUrl, shortUrl, sshTarget, withToken } from './url.js';
+import { ahpdPort, hostId, normalizeUrl, serverFolder, shortUrl, sshTarget, withToken } from './url.js';
 
 describe('normalizeUrl', () => {
   it('adds ws:// to a bare address', () => {
@@ -65,5 +65,23 @@ describe('ahpdPort', () => {
   it('takes 1 to 65535 and refuses the rest', () => {
     expect([ahpdPort('9187'), ahpdPort('1'), ahpdPort('65535')]).toEqual([9187, 1, 65535]);
     expect([ahpdPort('0'), ahpdPort('65536'), ahpdPort(''), ahpdPort('port')]).toEqual([null, null, null, null]);
+  });
+});
+
+describe('serverFolder', () => {
+  it('reads ~ and ~/ from the home, and takes an absolute path as typed', () => {
+    expect(serverFolder('~', '/home/ana')).toBe('/home/ana');
+    expect(serverFolder(' ~/ ', '/home/ana')).toBe('/home/ana');
+    expect(serverFolder('~/work/app/', '/home/ana/')).toBe('/home/ana/work/app');
+    expect(serverFolder('/srv/code', '/home/ana')).toBe('/srv/code');
+    expect(serverFolder('/', '/home/ana')).toBe('/');
+  });
+
+  it('refuses a relative folder and an empty one', () => {
+    expect([serverFolder('work', '/home/ana'), serverFolder('', '/home/ana'), serverFolder('~ana', '/home/ana')]).toEqual([
+      null,
+      null,
+      null,
+    ]);
   });
 });

@@ -60,3 +60,17 @@ function portOf(text: string): number | null {
   const port = Number(trimmed);
   return port >= 1 && port <= 65535 ? port : null;
 }
+
+/**
+ * The folder ahpd serves on the server, as an absolute path: `~` and `~/…`
+ * from the server user's home, an absolute path as typed; `null` for anything
+ * else, which ahpd would read from wherever it runs.
+ */
+export function serverFolder(text: string, home: string): string | null {
+  const typed = text.trim();
+  const base = home.replace(/\/+$/, '');
+  if (typed === '~' || typed === '~/') return base;
+  if (typed.startsWith('~/')) return `${base}/${typed.slice(2)}`.replace(/\/+$/, '');
+  if (typed.startsWith('/')) return typed.length > 1 ? typed.replace(/\/+$/, '') : typed;
+  return null;
+}

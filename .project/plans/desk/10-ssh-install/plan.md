@@ -77,6 +77,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | A changed server key is refused with both fingerprints and a "Forget the old key" button, which removes the desk's key so the next connection asks to trust the new one; a changed key from `~/.ssh/known_hosts` names `ssh-keygen -R <host>` instead. | Softov, 2026-10-14: "On the refusal" | 02, 07 |
 | [With no keyring, an SSH password is kept in hosts.json only when the person ticks a box that says so](../../../decisions/an-ssh-password-without-a-keyring-is-kept-in-hosts-json-when-asked.md) | Softov, 2026-10-14: "Opt-in, says plain file" | 01, 07 |
 | Add host over SSH has a Folder field, filled with the server user's home, and the remote ahpd serves that folder, written as `paths` by the same ahpd command as for "This computer". | Softov, 2026-10-14: "A form field" | 05, 07 |
+| The Folder field starts at `~` and takes `~`, `~/` paths or a path from `/`; the form turns `~` into the server user's home, and refuses anything else. | Softov, 2026-10-18: "on folder instead putting /home/softov it can be ~/?" | 09 |
 | Add host over SSH has an "ahpd port" field, 9187 by default, apart from the SSH Port; the host keeps it and Update leaves it. | Softov, 2026-10-14: "A field, default 9187" | 05, 06, 07 |
 | An ahpd found on the server is used: its version is shown (one too old is not replaced), the backends it lacks are offered and added with its own `plugin install`, and the desk installs ahpd only where none is found. | Softov, 2026-10-14: "Use it, offer backends" | 03, 05, 07 |
 | [The Node downloaded on a server is the newest 22, not the version the desk pins](../../../decisions/the-remote-node-download-is-the-newest-22.md) | Softov, 2026-10-14: "latest-v22.x" | 04 |
@@ -115,7 +116,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | [08 - update over SSH, for plan 09](task-08-update-over-ssh.md) | done | 05 |
 | [10 - Remove offers to uninstall the desk's ahpd on the server](task-10-uninstall-over-ssh.md) | done | 05, 06, 07 |
 | [11 - A saved host's refused server key on its row and in Edit host](task-11-refused-key-on-a-saved-host.md) | done | 02, 06, 07 |
-| [09 - end to end on the test machine](task-09-end-to-end.md) | todo | 01 to 08, 10, 11 |
+| [09 - end to end on the test machine](task-09-end-to-end.md) | done | 01 to 08, 10, 11 |
 
 ## Risks and tradeoffs
 
@@ -126,8 +127,8 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 
 ## Resume state
 
-- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 08, 10 and 11, 2026-10-18, with their by-hand checks, task 06's window checks among task 07's.
-- **Next action:** task 09, the end to end.
+- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 11, 2026-10-18, with the end to end, with their by-hand checks, task 06's window checks among task 07's.
+- **Next action:** close the plan once a terminal `ahpd status` sees the desk's ahpd, the one pending check, waiting on ahpd.
 - **Open questions:** none.
 - **Watch out for:** doop's `AcceptAllHandler` must not be copied; the Answers row on the server key replaces it.
   The end to end and every real SSH test run against the test machine only.
@@ -135,11 +136,11 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 
 ## Final verification checklist
 
-- [ ] On the test machine, each sign-in installs ahpd and connects, by tunnel and by open port.
-- [ ] A new server key is refused until Trust; a changed one is refused with both fingerprints and forgotten from the refusal.
-- [ ] An ahpd already on the test machine is used, with the backends it lacks offered, and nothing installed beside it.
-- [ ] Update over SSH installs the newer ahpd and the host comes back.
-- [ ] Remove with uninstall leaves no unit, no install and no token of the desk's on the test machine, and `~/.config/ahpd` as it was.
-- [ ] A found ahpd that was off is started with no unit, and Remove leaves it running.
+- [x] On the test machine, each sign-in installs ahpd and connects, by tunnel and by open port.
+- [x] A new server key is refused until Trust; a changed one is refused with both fingerprints and forgotten from the refusal.
+- [x] An ahpd already on the test machine is used, with the backends it lacks offered, and nothing installed beside it.
+- [x] Update over SSH installs the newer ahpd and the host comes back (by `ssh_a_real_update`; the row's Update is plan 09's task 05).
+- [x] Remove with uninstall leaves no unit, no install and no token of the desk's on the test machine, and `~/.config/ahpd` as it was.
+- [x] A found ahpd that was off is started with no unit, and Remove leaves it running.
 - [ ] A terminal `ahpd status` on the server sees the desk's ahpd: a pending check, waiting on ahpd (task 05).
-- [ ] `plans/index.md` updated.
+- [x] `plans/index.md` updated.

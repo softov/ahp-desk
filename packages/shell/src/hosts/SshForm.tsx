@@ -23,7 +23,7 @@ import { InstallSteps, withStep, type StepState } from './InstallSteps.js';
 import { ErrorText } from './LocalForm.js';
 import { ServerKey } from './ServerKey.js';
 import type { Saved } from './HostForm.js';
-import { ahpdPort, hostId, sshTarget } from './url.js';
+import { ahpdPort, hostId, serverFolder, sshTarget } from './url.js';
 
 /** What the form is doing: asking, checking the server, stopped on its key, or one of the steps of a save. */
 type Phase = 'form' | 'connecting' | 'key' | 'probed' | 'installing' | 'saving';
@@ -83,7 +83,8 @@ export function SshForm({
   const [passphrase, setPassphrase] = useState('');
   const [needsPassphrase, setNeedsPassphrase] = useState(false);
   const [keyring, setKeyring] = useState<boolean | null>(null);
-  const [folder, setFolder] = useState('');
+  // `~` until another is typed; the server's home stands in for it when the install runs.
+  const [folder, setFolder] = useState('~');
   const [portText, setPortText] = useState('9187');
   const [backends, setBackends] = useState<Set<string>>(() => new Set(['@ahpd/agent-claude']));
   const [reach, setReach] = useState<'tunnel' | 'port'>('tunnel');
@@ -115,6 +116,7 @@ export function SshForm({
   // A found ahpd is reached as it listens: an open port only when it already listens beyond 127.0.0.1.
   const portOffered = found === null || openPort(found.url) !== null;
   const remotePort = found === null ? ahpdPort(portText) : foundPort;
+  const served = probe === null ? null : serverFolder(folder, probe.home);
   const ready =
     phase === 'probed' &&
     saved === null &&
@@ -123,7 +125,7 @@ export function SshForm({
     probe.refusal === null &&
     (found === null || found.supported) &&
     hasBackend(has, backends) &&
-    (found !== null || (remotePort !== null && folder.trim() !== ''));
+    (found !== null || (remotePort !== null && served !== null));
 
   /** Any change to the server asks for a new check. */
   const server = (set: (value: string) => void) => (value: string) => {
@@ -161,7 +163,6 @@ export function SshForm({
     try {
       const probed = await probeSshServer(to, passphrase === '' ? null : passphrase, password === '' ? null : password);
       setProbe(probed);
-      setFolder((typed) => (typed === '' ? probed.home : typed));
       if (probed.found !== null) {
         setBackends(startingBackends(probed.found.plugins));
         if (openPort(probed.found.url) === null) setReach('tunnel');
@@ -232,7 +233,7 @@ export function SshForm({
         {
           target: to,
           backends: [...backends].filter((pkg) => !has.has(pkg)),
-          folder: found === null ? folder.trim() : undefined,
+          folder: found === null && served !== null ? served : undefined,
           ahpdPort: found === null && remotePort !== null ? remotePort : undefined,
           reach,
         },
@@ -255,7 +256,7 @@ export function SshForm({
             keyFile: to.keyFile,
             reach,
             remotePort: installed.ahpdPort,
-            folder: found === null ? folder.trim() : undefined,
+            folder: found === null && served !== null ? served : undefined,
             byDesk: installed.byDesk,
             localPort,
           },
@@ -438,6 +439,7 @@ export function SshForm({
                     </div>
                   </div>
                 )}
+                {found === null && served === null && <p className="hint bad">{t('ssh.wrongFolder')}</p>}
                 {found === null ? (
                   <label>
                     <span>{t('ssh.ahpdPort')}</span>
