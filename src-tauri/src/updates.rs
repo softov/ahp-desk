@@ -9,7 +9,12 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::hosts::write_json;
+use tauri::ipc::Channel;
+
+use crate::hosts::{write_json, HostStore};
+use crate::local_ahpd::InstallEvent;
+use crate::ssh::known_keys::KnownKeys;
+use crate::ssh_install::{self, InstallControl};
 
 /// The event each change sends, with the whole `UpdatesView`.
 pub const UPDATES_CHANGED: &str = "updates-changed";
@@ -166,6 +171,28 @@ pub fn watch(app: &AppHandle) {
 #[tauri::command]
 pub fn updates(state: State<'_, Updates>) -> UpdatesView {
     state.view()
+}
+
+/// Updates the ahpd the desk installed over SSH on host `id` to `version`,
+/// the one its row named, with plan 10's update; its steps and lines go to
+/// `events`, and it keeps running when the window goes away. One at a time
+/// with the installs over SSH, whose Cancel stops it too.
+#[tauri::command]
+pub async fn update_ssh_ahpd(
+    store: State<'_, HostStore>,
+    known: State<'_, KnownKeys>,
+    control: State<'_, InstallControl>,
+    id: String,
+    version: String,
+    events: Channel<InstallEvent>,
+) -> Result<(), String> {
+    let _held = control.begin()?;
+    let send = move |event: InstallEvent| {
+        let _ = events.send(event);
+    };
+    ssh_install::update_host(&store, &known, &id, &version, &send, control.cancelled())
+        .await
+        .map(|_| ())
 }
 
 #[cfg(test)]

@@ -17,6 +17,7 @@ import type { HostStatus, HostStatuses, UpdateWay } from './status.js';
 import { shortUrl } from './url.js';
 import { useTunnels } from './useTunnels.js';
 import { newer } from './versions.js';
+import { ErrorText } from './LocalForm.js';
 
 const UNINSTALL_WORDS = {
   connect: 'uninstall.connect',
@@ -237,9 +238,9 @@ export function HostList({
         </button>
       </header>
       {error !== null && (
-        <p className="result bad" onClick={() => setError(null)}>
-          {error}
-        </p>
+        <div onClick={() => setError(null)}>
+          <ErrorText text={error} />
+        </div>
       )}
       <ul className="hosts">
         {hosts.map((host) => {
@@ -312,28 +313,6 @@ export function HostList({
                     {t('hosts.passwordInFile')}
                   </span>
                 )}
-                {behind && (
-                  <span className="note">
-                    <span
-                      className="note-text"
-                      title={updating.has(host.id) ? undefined : t('hosts.ahpdAvailable', { version: latestAhpd })}
-                    >
-                      {updating.has(host.id) ? t('hosts.updating') : t('hosts.ahpdAvailable', { version: latestAhpd })}
-                    </span>
-                    {!updating.has(host.id) && (ways[host.id] ?? null) !== null && (
-                      <button
-                        className="link"
-                        onClick={() =>
-                          statuses.running(host.id).length === 0
-                            ? update(host, latestAhpd, false)
-                            : setConfirmingUpdate(host.id)
-                        }
-                      >
-                        {t('hosts.update')}
-                      </button>
-                    )}
-                  </span>
-                )}
               </span>
               <span
                 className="state"
@@ -363,6 +342,29 @@ export function HostList({
                 )}
               </span>
               <RowMenu onEdit={() => onEdit(host)} onRemove={() => setRemoving(host.id)} />
+              {/* Under the whole row, from the name on, so the words and Update both fit. */}
+              {behind && (
+                <span className="row-note">
+                  <span
+                    className="note-text"
+                    title={updating.has(host.id) ? undefined : t('hosts.ahpdAvailable', { version: latestAhpd })}
+                  >
+                    {updating.has(host.id) ? t('hosts.updating') : t('hosts.ahpdAvailable', { version: latestAhpd })}
+                  </span>
+                  {!updating.has(host.id) && (ways[host.id] ?? null) !== null && (
+                    <button
+                      className="link"
+                      onClick={() =>
+                        statuses.running(host.id).length === 0
+                          ? update(host, latestAhpd, false)
+                          : setConfirmingUpdate(host.id)
+                      }
+                    >
+                      {t('hosts.update')}
+                    </button>
+                  )}
+                </span>
+              )}
             </li>
           );
         })}

@@ -78,7 +78,7 @@ host connected -> initialize serverInfo (ahpd version) -> npm latest @ahpd/serve
 | [02 - the host row's notice and Update](task-02-host-row-notice-and-update.md) | done | 01 |
 | [03 - ahpd: an update command for an administrator, over HTTP and AHP (in the ahpd repository)](task-03-ahpd-update-command.md) | todo | - |
 | [04 - Update through ahpd's command](task-04-update-through-ahpd.md) | blocked | 02, 03 |
-| [05 - Update over SSH for an SSH-installed host](task-05-update-over-ssh.md) | todo | 02, plan 10 task 08 |
+| [05 - Update over SSH for an SSH-installed host](task-05-update-over-ssh.md) | done | 02, plan 10 task 08 |
 | [06 - the desk's own update, checked again every 6 hours](task-06-desk-update-notice.md) | todo | 01, plan 04 task 03 |
 | [07 - the release steps: an ahpw release is followed by a desk release](task-07-release-steps.md) | todo | - |
 | [08 - end to end](task-08-end-to-end.md) | todo | 01 to 07 |
@@ -92,8 +92,8 @@ host connected -> initialize serverInfo (ahpd version) -> npm latest @ahpd/serve
 
 - **Done so far:** the plan, its decisions and its task files, 2026-10-14.
   The open questions are answered in *Answers*, and task 06 is narrowed to the check every 6 hours, 2026-10-14.
-  Tasks 01 and 02, 2026-10-18.
-- **Next action:** task 05; task 07 waits on nothing.
+  Tasks 01, 02 and 05, 2026-10-18.
+- **Next action:** task 07, which waits on nothing; task 04 waits on ahpd's update command (task 03), task 06 on plan 04 task 03.
   Task 04 is `blocked` until ahpd has its update command (task 03), which Softov looks at in the ahpd repository, 2026-10-16.
 - **Open questions:** none.
 - **Watch out for:** the local ahpd follows plan 03's update answer (task 07), not the host-row Update.

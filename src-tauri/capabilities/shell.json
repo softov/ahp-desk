@@ -37,6 +37,7 @@
     "allow-cancel-ssh-install",
     "allow-uninstall-ssh-ahpd",
     "allow-updates",
+    "allow-update-ssh-ahpd",
     "allow-ssh-tunnel-states",
     "allow-open-ssh-tunnel",
     "allow-ssh-sign-in",

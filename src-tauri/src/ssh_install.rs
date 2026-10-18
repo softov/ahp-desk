@@ -792,6 +792,11 @@ impl InstallControl {
     pub fn cancel(&self) {
         self.cancel.store(true, Ordering::SeqCst);
     }
+
+    /// The flag a running install or update watches for its cancel.
+    pub fn cancelled(&self) -> &AtomicBool {
+        &self.cancel
+    }
 }
 
 impl Drop for Installing<'_> {
@@ -1345,7 +1350,6 @@ pub async fn update(
 /// `update` for host `id`, signed in as the host signs in; refused before any
 /// connection for a host not reached over SSH or whose ahpd the desk did not
 /// install.
-#[cfg_attr(not(test), allow(dead_code))] // plan 09 task 05 makes it the command `update_ssh_ahpd`
 pub async fn update_host(
     store: &HostStore,
     known: &KnownKeys,

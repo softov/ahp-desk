@@ -218,6 +218,13 @@ export function uninstallSshAhpd(id: string, onEvent: (event: InstallEvent<Unins
   return invoke('uninstall_ssh_ahpd', { id, events });
 }
 
+/** Updates the ahpd the desk installed over SSH on host `id` to `version`, calling `onEvent` with each step and line. */
+export function updateSshAhpd(id: string, version: string, onEvent: (event: InstallEvent) => void): Promise<void> {
+  const events = new Channel<InstallEvent>();
+  events.onmessage = onEvent;
+  return invoke('update_ssh_ahpd', { id, version, events });
+}
+
 /** Stops the install over SSH between steps, or in the middle of a long one. */
 export function cancelSshInstall(): Promise<void> {
   return invoke('cancel_ssh_install');

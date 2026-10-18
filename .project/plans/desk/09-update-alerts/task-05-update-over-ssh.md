@@ -1,6 +1,6 @@
 ---
 title: Update on an SSH-installed host's row installs the newer ahpd over SSH
-status: todo
+status: done
 depends: [task-02-host-row-notice-and-update.md]
 layer: "src-tauri, packages/shell"
 refs:
@@ -57,3 +57,14 @@ It waits for plan 10 task 08, which writes the update over SSH as a function; th
 - By hand on the test machine (never a host in use), with an older `@ahpd/server` installed there by the desk over SSH: the row shows Update; a click installs the newer one, the service restarts, the row comes back connected on the newer version with no notice, by tunnel and by open port.
 
 ## Resume
+
+- 2026-10-18: `updates.rs` has the command `update_ssh_ahpd(id, version, events)`, which runs plan 10 task 08's `ssh_install::update_host` under `InstallControl` (one at a time with the installs over SSH, whose Cancel stops it), registered in `lib.rs`, `build.rs` and `capabilities/shell.json`; `InstallControl::cancelled()` gives it the cancel flag.
+- `update_host` refuses a host with no `ssh` details, or whose ahpd the desk did not install, before any connection; its tests from plan 10 task 08 are the refusal this task's Validation names, since the command only adds the window's channel.
+- `updateWay(host)` answers `{ kind: 'ssh' }` for a host whose `ssh.byDesk` is true, not every host with SSH details: plan 10's update only works on the desk's own install, and an ahpd found on the server updates through ahpd (task 04).
+- `updateHost` calls `updateSshAhpd(id, version, onEvent)` (`ipc.ts`), keeps the last five lines, and on a failure throws `hosts.updateFailed` with them; then it reconnects the host, so the row takes the new ahpd at once; the list's error line now shows a failure with `ErrorText`, its first line and the rest in a box.
+- The row's notice moved from under the name to a line under the whole row (`.host .row-note`, from the name's column to the end), since in the name's column "ahpd X available" with Update was cut even at 640 px; the words stay those of the Answers row.
+- Verified: `cargo test` (135), `cargo clippy --all-targets -- -D warnings`, `pnpm typecheck`, `pnpm test` (42).
+- By hand on a release build with a scratch `AHP_DESK_CONFIG_DIR`, against the test machine Softov named: a host set up through the desk's own commands from the page (trust, probe, `install_ssh_ahpd`, `save_host`, `open_ssh_tunnel`), with the server's `@ahpd/server` then put back to 0.11.0 by hand: the row said "ahpd 0.12.0 available" with Update; a click said "Updating ahpd…", and the row came back connected on 0.12.0 with no notice, with the same token, port and local port; by tunnel, and by open port on 9287.
+  The line fit at 640x400 and 480x300.
+- Not seen by hand: a failed update's message; the confirmation over running chats, since no chat was running.
+- The test machine was left as before, with its installs removed and the `~/.config/ahpd` they made; no entry of the run is left in the Credential Manager.

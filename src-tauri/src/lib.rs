@@ -144,6 +144,7 @@ pub fn run() {
             ssh_install::cancel_ssh_install,
             ssh_install::uninstall_ssh_ahpd,
             updates::updates,
+            updates::update_ssh_ahpd,
             ssh::tunnel::ssh_tunnel_states,
             ssh::tunnel::open_ssh_tunnel,
             ssh::tunnel::ssh_sign_in,

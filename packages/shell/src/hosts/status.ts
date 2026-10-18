@@ -9,7 +9,7 @@ import { WebSocketTransport } from '@microsoft/agent-host-protocol/ws';
 import { invoke } from '@tauri-apps/api/core';
 
 import { t } from '../i18n.js';
-import { hostToken, type PublishedStatus, type ShellHost } from './ipc.js';
+import { hostToken, updateSshAhpd, type PublishedStatus, type ShellHost } from './ipc.js';
 import { OFFERED_PROTOCOL_VERSIONS, offering } from './protocol-versions.js';
 import { withToken } from './url.js';
 
@@ -188,9 +188,25 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
         .filter((chat) => chat.status !== undefined && (chat.status & IN_PROGRESS) !== 0)
         .map((chat) => chat.title);
     },
-    // No way yet: plan 09's task 05 adds SSH, task 04 ahpd's own update command.
-    updateWay: () => Promise.resolve(null),
-    updateHost: () => Promise.reject(new Error(t('hosts.noUpdateWay'))),
+    // Over SSH for an ahpd the desk installed there; ahpd's own update command is plan 09's task 04.
+    updateWay: (host) => Promise.resolve(host.ssh?.byDesk === true ? { kind: 'ssh' } : null),
+    async updateHost(host, version) {
+      if (host.ssh?.byDesk !== true) throw new Error(t('hosts.noUpdateWay'));
+      // The last lines npm and systemctl wrote, shown with a failure.
+      const last: string[] = [];
+      try {
+        await updateSshAhpd(host.id, version, (event) => {
+          if (event.kind !== 'line') return;
+          last.push(event.text);
+          if (last.length > 5) last.shift();
+        });
+      } catch (err) {
+        const why = [err instanceof Error ? err.message : String(err), ...last].join('\n');
+        throw new Error(t('hosts.updateFailed', { why }));
+      }
+      // The restart dropped the connection; take the new ahpd now rather than at the next retry.
+      await multi.reconnectHost(host.id);
+    },
   };
   return statuses;
 }
