@@ -3,10 +3,6 @@
 //! accept-any-key handler: the server key goes to the `check` the caller gives,
 //! which is `KnownKeys::checker` in the desk.
 
-// Plan 10 builds this before its callers: the server key, the install and the
-// tunnel (tasks 02 to 06). Drop this once the install calls it.
-#![cfg_attr(not(test), allow(dead_code))]
-
 pub mod known_keys;
 pub mod password;
 #[cfg(test)]
@@ -574,24 +570,14 @@ fn send_lines(pending: &mut Vec<u8>, data: &[u8], line: &impl Fn(String)) {
     }
 }
 
-/// The signed-in user's home on the server. Every remote path is made
-/// absolute with it, because a quoted `~` is not expanded.
-pub async fn remote_home(session: &Session) -> Result<String, String> {
-    let (code, home) = exec_capture(session, "printf %s \"$HOME\"").await?;
-    let home = home.trim();
-    if code != 0 || home.is_empty() {
-        return Err("the server did not say its user's home".into());
-    }
-    Ok(home.to_string())
-}
-
 /// `s` as one word for the server's shell: left as it is when plain,
 /// single-quoted otherwise. Every path and name in a remote command goes
 /// through it.
 pub fn quote(s: &str) -> String {
     let plain = !s.is_empty()
-        && s.chars()
-            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '/'));
+        && s.chars().all(|c| {
+            c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '/' | '@' | ':' | '+')
+        });
     if plain {
         s.to_string()
     } else {
@@ -631,6 +617,7 @@ pub(crate) mod tests {
     #[test]
     fn ssh_quote_leaves_a_plain_word_and_quotes_the_rest() {
         assert_eq!(quote("/home/me/.local"), "/home/me/.local");
+        assert_eq!(quote("@ahpd/agent-claude"), "@ahpd/agent-claude");
         assert_eq!(quote("a b"), "'a b'");
         assert_eq!(quote("it's"), "'it'\\''s'");
         assert_eq!(quote(""), "''");
@@ -850,8 +837,8 @@ pub(crate) mod tests {
         assert_eq!(code, 3);
         assert_eq!(output, "partial\nbad\n");
         assert_eq!(
-            remote_home(&session).await.unwrap(),
-            format!("/home/{USER}")
+            exec_capture(&session, "printf %s \"$HOME\"").await.unwrap(),
+            (0, format!("/home/{USER}"))
         );
     }
 
@@ -894,7 +881,8 @@ pub(crate) mod tests {
             None => [SignIn::Agent, SignIn::Agent],
         };
         assert!(expected.contains(&way), "signed in by {way:?}");
-        assert!(remote_home(&session).await.unwrap().starts_with('/'));
+        let (_, home) = exec_capture(&session, "printf %s \"$HOME\"").await.unwrap();
+        assert!(home.starts_with('/'));
     }
 
     /// The server and the one key trusted for the ignored tests on the test server.

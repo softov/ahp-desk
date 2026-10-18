@@ -3,18 +3,20 @@
 //! none, whether it can take ahpd as a user service and where its Node comes
 //! from.
 
-// `node()` waits for its caller, the install (task 05). Drop this then.
-#![cfg_attr(not(test), allow(dead_code))]
-
 use std::collections::{HashMap, VecDeque};
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
+use tauri::ipc::Channel;
 use tauri::State;
 
 use crate::hosts::HostStore;
-use crate::local_ahpd::{version_of_text, OLDEST_SUPPORTED};
+use crate::local_ahpd::{
+    check_backends, ready_specs, spec_of, token_in_connect_url, version_of_text, InstallEvent,
+    StepStatus, OLDEST_SUPPORTED, QUIET_NPM,
+};
 use crate::ssh::known_keys::KnownKeys;
 use crate::ssh::{
     self, exec_capture, exec_lines, quote, ConnectError, Keys, Session, SignInError, SshTarget,
@@ -32,6 +34,12 @@ const LAST_LINES: usize = 5;
 
 /// Where the desk installs ahpd on a server, under the user's home.
 pub const INSTALL_DIR: &str = ".local/share/ahpd";
+/// The user unit the desk writes for the ahpd it installs, under the user's home.
+pub const UNIT_FILE: &str = ".config/systemd/user/ahpd.service";
+/// The port an ahpd listens on unless the form names another.
+pub const AHPD_PORT: u16 = 9187;
+/// How many lines of the journal a `ready` that timed out shows.
+const JOURNAL_LINES: usize = 40;
 
 /// The first line of the probe script, which also names it to a test server.
 const PROBE_MARK: &str = "# ahp-desk probe";
@@ -62,6 +70,7 @@ if [ -n "$node" ]; then
 fi
 if command -v curl >/dev/null 2>&1; then say fetch curl; elif command -v wget >/dev/null 2>&1; then say fetch wget; fi
 command -v tar >/dev/null 2>&1 && say tar yes
+[ -d "${XDG_CONFIG_HOME:-$HOME/.config}/ahpd" ] && say ahpdConfig "${XDG_CONFIG_HOME:-$HOME/.config}/ahpd"
 unit="$HOME/.config/systemd/user/ahpd.service"
 [ -f "$unit" ] && grep -q '^Description=.*ahp-desk' "$unit" && say deskUnit yes
 desk="$HOME/.local/share/ahpd"
@@ -243,6 +252,12 @@ pub fn parse_probe(text: &str) -> Probe {
     }
 
     let mut warnings = Vec::new();
+    if let (None, Some(config)) = (&found, get("ahpdConfig")) {
+        warnings.push(format!(
+            "{config} is already there, from an ahpd set up before; the desk's ahpd uses it, \
+             and a plugin there that the newest ahpd cannot load stops the install."
+        ));
+    }
     match &found {
         None if !linger => warnings.push(format!(
             "Lingering is off for {user}, so ahpd stops when {user} logs out. \
@@ -341,12 +356,9 @@ pub fn parse_found(text: &str) -> FoundState {
             .map(|rest| rest.split("\n--").next().unwrap_or(rest).trim().to_string())
             .unwrap_or_default()
     };
-    let plugins = serde_json::from_str::<Vec<serde_json::Value>>(&section("plugins"))
-        .unwrap_or_default()
-        .iter()
-        .filter(|plugin| plugin["state"] == "ready")
-        .filter_map(|plugin| plugin["name"].as_str().map(str::to_string))
-        .collect();
+    let plugins = ready_specs(
+        &serde_json::from_str::<Vec<serde_json::Value>>(&section("plugins")).unwrap_or_default(),
+    );
     let status = serde_json::from_str::<serde_json::Value>(&section("status")).unwrap_or_default();
     let url = status["url"].as_str().map(str::to_string);
     FoundState {
@@ -359,9 +371,11 @@ pub fn parse_found(text: &str) -> FoundState {
 /// How to run the found ahpd in a remote command, as one quoted line.
 pub fn ahpd_command(found: &FoundOnServer, home: &str, args: &str) -> String {
     match (&found.node, found.login_shell) {
+        // `plugin install` runs npm, which the Node's own folder holds.
         (Some(node), _) => format!(
-            "AHPD_PLUGIN_ROOT={} {} {} {args}",
+            "AHPD_PLUGIN_ROOT={} PATH={}:\"$PATH\" {} {} {args}",
             quote(&format!("{home}/{INSTALL_DIR}")),
+            quote(node.rsplit_once('/').map_or(".", |(dir, _)| dir)),
             quote(node),
             quote(&found.path)
         ),
@@ -484,30 +498,10 @@ pub async fn node(
     let fetch = probe
         .fetch
         .ok_or("this server has neither curl nor wget to download Node")?;
-    // The error carries the last lines, where the script says why it stopped.
-    let last = Mutex::new(VecDeque::new());
     let script = download_script(install_dir, cpu, fetch, NODE_DIST);
-    let ran = exec_lines(
-        session,
-        &script,
-        |text| {
-            let mut kept = last.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-            if kept.len() == LAST_LINES {
-                kept.pop_front();
-            }
-            kept.push_back(text.clone());
-            line(text);
-        },
-        cancel,
-    )
-    .await;
-    if let Err(err) = ran {
-        let kept = last
-            .into_inner()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        let said = kept.into_iter().collect::<Vec<_>>().join("\n");
-        return Err(format!("the Node download stopped ({err}): {said}"));
-    }
+    run_step(session, "node", install_dir, &script, &line, cancel)
+        .await
+        .map_err(|err| format!("the Node download stopped: {err}"))?;
     let bin_dir = format!("{install_dir}/node/bin");
     let node = format!("{bin_dir}/node");
     let (code, version) = exec_capture(session, &format!("{} -v", quote(&node))).await?;
@@ -523,6 +517,761 @@ pub async fn node(
         bin_dir,
         version,
     })
+}
+
+/// `body` as the remote command of step `id`, named by its first line.
+fn script(id: &str, body: &str) -> String {
+    format!("# ahp-desk {id}\n{body}")
+}
+
+/// Runs a long step in a session of its own, its pid in `<dir>/.step.pid`,
+/// so a cancel stops it and every process it started. Its lines go to `line`;
+/// a failure carries its last lines.
+async fn run_step(
+    session: &Session,
+    id: &str,
+    dir: &str,
+    body: &str,
+    line: &impl Fn(String),
+    cancel: &AtomicBool,
+) -> Result<(), String> {
+    let pid = format!("{dir}/.step.pid");
+    let command = script(
+        id,
+        &format!(
+            "mkdir -p {}\nexec setsid -w sh -c {}",
+            quote(dir),
+            quote(&format!("echo $$ > {}\n{body}", quote(&pid)))
+        ),
+    );
+    let last = Mutex::new(VecDeque::new());
+    let ran = exec_lines(
+        session,
+        &command,
+        |text| {
+            let mut kept = last.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            if kept.len() == LAST_LINES {
+                kept.pop_front();
+            }
+            kept.push_back(text.clone());
+            line(text);
+        },
+        cancel,
+    )
+    .await;
+    match ran {
+        Ok(()) => Ok(()),
+        Err(err) if err == "cancelled" => {
+            // The channel is closed; the step's own session is killed over a new one.
+            let kill = format!(
+                "pid=$(cat {pid} 2>/dev/null) && kill -TERM -- \"-$pid\" 2>/dev/null; rm -f {pid}",
+                pid = quote(&pid)
+            );
+            let _ = exec_capture(session, &script("cancel", &kill)).await;
+            Err(err)
+        }
+        Err(err) => {
+            let kept = last
+                .into_inner()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let said = kept.into_iter().collect::<Vec<_>>().join("\n");
+            Err(if said.is_empty() {
+                err
+            } else {
+                format!("{err}: {said}")
+            })
+        }
+    }
+}
+
+/// Runs a short step's command and fails with what it said when it exits non-zero.
+async fn run_short(session: &Session, id: &str, body: &str) -> Result<String, String> {
+    let (code, said) = exec_capture(session, &script(id, body)).await?;
+    if code == 0 {
+        Ok(said)
+    } else {
+        Err(format!("{id} exited with {code}: {}", said.trim()))
+    }
+}
+
+/// The backends asked for that a `plugin list --json` does not have ready,
+/// each with its state and ahpd's reason.
+pub fn not_ready(list: &[serde_json::Value], backends: &[String]) -> Vec<String> {
+    backends
+        .iter()
+        .filter_map(|backend| {
+            let row = list
+                .iter()
+                .find(|row| spec_of(row).as_deref() == Some(backend));
+            match row {
+                Some(row) if row["state"] == "ready" => None,
+                Some(row) => Some(format!(
+                    "{backend} ({}: {})",
+                    row["state"].as_str().unwrap_or("not ready"),
+                    row["problem"].as_str().unwrap_or("no reason given")
+                )),
+                None => Some(format!("{backend} (not listed)")),
+            }
+        })
+        .collect()
+}
+
+/// After `plugin install`, every backend asked for must be ready in the
+/// ahpd that will run; a plugin of an older ahpd in its config folder, which
+/// it loads first, is the usual reason one is not. The desk never edits that
+/// folder, so it stops here and says what to do.
+async fn check_ready(
+    session: &Session,
+    ahpd: &FoundOnServer,
+    home: &str,
+    backends: &[String],
+) -> Result<(), String> {
+    let said = run_short(
+        session,
+        "plugins",
+        &ahpd_command(ahpd, home, "plugin list --json"),
+    )
+    .await?;
+    let list: Vec<serde_json::Value> = serde_json::from_str(said.trim()).map_err(|_| {
+        format!(
+            "ahpd plugin list --json did not answer a list: {}",
+            said.trim()
+        )
+    })?;
+    let missing = not_ready(&list, backends);
+    if missing.is_empty() {
+        return Ok(());
+    }
+    Err(format!(
+        "ahpd cannot load {}. Its config folder on the server (~/.config/ahpd) holds plugins it loads first; \
+         update or remove them there, then try again.",
+        missing.join(", ")
+    ))
+}
+
+/// Where the desk's ahpd listens: only on the server, reached through the
+/// tunnel, or on every address, reached on its open port with its token.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Bind {
+    #[default]
+    Loopback,
+    All,
+}
+
+/// `s` as one word of a systemd unit line: double-quoted when it needs to be,
+/// and `%` written `%%`, which systemd would read as a specifier.
+fn unit_word(s: &str) -> String {
+    let s = s.replace('%', "%%");
+    if s.chars()
+        .any(|c| c.is_whitespace() || c == '"' || c == '\\' || c == '\'')
+    {
+        format!("\"{}\"", s.replace('\\', "\\\\").replace('"', "\\\""))
+    } else {
+        s
+    }
+}
+
+/// The user unit of the desk's ahpd: `ahpd run` on the ahpd port, with its
+/// token file and its backends under the install folder, in the user's home.
+pub fn render_unit(node: &str, script: &str, prefix: &str, bind: Bind, port: u16) -> String {
+    let host = match bind {
+        Bind::Loopback => "127.0.0.1",
+        Bind::All => "0.0.0.0",
+    };
+    let node_bin = node.rsplit_once('/').map_or(".", |(dir, _)| dir);
+    format!(
+        "[Unit]
+Description=ahpd, installed by ahp-desk
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h
+ExecStart={node} {script} run --host {host} --port {port} --connection-token-file {token}
+Environment={root}
+Environment={path}
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
+",
+        node = unit_word(node),
+        script = unit_word(script),
+        token = unit_word(&format!("{prefix}/connection-token")),
+        root = unit_word(&format!("AHPD_PLUGIN_ROOT={prefix}")),
+        path = unit_word(&format!("PATH={node_bin}:/usr/local/bin:/usr/bin:/bin")),
+    )
+}
+
+/// `systemctl --user <args>`, with the probe's `XDG_RUNTIME_DIR` when the
+/// session has no user bus of its own.
+pub fn systemctl_user(runtime_dir: Option<&str>, args: &str) -> String {
+    match runtime_dir {
+        Some(dir) => format!("XDG_RUNTIME_DIR={} systemctl --user {args}", quote(dir)),
+        None => format!("systemctl --user {args}"),
+    }
+}
+
+/// `journalctl --user` for the desk's unit, with the same runtime folder.
+fn journal_user(runtime_dir: Option<&str>) -> String {
+    let args = format!("-u ahpd.service -n {JOURNAL_LINES} --no-pager");
+    match runtime_dir {
+        Some(dir) => format!("XDG_RUNTIME_DIR={} journalctl --user {args}", quote(dir)),
+        None => format!("journalctl --user {args}"),
+    }
+}
+
+/// Asks `http://127.0.0.1:<port>/` with the server's Node every 500 ms for up
+/// to 30 s; ahpd answers a plain GET with 426, which counts.
+fn ready_script(node: &str, port: u16) -> String {
+    let ask = "const http=require('http');const port=+process.argv[1];const end=Date.now()+30000;\
+               (function ask(){http.get({host:'127.0.0.1',port,path:'/'},r=>{r.resume();console.log('answered '+r.statusCode);process.exit(0)})\
+               .on('error',()=>{if(Date.now()>end){console.log('no answer on '+port);process.exit(1)}setTimeout(ask,500)})})()";
+    format!("{} -e {} {port}", quote(node), quote(ask))
+}
+
+/// What Add host asks for an install over SSH.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SshInstall {
+    pub target: ProbeTarget,
+    /// The backends ticked, as `@ahpd/` names.
+    pub backends: Vec<String>,
+    /// The folder ahpd serves; the user's home on the server when none.
+    #[serde(default)]
+    pub folder: Option<String>,
+    #[serde(default = "ahpd_port")]
+    pub ahpd_port: u16,
+    #[serde(default)]
+    pub bind: Bind,
+}
+
+fn ahpd_port() -> u16 {
+    AHPD_PORT
+}
+
+/// The ahpd the desk connects to after an install or with a found one.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SshInstalled {
+    /// Its connection token, when it takes one; never in a log line.
+    pub token: Option<String>,
+    pub version: String,
+    /// The desk's install folder, on an ahpd the desk installed.
+    pub prefix: Option<String>,
+    pub node: Option<String>,
+    pub ahpd_port: u16,
+    pub by_desk: bool,
+}
+
+/// One install at a time, and its cancel.
+#[derive(Default)]
+pub struct InstallControl {
+    running: AtomicBool,
+    cancel: AtomicBool,
+}
+
+/// Holds the one install while it runs.
+pub struct Installing<'a>(&'a InstallControl);
+
+impl InstallControl {
+    pub fn begin(&self) -> Result<Installing<'_>, String> {
+        if self.running.swap(true, Ordering::SeqCst) {
+            return Err("an install over SSH is already running".into());
+        }
+        self.cancel.store(false, Ordering::SeqCst);
+        Ok(Installing(self))
+    }
+
+    pub fn cancel(&self) {
+        self.cancel.store(true, Ordering::SeqCst);
+    }
+}
+
+impl Drop for Installing<'_> {
+    fn drop(&mut self) {
+        self.0.running.store(false, Ordering::SeqCst);
+    }
+}
+
+/// Sends each step as it starts and ends, and stops before a step once cancelled.
+struct Steps<'a> {
+    send: &'a (dyn Fn(InstallEvent) + Sync),
+    cancel: &'a AtomicBool,
+}
+
+impl Steps<'_> {
+    fn line(&self, text: String) {
+        (self.send)(InstallEvent::Line { text });
+    }
+
+    fn status(&self, id: &str, status: StepStatus) {
+        (self.send)(InstallEvent::Step {
+            id: id.into(),
+            status,
+        });
+    }
+
+    async fn run<T>(
+        &self,
+        id: &str,
+        work: impl std::future::Future<Output = Result<T, String>>,
+    ) -> Result<T, String> {
+        if self.cancel.load(Ordering::SeqCst) {
+            return Err("cancelled".into());
+        }
+        self.status(id, StepStatus::Running);
+        let done = work.await;
+        self.status(
+            id,
+            if done.is_ok() {
+                StepStatus::Done
+            } else {
+                StepStatus::Failed
+            },
+        );
+        done
+    }
+
+    fn skip(&self, id: &str) -> Result<(), String> {
+        if self.cancel.load(Ordering::SeqCst) {
+            return Err("cancelled".into());
+        }
+        self.status(id, StepStatus::Skipped);
+        Ok(())
+    }
+}
+
+/// Connects, probes, and installs ahpd as a user service, or uses the one
+/// found; each step sent to `send` as it starts and ends.
+pub async fn install(
+    target: &SshTarget,
+    check: crate::ssh::ServerCheck,
+    keys: Keys<'_>,
+    request: &SshInstall,
+    send: &(dyn Fn(InstallEvent) + Sync),
+    cancel: &AtomicBool,
+) -> Result<SshInstalled, String> {
+    let steps = Steps { send, cancel };
+    let session = steps
+        .run("connect", async {
+            ssh::open(target, check, keys)
+                .await
+                .map(|(session, _)| session)
+                .map_err(|err| err.to_string())
+        })
+        .await?;
+    let probed = steps
+        .run("probe", async {
+            let probed = probe(&session).await?;
+            match &probed.refusal {
+                Some(refusal) => Err(refusal.clone()),
+                None => Ok(probed),
+            }
+        })
+        .await?;
+    match probed.found.clone() {
+        Some(found) => use_found(&session, &probed, found, request, &steps).await,
+        None => install_new(&session, &probed, request, &steps).await,
+    }
+}
+
+async fn install_new(
+    session: &Session,
+    probed: &Probe,
+    request: &SshInstall,
+    steps: &Steps<'_>,
+) -> Result<SshInstalled, String> {
+    check_backends(&request.backends)?;
+    let prefix = format!("{}/{INSTALL_DIR}", probed.home);
+    let line = |text| steps.line(text);
+    let node = steps
+        .run("node", node(session, probed, &prefix, line, steps.cancel))
+        .await?;
+    steps.line(format!("Node {}", node.version));
+    let quiet = QUIET_NPM
+        .iter()
+        .map(|(key, value)| format!("{key}={value}"))
+        .collect::<Vec<_>>()
+        .join(" ");
+    steps
+        .run(
+            "server",
+            run_step(
+                session,
+                "server",
+                &prefix,
+                &format!(
+                    "{quiet} PATH={}:\"$PATH\" {} install --prefix {} @ahpd/server@latest",
+                    quote(&node.bin_dir),
+                    quote(&node.npm),
+                    quote(&prefix)
+                ),
+                &line,
+                steps.cancel,
+            ),
+        )
+        .await?;
+    let ahpd = FoundOnServer {
+        path: format!("{prefix}/node_modules/.bin/ahpd"),
+        node: Some(node.node.clone()),
+        login_shell: false,
+        version: String::new(),
+        supported: true,
+        plugins: Vec::new(),
+        running: false,
+        url: None,
+        by_desk: true,
+    };
+    let names = request
+        .backends
+        .iter()
+        .map(|name| quote(name))
+        .collect::<Vec<_>>()
+        .join(" ");
+    steps
+        .run("backends", async {
+            run_step(
+                session,
+                "backends",
+                &prefix,
+                &format!(
+                    "{quiet} {}",
+                    ahpd_command(&ahpd, &probed.home, &format!("plugin install {names}"))
+                ),
+                &line,
+                steps.cancel,
+            )
+            .await?;
+            check_ready(session, &ahpd, &probed.home, &request.backends).await
+        })
+        .await?;
+    let folder = request
+        .folder
+        .clone()
+        .unwrap_or_else(|| probed.home.clone());
+    steps
+        .run(
+            "folder",
+            run_short(
+                session,
+                "folder",
+                &ahpd_command(
+                    &ahpd,
+                    &probed.home,
+                    &format!("paths add {}", quote(&folder)),
+                ),
+            ),
+        )
+        .await?;
+    let unit = render_unit(
+        &node.node,
+        &ahpd.path,
+        &prefix,
+        request.bind,
+        request.ahpd_port,
+    );
+    let runtime = probed.runtime_dir.as_deref();
+    let unit_file = format!("{}/{UNIT_FILE}", probed.home);
+    steps
+        .run(
+            "unit",
+            run_short(
+                session,
+                "unit",
+                &format!(
+                    "mkdir -p {dir}\ncat > {file} <<'AHP_DESK_UNIT'\n{unit}AHP_DESK_UNIT\n{reload}",
+                    dir = quote(unit_file.rsplit_once('/').map_or(".", |(dir, _)| dir)),
+                    file = quote(&unit_file),
+                    reload = systemctl_user(runtime, "daemon-reload"),
+                ),
+            ),
+        )
+        .await?;
+    steps
+        .run(
+            "start",
+            run_short(
+                session,
+                "start",
+                &format!(
+                    "{} && {}",
+                    systemctl_user(runtime, "enable ahpd.service"),
+                    systemctl_user(runtime, "restart ahpd.service")
+                ),
+            ),
+        )
+        .await?;
+    let (token, version) = steps
+        .run(
+            "ready",
+            ready_for_desk(session, probed, &node.node, &ahpd, request.ahpd_port, steps),
+        )
+        .await?;
+    Ok(SshInstalled {
+        token,
+        version,
+        prefix: Some(prefix),
+        node: Some(node.node),
+        ahpd_port: request.ahpd_port,
+        by_desk: true,
+    })
+}
+
+/// Waits for the desk's ahpd to answer on `port`, then reads its token from
+/// its file and its version; a timeout shows the journal and names the port.
+async fn ready_for_desk(
+    session: &Session,
+    probed: &Probe,
+    node: &str,
+    ahpd: &FoundOnServer,
+    port: u16,
+    steps: &Steps<'_>,
+) -> Result<(Option<String>, String), String> {
+    let (code, said) = exec_capture(session, &script("ready", &ready_script(node, port))).await?;
+    if code != 0 {
+        let (_, journal) = exec_capture(
+            session,
+            &script("journal", &journal_user(probed.runtime_dir.as_deref())),
+        )
+        .await?;
+        for text in journal.lines() {
+            steps.line(text.to_string());
+        }
+        return Err(format!(
+            "ahpd did not answer on port {port} within 30 s; another program may hold that port on the server ({})",
+            said.trim()
+        ));
+    }
+    let prefix = format!("{}/{INSTALL_DIR}", probed.home);
+    let token = run_short(
+        session,
+        "token",
+        &format!("cat {}", quote(&format!("{prefix}/connection-token"))),
+    )
+    .await?
+    .trim()
+    .to_string();
+    let version = run_short(
+        session,
+        "version",
+        &ahpd_command(ahpd, &probed.home, "--version"),
+    )
+    .await?
+    .trim()
+    .to_string();
+    Ok(((!token.is_empty()).then_some(token), version))
+}
+
+/// Uses an ahpd already on the server: adds the backends it lacks, starts it
+/// when it is off, and reads how to reach it. Nothing is installed.
+async fn use_found(
+    session: &Session,
+    probed: &Probe,
+    found: FoundOnServer,
+    request: &SshInstall,
+    steps: &Steps<'_>,
+) -> Result<SshInstalled, String> {
+    let missing: Vec<String> = request
+        .backends
+        .iter()
+        .filter(|name| !found.plugins.contains(name))
+        .cloned()
+        .collect();
+    let line = |text| steps.line(text);
+    if missing.is_empty() {
+        steps.skip("backends")?;
+    } else {
+        check_backends(&missing)?;
+        let names = missing
+            .iter()
+            .map(|name| quote(name))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let quiet = QUIET_NPM
+            .iter()
+            .map(|(key, value)| format!("{key}={value}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let dir = format!("{}/{INSTALL_DIR}", probed.home);
+        steps
+            .run("backends", async {
+                run_step(
+                    session,
+                    "backends",
+                    &dir,
+                    &format!(
+                        "{quiet} {}",
+                        ahpd_command(&found, &probed.home, &format!("plugin install {names}"))
+                    ),
+                    &line,
+                    steps.cancel,
+                )
+                .await?;
+                check_ready(session, &found, &probed.home, &missing).await
+            })
+            .await?;
+    }
+    let runtime = probed.runtime_dir.as_deref();
+    if found.by_desk {
+        // The desk's own install: its unit, restarted so new backends load.
+        steps
+            .run(
+                "start",
+                run_short(
+                    session,
+                    "start",
+                    &format!(
+                        "{} && {}",
+                        systemctl_user(runtime, "enable ahpd.service"),
+                        systemctl_user(runtime, "restart ahpd.service")
+                    ),
+                ),
+            )
+            .await?;
+        let unit_file = format!("{}/{UNIT_FILE}", probed.home);
+        let port = run_short(
+            session,
+            "port",
+            &format!(
+                "sed -n 's/.*--port \\([0-9]*\\).*/\\1/p' {}",
+                quote(&unit_file)
+            ),
+        )
+        .await?
+        .trim()
+        .parse()
+        .unwrap_or(AHPD_PORT);
+        let node = found.node.clone().unwrap_or_default();
+        let (token, version) = steps
+            .run(
+                "ready",
+                ready_for_desk(session, probed, &node, &found, port, steps),
+            )
+            .await?;
+        return Ok(SshInstalled {
+            token,
+            version,
+            prefix: Some(format!("{}/{INSTALL_DIR}", probed.home)),
+            node: found.node,
+            ahpd_port: port,
+            by_desk: true,
+        });
+    }
+    // An ahpd the desk did not install: its own start or restart, and no unit.
+    if !found.running {
+        steps
+            .run(
+                "start",
+                run_short(
+                    session,
+                    "start",
+                    &ahpd_command(&found, &probed.home, "start"),
+                ),
+            )
+            .await?;
+    } else if !missing.is_empty() {
+        steps
+            .run(
+                "start",
+                run_short(
+                    session,
+                    "start",
+                    &ahpd_command(&found, &probed.home, "restart"),
+                ),
+            )
+            .await?;
+    } else {
+        steps.skip("start")?;
+    }
+    let (port, token) = steps
+        .run("ready", async {
+            let status = ahpd_command(&found, &probed.home, "status --json");
+            let mut url = None;
+            for _ in 0..60 {
+                let said = run_short(session, "ready", &status)
+                    .await
+                    .unwrap_or_default();
+                let answer: serde_json::Value =
+                    serde_json::from_str(said.trim()).unwrap_or_default();
+                if let Some(found_url) = answer["url"].as_str() {
+                    url = Some(found_url.to_string());
+                    break;
+                }
+                tokio::time::sleep(Duration::from_millis(500)).await;
+            }
+            let url = url.ok_or("the ahpd on the server did not say it is running within 30 s")?;
+            let port = tauri::Url::parse(&url)
+                .ok()
+                .and_then(|parsed| parsed.port())
+                .ok_or_else(|| format!("the ahpd on the server gave no port in {url}"))?;
+            let record = run_short(
+                session,
+                "token",
+                "cat \"${XDG_CONFIG_HOME:-$HOME/.config}/ahpd/daemon.json\" 2>/dev/null || true",
+            )
+            .await?;
+            let token = serde_json::from_str::<serde_json::Value>(record.trim())
+                .ok()
+                .and_then(|record| token_in_connect_url(&record));
+            Ok((port, token))
+        })
+        .await?;
+    Ok(SshInstalled {
+        token,
+        version: found.version,
+        prefix: None,
+        node: found.node,
+        ahpd_port: port,
+        by_desk: false,
+    })
+}
+
+/// Installs ahpd on the server the form names, or uses the one found there.
+#[tauri::command]
+pub async fn install_ssh_ahpd(
+    store: State<'_, HostStore>,
+    known: State<'_, KnownKeys>,
+    control: State<'_, InstallControl>,
+    request: SshInstall,
+    events: Channel<InstallEvent>,
+) -> Result<SshInstalled, String> {
+    let _held = control.begin()?;
+    let target = &request.target;
+    let saved = store.ssh(&target.id).ok().flatten();
+    let ssh_target = SshTarget::new(
+        &target.address,
+        target.port,
+        &target.user,
+        target.key_file.clone().map(Into::into),
+    );
+    let keys = Keys {
+        id: &target.id,
+        secrets: store.secrets(),
+        kept_password: store.ssh_password(&target.id).ok().flatten(),
+        signed_in_before: saved.and_then(|ssh| ssh.sign_in),
+    };
+    let send = move |event: InstallEvent| {
+        // A form that went away mid-install does not stop it.
+        let _ = events.send(event);
+    };
+    install(
+        &ssh_target,
+        known.checker(&ssh_target.address, ssh_target.port),
+        keys,
+        &request,
+        &send,
+        &control.cancel,
+    )
+    .await
+}
+
+/// Stops the install over SSH between steps, or in the middle of a long one.
+#[tauri::command]
+pub fn cancel_ssh_install(control: State<'_, InstallControl>) {
+    control.cancel();
 }
 
 /// The server as the form names it, with what the person typed for it.
@@ -691,8 +1440,9 @@ mod tests {
             Some("/home/ana/.local/share/ahpd/node/bin/node")
         );
         assert!(probe.warnings.is_empty());
-        assert!(ahpd_command(&found, "/home/ana", "status --json")
-            .starts_with("AHPD_PLUGIN_ROOT=/home/ana/.local/share/ahpd /home/ana/.local/share/ahpd/node/bin/node "));
+        assert!(ahpd_command(&found, "/home/ana", "status --json").starts_with(
+            "AHPD_PLUGIN_ROOT=/home/ana/.local/share/ahpd PATH=/home/ana/.local/share/ahpd/node/bin:\"$PATH\" /home/ana/.local/share/ahpd/node/bin/node "
+        ));
     }
 
     #[test]
@@ -772,7 +1522,10 @@ mod tests {
                     script.contains("dir='/home/a b/.local/share/ahpd'"),
                     "{script}"
                 );
-                assert!(script.contains(&format!("dist='{NODE_DIST}'")));
+                assert!(script.contains(&format!(
+                    "dist={NODE_DIST}
+"
+                )));
                 assert!(script.contains(&format!(
                     "node-v22\\.[0-9]+\\.[0-9]+-linux-{name}\\.tar\\.gz$"
                 )));
@@ -938,7 +1691,7 @@ mod tests {
         );
 
         server.answer(
-            "set -eu",
+            "# ahp-desk node",
             "Reading the newest Node 22\nCannot download SHASUMS256.txt\n",
             10,
         );
@@ -957,6 +1710,167 @@ mod tests {
             failed.contains("Cannot download SHASUMS256.txt"),
             "{failed}"
         );
+    }
+
+    /// By hand, on the test server Softov names, on port 9387: installs with
+    /// `@ahpd/agent-claude`, then uses that install adding `@ahpd/bot`; from a
+    /// clean server, cancels during `server`, then installs over it. The
+    /// server's `~/.config/ahpd` is copied aside first and put back at the end,
+    /// with the unit and the install folder removed.
+    #[tokio::test]
+    #[ignore]
+    async fn ssh_a_real_install() {
+        let (target, check) = crate::ssh::tests::real_target();
+        let fingerprint = std::env::var("AHP_DESK_SSH_TEST_KEY").unwrap();
+        let trusted = move || -> crate::ssh::ServerCheck {
+            let fingerprint = fingerprint.clone();
+            Box::new(move |key| {
+                let offered = crate::ssh::known_keys::fingerprint(key);
+                if offered.sha256 == fingerprint {
+                    KeyCheck::Known
+                } else {
+                    KeyCheck::New { offered }
+                }
+            })
+        };
+        drop(check);
+        let secrets = Secrets::default();
+        let keys = || Keys {
+            id: "real",
+            secrets: &secrets,
+            kept_password: None,
+            signed_in_before: None,
+        };
+        let (session, _) = ssh::open(&target, trusted(), keys()).await.unwrap();
+        let shell = |command: String| {
+            let session = &session;
+            async move {
+                let (code, said) = exec_capture(session, &command).await.unwrap();
+                println!("$ {command}\n{said}");
+                (code, said)
+            }
+        };
+        let (_, home) = shell("printf %s \"$HOME\"".into()).await;
+        let backup = format!("{home}/.config/ahpd.desk-test-backup");
+        let config = format!("{home}/.config/ahpd");
+        let (code, _) = shell(format!(
+            "test ! -e {b} && if [ -e {c} ]; then cp -a {c} {b}; fi",
+            b = quote(&backup),
+            c = quote(&config)
+        ))
+        .await;
+        assert_eq!(
+            code, 0,
+            "a backup from an earlier run is still there: {backup}"
+        );
+
+        let clean = format!(
+            "systemctl --user disable --now ahpd.service 2>/dev/null; rm -f {unit}; systemctl --user daemon-reload; rm -rf {prefix}",
+            unit = quote(&format!("{home}/{UNIT_FILE}")),
+            prefix = quote(&format!("{home}/{INSTALL_DIR}"))
+        );
+        let restore = format!(
+            "rm -rf {c}; if [ -e {b} ]; then mv {b} {c}; fi",
+            b = quote(&backup),
+            c = quote(&config)
+        );
+        let mut request = request(&["@ahpd/agent-claude"]);
+        request.target = ProbeTarget {
+            id: "real".into(),
+            address: target.address.clone(),
+            port: target.port,
+            user: target.user.clone(),
+            key_file: target
+                .key_file
+                .as_ref()
+                .map(|path| path.display().to_string()),
+        };
+        request.ahpd_port = 9387;
+
+        let run = |request: SshInstall, cancel_in_server: bool| {
+            let (target, trusted, secrets) = (&target, &trusted, &secrets);
+            async move {
+                let events = Mutex::new(Vec::new());
+                let cancel = AtomicBool::new(false);
+                let send = |event: InstallEvent| {
+                    match &event {
+                        InstallEvent::Line { text } => println!("  {text}"),
+                        InstallEvent::Step { id, status } => println!("[{id}] {status:?}"),
+                    }
+                    events.lock().unwrap().push(event);
+                };
+                let keys = Keys {
+                    id: "real",
+                    secrets,
+                    kept_password: None,
+                    signed_in_before: None,
+                };
+                let canceller = async {
+                    if !cancel_in_server {
+                        return;
+                    }
+                    loop {
+                        let in_server = events.lock().unwrap().contains(&InstallEvent::Step {
+                            id: "server".into(),
+                            status: StepStatus::Running,
+                        });
+                        if in_server {
+                            tokio::time::sleep(Duration::from_secs(3)).await;
+                            cancel.store(true, Ordering::SeqCst);
+                            return;
+                        }
+                        tokio::time::sleep(Duration::from_millis(200)).await;
+                    }
+                };
+                let (done, ()) = tokio::join!(
+                    install(target, trusted(), keys, &request, &send, &cancel),
+                    canceller
+                );
+                (done, events.into_inner().unwrap())
+            }
+        };
+
+        let first = run(request.clone(), false).await.0;
+        let checked = async {
+            let installed = first?;
+            assert!(installed.by_desk);
+            let (_, active) = shell("systemctl --user is-active ahpd.service".into()).await;
+            assert_eq!(active.trim(), "active");
+            let (_, status) = shell(format!(
+                "\"${{SHELL:-sh}}\" -lc {}",
+                quote(&format!(
+                    "AHPD_PLUGIN_ROOT={home}/{INSTALL_DIR} {home}/{INSTALL_DIR}/node/bin/node {home}/{INSTALL_DIR}/node_modules/.bin/ahpd status --json"
+                ))
+            ))
+            .await;
+            println!("status from a login shell: {status}");
+            let (_, file) = shell(format!("cat {home}/{INSTALL_DIR}/connection-token")).await;
+            assert_eq!(installed.token.as_deref(), Some(file.trim()));
+
+            let mut second = request.clone();
+            second.backends = vec!["@ahpd/agent-claude".into(), "@ahpd/bot".into()];
+            let (again, events) = run(second, false).await;
+            assert!(again?.by_desk);
+            let ran: Vec<_> = events
+                .iter()
+                .filter_map(|event| match event {
+                    InstallEvent::Step { id, status: StepStatus::Done } => Some(id.as_str()),
+                    _ => None,
+                })
+                .collect();
+            assert_eq!(ran, ["connect", "probe", "backends", "start", "ready"]);
+
+            shell(clean.clone()).await;
+            let (cancelled, _) = run(request.clone(), true).await;
+            assert_eq!(cancelled.unwrap_err(), "cancelled");
+            let fourth = run(request.clone(), false).await.0?;
+            assert!(fourth.by_desk);
+            Ok::<(), String>(())
+        }
+        .await;
+        shell(clean).await;
+        shell(restore).await;
+        checked.unwrap();
     }
 
     /// By hand, on the test server Softov names: downloads the newest Node 22
@@ -995,6 +1909,411 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(code, 0);
+    }
+
+    #[test]
+    fn install_the_unit_runs_ahpd_on_its_port_with_its_token_file_and_plugin_root() {
+        let unit = render_unit(
+            "/home/ana/.local/share/ahpd/node/bin/node",
+            "/home/ana/.local/share/ahpd/node_modules/.bin/ahpd",
+            "/home/ana/.local/share/ahpd",
+            Bind::Loopback,
+            9187,
+        );
+        assert!(unit.contains("Description=ahpd, installed by ahp-desk\n"));
+        assert!(unit.contains("WorkingDirectory=%h\n"));
+        assert!(unit.contains("ExecStart=/home/ana/.local/share/ahpd/node/bin/node /home/ana/.local/share/ahpd/node_modules/.bin/ahpd run --host 127.0.0.1 --port 9187 --connection-token-file /home/ana/.local/share/ahpd/connection-token\n"));
+        assert!(unit.contains("Environment=AHPD_PLUGIN_ROOT=/home/ana/.local/share/ahpd\n"));
+        assert!(unit.contains(
+            "Environment=PATH=/home/ana/.local/share/ahpd/node/bin:/usr/local/bin:/usr/bin:/bin\n"
+        ));
+        assert!(
+            unit.contains("Restart=on-failure\n") && unit.contains("WantedBy=default.target\n")
+        );
+        let open = render_unit("/usr/bin/node", "/s/ahpd", "/p", Bind::All, 9300);
+        assert!(open.contains("run --host 0.0.0.0 --port 9300 "));
+    }
+
+    #[test]
+    fn install_the_unit_quotes_a_home_with_a_space_for_systemd() {
+        let unit = render_unit(
+            "/home/a b/.local/share/ahpd/node/bin/node",
+            "/home/a b/.local/share/ahpd/node_modules/.bin/ahpd",
+            "/home/a b/.local/share/ahpd",
+            Bind::Loopback,
+            9187,
+        );
+        assert!(unit.contains("ExecStart=\"/home/a b/.local/share/ahpd/node/bin/node\" \"/home/a b/.local/share/ahpd/node_modules/.bin/ahpd\" run"));
+        assert!(unit.contains("Environment=\"AHPD_PLUGIN_ROOT=/home/a b/.local/share/ahpd\"\n"));
+        assert_eq!(unit_word("50%"), "50%%");
+    }
+
+    #[test]
+    fn install_systemctl_takes_the_runtime_dir_when_the_probe_needed_one() {
+        assert_eq!(
+            systemctl_user(None, "daemon-reload"),
+            "systemctl --user daemon-reload"
+        );
+        assert_eq!(
+            systemctl_user(Some("/run/user/1000"), "daemon-reload"),
+            "XDG_RUNTIME_DIR=/run/user/1000 systemctl --user daemon-reload"
+        );
+    }
+
+    /// The test server's canned answers for a whole install.
+    fn answer_install(server: &TestServer, probe: &str) {
+        server.answer(PROBE_MARK, probe, 0);
+        for id in ["server", "backends", "folder", "unit", "start", "cancel"] {
+            server.answer(&format!("# ahp-desk {id}\n"), "", 0);
+        }
+        server.answer("# ahp-desk ready\n", "answered 426\n", 0);
+        server.answer("# ahp-desk token\n", "the-token\n", 0);
+        server.answer("# ahp-desk version\n", "0.12.0\n", 0);
+        server.answer("# ahp-desk port\n", "9300\n", 0);
+        server.answer(
+            "# ahp-desk plugins\n",
+            r#"[{"spec":"@ahpd/agent-claude","name":"claude","state":"ready"},{"spec":"@ahpd/bot","name":"bot","state":"ready"}]"#,
+            0,
+        );
+    }
+
+    fn request(backends: &[&str]) -> SshInstall {
+        SshInstall {
+            target: ProbeTarget {
+                id: "dev".into(),
+                address: "127.0.0.1".into(),
+                port: 22,
+                user: "tester".into(),
+                key_file: None,
+            },
+            backends: backends.iter().map(|name| name.to_string()).collect(),
+            folder: None,
+            ahpd_port: 9300,
+            bind: Bind::Loopback,
+        }
+    }
+
+    /// Runs an install against the test server and answers its result, the
+    /// steps in the order they ran, and the commands the server saw.
+    async fn run_install(
+        server: &TestServer,
+        request: &SshInstall,
+        cancel: &AtomicBool,
+    ) -> (
+        Result<SshInstalled, String>,
+        Vec<(String, StepStatus)>,
+        Vec<String>,
+    ) {
+        let secrets = Secrets::default();
+        secrets.set_password("dev", PASSWORD);
+        let keys = Keys {
+            id: "dev",
+            secrets: &secrets,
+            kept_password: None,
+            signed_in_before: None,
+        };
+        let events = Mutex::new(Vec::new());
+        let send = |event: InstallEvent| events.lock().unwrap().push(event);
+        let done = install(
+            &server.target(None),
+            Box::new(|_| KeyCheck::Known),
+            keys,
+            request,
+            &send,
+            cancel,
+        )
+        .await;
+        let steps = events
+            .into_inner()
+            .unwrap()
+            .into_iter()
+            .filter_map(|event| match event {
+                InstallEvent::Step { id, status } if status != StepStatus::Running => {
+                    Some((id, status))
+                }
+                _ => None,
+            })
+            .collect();
+        (done, steps, server.commands())
+    }
+
+    fn ids(steps: &[(String, StepStatus)]) -> Vec<&str> {
+        steps.iter().map(|(id, _)| id.as_str()).collect()
+    }
+
+    #[tokio::test]
+    async fn install_on_a_server_with_its_own_node_runs_every_step_with_the_plugin_root() {
+        let server = TestServer::start().await;
+        answer_install(&server, DEBIAN);
+        let cancel = AtomicBool::new(false);
+        let (done, steps, commands) =
+            run_install(&server, &request(&["@ahpd/agent-claude"]), &cancel).await;
+        let installed = done.unwrap();
+        assert_eq!(
+            ids(&steps),
+            [
+                "connect", "probe", "node", "server", "backends", "folder", "unit", "start",
+                "ready"
+            ]
+        );
+        assert!(steps.iter().all(|(_, status)| *status == StepStatus::Done));
+        assert_eq!(
+            installed,
+            SshInstalled {
+                token: Some("the-token".into()),
+                version: "0.12.0".into(),
+                prefix: Some("/home/ana/.local/share/ahpd".into()),
+                node: Some("/usr/bin/node".into()),
+                ahpd_port: 9300,
+                by_desk: true
+            }
+        );
+        let of = |id: &str| {
+            commands
+                .iter()
+                .find(|command| command.starts_with(&format!("# ahp-desk {id}\n")))
+                .unwrap()
+                .clone()
+        };
+        assert!(of("server").contains(
+            "/usr/bin/npm install --prefix /home/ana/.local/share/ahpd @ahpd/server@latest"
+        ));
+        assert!(of("server").contains("setsid -w sh -c"));
+        for id in ["backends", "folder", "version"] {
+            assert!(
+                of(id).contains("AHPD_PLUGIN_ROOT=/home/ana/.local/share/ahpd"),
+                "{id}: {}",
+                of(id)
+            );
+        }
+        assert!(of("backends").contains("plugin install @ahpd/agent-claude"));
+        assert!(of("folder").contains("paths add /home/ana"));
+        assert!(of("unit")
+            .contains("cat > /home/ana/.config/systemd/user/ahpd.service <<'AHP_DESK_UNIT'"));
+        assert!(of("unit").contains("--port 9300"));
+        assert!(of("unit").ends_with("systemctl --user daemon-reload"));
+        assert!(of("start").contains(
+            "systemctl --user enable ahpd.service && systemctl --user restart ahpd.service"
+        ));
+        assert!(of("ready").contains(" 9300"));
+        assert!(
+            !commands.iter().any(|command| command.contains("the-token")),
+            "the token is only read"
+        );
+    }
+
+    #[tokio::test]
+    async fn install_with_a_found_ahpd_adds_only_the_backends_it_lacks_and_installs_nothing() {
+        let server = TestServer::start().await;
+        // The first answer that matches wins, so these go in before the install's.
+        server.answer(
+            FOUND_MARK,
+            "--plugins--\n[{\"name\":\"@ahpd/agent-claude\",\"state\":\"ready\"}]\n\n--status--\n{\"pid\":4,\"url\":\"ws://127.0.0.1:9187\"}\n",
+            0,
+        );
+        server.answer(
+            "# ahp-desk ready\n/usr/local/bin/ahpd status --json",
+            "{\"pid\":4,\"url\":\"ws://127.0.0.1:9187\"}\n",
+            0,
+        );
+        server.answer(
+            "# ahp-desk token\ncat",
+            "{\"pid\":4,\"connectUrl\":\"ws://127.0.0.1:9187/?tkn=found%2Btoken\"}\n",
+            0,
+        );
+        answer_install(
+            &server,
+            &format!("{DEBIAN}ahpd=/usr/local/bin/ahpd\nahpdVersion=0.12.0\n"),
+        );
+        let cancel = AtomicBool::new(false);
+        let (done, steps, commands) = run_install(
+            &server,
+            &request(&["@ahpd/agent-claude", "@ahpd/bot"]),
+            &cancel,
+        )
+        .await;
+        let installed = done.unwrap();
+        assert_eq!(
+            ids(&steps),
+            ["connect", "probe", "backends", "start", "ready"]
+        );
+        assert_eq!(installed.ahpd_port, 9187);
+        assert_eq!(installed.token.as_deref(), Some("found+token"));
+        assert!(!installed.by_desk);
+        let backends = commands
+            .iter()
+            .find(|command| command.starts_with("# ahp-desk backends\n"))
+            .unwrap();
+        assert!(backends.contains("plugin install @ahpd/bot"), "{backends}");
+        assert!(!backends.contains("agent-claude"));
+        let start = commands
+            .iter()
+            .find(|command| command.starts_with("# ahp-desk start\n"))
+            .unwrap();
+        assert!(
+            start.ends_with("/usr/local/bin/ahpd restart"),
+            "a running ahpd restarts so the new backend loads"
+        );
+        assert!(
+            !commands
+                .iter()
+                .any(|command| command.contains("@ahpd/server")),
+            "nothing installed"
+        );
+        assert!(
+            !commands
+                .iter()
+                .filter(|command| !command.starts_with(PROBE_MARK))
+                .any(|command| command.contains("systemctl")),
+            "no unit"
+        );
+    }
+
+    #[tokio::test]
+    async fn install_with_a_found_ahpd_too_old_is_refused_with_no_install_command() {
+        let server = TestServer::start().await;
+        answer_install(
+            &server,
+            &format!("{DEBIAN}ahpd=/usr/bin/ahpd\nahpdVersion=0.7.0\n"),
+        );
+        server.answer(
+            FOUND_MARK,
+            "--plugins--\n[]\n--status--\n{\"running\":false}\n",
+            0,
+        );
+        let cancel = AtomicBool::new(false);
+        let (done, steps, commands) =
+            run_install(&server, &request(&["@ahpd/agent-claude"]), &cancel).await;
+        assert!(done.unwrap_err().contains("0.7.0"));
+        assert_eq!(
+            steps.last().unwrap(),
+            &("probe".to_string(), StepStatus::Failed)
+        );
+        assert!(commands
+            .iter()
+            .all(|command| command.starts_with(PROBE_MARK) || command.starts_with(FOUND_MARK)));
+    }
+
+    #[tokio::test]
+    async fn install_a_ready_that_never_answers_shows_the_journal_and_names_the_port() {
+        let server = TestServer::start().await;
+        // The first answer that matches wins, so these go in before the install's.
+        server.answer("# ahp-desk ready\n", "no answer on 9300\n", 1);
+        server.answer("# ahp-desk journal\n", "ahpd[1]: port 9300 is in use\n", 0);
+        answer_install(&server, DEBIAN);
+        let secrets = Secrets::default();
+        secrets.set_password("dev", PASSWORD);
+        let keys = Keys {
+            id: "dev",
+            secrets: &secrets,
+            kept_password: None,
+            signed_in_before: None,
+        };
+        let events = Mutex::new(Vec::new());
+        let send = |event: InstallEvent| events.lock().unwrap().push(event);
+        let cancel = AtomicBool::new(false);
+        let failed = install(
+            &server.target(None),
+            Box::new(|_| KeyCheck::Known),
+            keys,
+            &request(&["@ahpd/agent-claude"]),
+            &send,
+            &cancel,
+        )
+        .await
+        .unwrap_err();
+        assert!(failed.contains("port 9300"), "{failed}");
+        let events = events.into_inner().unwrap();
+        assert!(events.contains(&InstallEvent::Line {
+            text: "ahpd[1]: port 9300 is in use".into()
+        }));
+        assert_eq!(
+            events.last().unwrap(),
+            &InstallEvent::Step {
+                id: "ready".into(),
+                status: StepStatus::Failed
+            }
+        );
+    }
+
+    #[test]
+    fn install_not_ready_names_each_backend_with_its_state_and_reason() {
+        let list: Vec<serde_json::Value> = serde_json::from_str(
+            r#"[{"spec":"@ahpd/agent-claude","name":"@ahpd/agent-claude","state":"error","problem":"its name is not a slug"},{"spec":{"name":"@ahpd/bot"},"name":"bot","state":"ready"}]"#,
+        )
+        .unwrap();
+        let asked = [
+            "@ahpd/agent-claude".to_string(),
+            "@ahpd/bot".to_string(),
+            "@ahpd/x".to_string(),
+        ];
+        assert_eq!(
+            not_ready(&list, &asked),
+            [
+                "@ahpd/agent-claude (error: its name is not a slug)",
+                "@ahpd/x (not listed)"
+            ]
+        );
+    }
+
+    #[test]
+    fn probe_an_ahpd_config_already_there_is_warned_about() {
+        let probe = parse_probe(&format!("{DEBIAN}ahpdConfig=/home/ana/.config/ahpd\n"));
+        assert_eq!(probe.refusal, None);
+        assert!(probe.warnings[0].starts_with("/home/ana/.config/ahpd is already there"));
+    }
+
+    #[tokio::test]
+    async fn install_a_backend_the_new_ahpd_cannot_load_stops_before_the_unit() {
+        let server = TestServer::start().await;
+        server.answer(
+            "# ahp-desk plugins\n",
+            r#"[{"spec":"@ahpd/agent-claude","name":"@ahpd/agent-claude","state":"error","problem":"its name is not a slug"}]"#,
+            0,
+        );
+        answer_install(&server, DEBIAN);
+        let cancel = AtomicBool::new(false);
+        let (done, steps, commands) =
+            run_install(&server, &request(&["@ahpd/agent-claude"]), &cancel).await;
+        let failed = done.unwrap_err();
+        assert!(
+            failed.contains("@ahpd/agent-claude (error: its name is not a slug)"),
+            "{failed}"
+        );
+        assert!(failed.contains("~/.config/ahpd"));
+        assert_eq!(
+            steps.last().unwrap(),
+            &("backends".to_string(), StepStatus::Failed)
+        );
+        assert!(!commands
+            .iter()
+            .any(|command| command.starts_with("# ahp-desk unit\n")));
+    }
+
+    #[tokio::test]
+    async fn install_a_cancel_before_a_step_sends_no_further_step() {
+        let server = TestServer::start().await;
+        answer_install(&server, DEBIAN);
+        let cancel = AtomicBool::new(true);
+        let (done, steps, commands) =
+            run_install(&server, &request(&["@ahpd/agent-claude"]), &cancel).await;
+        assert_eq!(done.unwrap_err(), "cancelled");
+        assert!(steps.is_empty());
+        assert!(commands.is_empty());
+    }
+
+    #[test]
+    fn install_control_allows_one_install_at_a_time() {
+        let control = InstallControl::default();
+        let held = control.begin().unwrap();
+        assert!(control.begin().is_err());
+        control.cancel();
+        drop(held);
+        let _again = control.begin().unwrap();
+        assert!(
+            !control.cancel.load(Ordering::SeqCst),
+            "a new install starts uncancelled"
+        );
     }
 
     async fn signed_in(server: &TestServer) -> Session {

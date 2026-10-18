@@ -33,6 +33,8 @@
     "allow-confirm-ssh-key",
     "allow-forget-ssh-key",
     "allow-probe-ssh-server",
+    "allow-install-ssh-ahpd",
+    "allow-cancel-ssh-install",
     "dialog:allow-open",
     {
       "identifier": "opener:allow-open-url",

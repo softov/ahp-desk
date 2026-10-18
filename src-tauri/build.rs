@@ -82,6 +82,8 @@ fn main() {
             "confirm_ssh_key",
             "forget_ssh_key",
             "probe_ssh_server",
+            "install_ssh_ahpd",
+            "cancel_ssh_install",
         ]),
     ))
     .expect("the Tauri build failed");

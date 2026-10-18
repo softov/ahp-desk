@@ -330,7 +330,6 @@ impl HostStore {
     }
 
     /// What a person typed for each host's SSH sign-in.
-    #[cfg_attr(not(test), allow(dead_code))] // plan 10, tasks 05 to 07
     pub fn secrets(&self) -> &Secrets {
         &self.secrets
     }
@@ -340,7 +339,6 @@ impl HostStore {
     }
 
     /// A host's SSH details, `None` on a host with none.
-    #[cfg_attr(not(test), allow(dead_code))] // plan 10, tasks 05 to 07
     pub fn ssh(&self, id: &str) -> Result<Option<SshHost>, String> {
         let hosts = self.lock();
         let host = hosts
@@ -351,7 +349,7 @@ impl HostStore {
     }
 
     /// Keeps the SSH password the person asked to keep, as `password::keep` does.
-    #[cfg_attr(not(test), allow(dead_code))] // plan 10, tasks 05 to 07
+    #[cfg_attr(not(test), allow(dead_code))] // the form keeps a password from plan 10 task 07
     pub fn keep_ssh_password(&self, id: &str, password: &str) -> Result<Vec<HostView>, String> {
         let mut hosts = self.lock();
         let host = hosts
@@ -367,7 +365,6 @@ impl HostStore {
     }
 
     /// The SSH password kept for a host.
-    #[cfg_attr(not(test), allow(dead_code))] // plan 10, tasks 05 to 07
     pub fn ssh_password(&self, id: &str) -> Result<Option<String>, String> {
         let hosts = self.lock();
         let host = hosts

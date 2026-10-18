@@ -70,6 +70,7 @@ pub fn run() {
             )?);
             app.manage(AppWindows::default());
             app.manage(HostStatuses::default());
+            app.manage(ssh_install::InstallControl::default());
             app.manage(LocalAhpd::new(app.handle())?);
             app.manage(ui_source::resolve(app.handle())?);
             // Frameless and rounded, as an app window; the host list draws its title bar.
@@ -134,6 +135,8 @@ pub fn run() {
             ssh::known_keys::confirm_ssh_key,
             ssh::known_keys::forget_ssh_key,
             ssh_install::probe_ssh_server,
+            ssh_install::install_ssh_ahpd,
+            ssh_install::cancel_ssh_install,
         ])
         .build(tauri::generate_context!())
         .expect("ahp-desk failed to start")

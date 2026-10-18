@@ -16,7 +16,7 @@ use crate::hosts::{HostStore, HOSTS_CHANGED};
 
 /// npm's settings for an install the desk shows: no update notice, no funding
 /// or audit summary.
-const QUIET_NPM: [(&str, &str); 3] = [
+pub(crate) const QUIET_NPM: [(&str, &str); 3] = [
     ("npm_config_update_notifier", "false"),
     ("npm_config_fund", "false"),
     ("npm_config_audit", "false"),
@@ -259,16 +259,31 @@ pub fn ready_plugins(ahpd: &Launcher) -> Result<Vec<String>, String> {
             said(&output)
         )
     })?;
-    Ok(list
-        .iter()
-        .filter(|plugin| plugin["state"] == "ready")
-        .filter_map(|plugin| plugin["name"].as_str().map(str::to_string))
-        .collect())
+    Ok(ready_specs(&list))
+}
+
+/// What a `plugin list --json` row names: its `spec` as `plugins` writes it,
+/// as `@ahpd/agent-claude`, else its `name`. ahpd keys a plugin by an id its
+/// module declares, which need not be the package a person ticks.
+pub(crate) fn spec_of(row: &serde_json::Value) -> Option<String> {
+    let spec = &row["spec"];
+    spec.as_str()
+        .or_else(|| spec["name"].as_str())
+        .or_else(|| row["name"].as_str())
+        .map(str::to_string)
+}
+
+/// The plugins of a `plugin list --json` that are ready, by what they name.
+pub(crate) fn ready_specs(list: &[serde_json::Value]) -> Vec<String> {
+    list.iter()
+        .filter(|row| row["state"] == "ready")
+        .filter_map(spec_of)
+        .collect()
 }
 
 /// The backends Add host offers are `@ahpd/` packages, and ahpd does not start
 /// with none.
-fn check_backends(backends: &[String]) -> Result<(), String> {
+pub(crate) fn check_backends(backends: &[String]) -> Result<(), String> {
     if backends.is_empty() {
         return Err("pick at least one backend; ahpd does not start without one".into());
     }
@@ -496,6 +511,11 @@ fn token_in_record(record: &Path, pid: u32) -> Option<String> {
     if record["pid"].as_u64() != Some(u64::from(pid)) {
         return None;
     }
+    token_in_connect_url(&record)
+}
+
+/// The `tkn` of an ahpd record's `connectUrl`; none when it takes no token.
+pub(crate) fn token_in_connect_url(record: &serde_json::Value) -> Option<String> {
     let url = tauri::Url::parse(record["connectUrl"].as_str()?).ok()?;
     let token = url.query_pairs().find(|(key, _)| key == "tkn")?.1;
     Some(token.into_owned())
@@ -805,11 +825,23 @@ pub fn stop_on_quit(app: &AppHandle) {
 }
 
 /// One step of an install, as the shell shows it.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub enum InstallEvent {
     /// A line npm or ahpd wrote.
     Line { text: String },
+    /// A named step of an install over SSH starting or ending; the local
+    /// install sends none.
+    Step { id: String, status: StepStatus },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum StepStatus {
+    Running,
+    Done,
+    Failed,
+    Skipped,
 }
 
 /// Installs ahpd and `backends` with the bundled Node, then answers the ahpd
@@ -1246,6 +1278,12 @@ mod tests {
         assert_eq!(
             ready_plugins(&fake_ahpd(&scratch, list, 0)).unwrap(),
             ["@ahpd/agent-claude", "x"]
+        );
+        // ahpd 0.12 keys a plugin by its module's id; the row's spec is the package.
+        let keyed = r#"[{"spec":"@ahpd/agent-claude","name":"claude","state":"ready"},{"spec":{"name":"@ahpd/computer","options":{}},"name":"computer","state":"ready"}]"#;
+        assert_eq!(
+            ready_plugins(&fake_ahpd(&scratch, keyed, 0)).unwrap(),
+            ["@ahpd/agent-claude", "@ahpd/computer"]
         );
         assert!(ready_plugins(&fake_ahpd(&scratch, "[]", 0))
             .unwrap()

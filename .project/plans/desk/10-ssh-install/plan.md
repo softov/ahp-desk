@@ -13,6 +13,7 @@ decisions:
   - decisions/the-remote-node-download-is-the-newest-22.md
   - decisions/the-installed-ahpd-keeps-the-usual-config-folder.md
   - decisions/the-desk-adds-backends-through-ahpd-plugin-install.md
+  - decisions/an-ahpd-config-whose-plugins-the-new-ahpd-cannot-load-stops-the-install.md
 refs:
   - file:///github/opendoop/packages/tauri/src-tauri/src/ssh/mod.rs - doop's `russh` session, agent then key-file sign-in, `exec_capture`
   - file:///github/opendoop/packages/tauri/src-tauri/src/ssh/push.rs - doop's file push over SSH
@@ -89,6 +90,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | The SSH client is `russh`, as doop's. | doop's `ssh/mod.rs` | 01 |
 | The install streams its steps and can be cancelled, as doop's. | doop's `installer/mod.rs` | 05 |
 | The two plan 03 decisions above hold for the SSH install: the server's ahpd uses `~/.config/ahpd`, the desk's install puts `@ahpd/server` and the backends under `AHPD_PLUGIN_ROOT=~/.local/share/ahpd`, and the backends go in through the installed ahpd's `plugin install`, so a server's own ahpd and the desk's install look the same. | Softov, 2026-10-14, asked "p10 q5: do p3's two rules (~/.config/ahpd, backends with ahpd plugin install) apply to the remote install, so a server's own ahpd and the desk's install look the same?": "Yes, same layout"; rejected: plan 10's own layout under ~/.local/share/ahpd; Softov's reason, asked first: "Think like a remote server with ahpd already installed on it per example... it will also work?" | 05 |
+| [An ahpd config whose plugins the new ahpd cannot load stops the install, and the desk never edits it](../../../decisions/an-ahpd-config-whose-plugins-the-new-ahpd-cannot-load-stops-the-install.md) | Softov, 2026-10-18: "Check plugins, refuse" | 03, 05 |
 
 ## Proposed architecture
 
@@ -106,7 +108,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | [02 - the server key: known_hosts, refuse a new one until Trust, refuse a changed one with Forget](task-02-server-key.md) | done | 01 |
 | [03 - the probe: Linux, CPU, systemctl --user, lingering, Node, an ahpd already there](task-03-probe.md) | done | 01 |
 | [04 - Node: the server's own, or the newest 22 downloaded there](task-04-node.md) | done | 03 |
-| [05 - the install, or the found ahpd: @ahpd/server and the backends, the folder, the token file, the user unit, the health wait, with steps and cancel](task-05-install.md) | todo | 04 |
+| [05 - the install, or the found ahpd: @ahpd/server and the backends, the folder, the token file, the user unit, the health wait, with steps and cancel](task-05-install.md) | done | 04 |
 | [06 - reach it: the tunnel on a kept local port (host kind `ssh`) or the open port (a URL host)](task-06-reach.md) | todo | 05 |
 | [07 - Add host and the first run: "A server over SSH"](task-07-add-host-ssh.md) | todo | 02, 05, 06 |
 | [08 - update over SSH, for plan 09](task-08-update-over-ssh.md) | todo | 05 |
@@ -122,8 +124,8 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 
 ## Resume state
 
-- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 04, 2026-10-18, with their by-hand checks.
-- **Next action:** task 05.
+- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 05, 2026-10-18, with their by-hand checks.
+- **Next action:** task 06.
 - **Open questions:** none.
 - **Watch out for:** doop's `AcceptAllHandler` must not be copied; the Answers row on the server key replaces it.
   The end to end and every real SSH test run against dev02 only.
@@ -137,4 +139,5 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 - [ ] Update over SSH installs the newer ahpd and the host comes back.
 - [ ] Remove with uninstall leaves no unit, no install and no token of the desk's on dev02, and `~/.config/ahpd` as it was.
 - [ ] A found ahpd that was off is started with no unit, and Remove leaves it running.
+- [ ] A terminal `ahpd status` on the server sees the desk's ahpd: a pending check, waiting on ahpd (task 05).
 - [ ] `plans/index.md` updated.

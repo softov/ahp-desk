@@ -130,6 +130,40 @@ export function probeSshServer(target: ProbeTarget, passphrase: string | null, p
   return invoke<Probe>('probe_ssh_server', { target, passphrase, password });
 }
 
+/** What Add host asks for an install over SSH. */
+export interface SshInstall {
+  target: ProbeTarget;
+  backends: string[];
+  /** The folder ahpd serves; the user's home on the server when none. */
+  folder?: string;
+  /** 9187 when none. */
+  ahpdPort?: number;
+  /** `loopback` for the tunnel, `all` for an open port. */
+  bind?: 'loopback' | 'all';
+}
+
+/** The ahpd the desk connects to after an install or with a found one. */
+export interface SshInstalled {
+  token: string | null;
+  version: string;
+  prefix: string | null;
+  node: string | null;
+  ahpdPort: number;
+  byDesk: boolean;
+}
+
+/** Installs ahpd on the server, or uses the one found there, calling `onEvent` with each step and line. */
+export function installSshAhpd(request: SshInstall, onEvent: (event: InstallEvent) => void): Promise<SshInstalled> {
+  const events = new Channel<InstallEvent>();
+  events.onmessage = onEvent;
+  return invoke<SshInstalled>('install_ssh_ahpd', { request, events });
+}
+
+/** Stops the install over SSH between steps, or in the middle of a long one. */
+export function cancelSshInstall(): Promise<void> {
+  return invoke('cancel_ssh_install');
+}
+
 /** Forgets the desk's key for a server, so the next connection asks to trust its key as a first one. */
 export function forgetSshKey(address: string, port: number): Promise<void> {
   return invoke('forget_ssh_key', { address, port });
@@ -193,8 +227,13 @@ export function stopLocalAhpd(id: string): Promise<LocalState> {
   return invoke<LocalState>('stop_local_ahpd', { id });
 }
 
-/** One step of an install: a line npm or ahpd wrote. */
-export type InstallEvent = { kind: 'line'; text: string };
+/** One event of an install: a line npm or ahpd wrote, or, over SSH, a named step starting or ending. */
+export type InstallEvent =
+  | { kind: 'line'; text: string }
+  | { kind: 'step'; id: InstallStep; status: 'running' | 'done' | 'failed' | 'skipped' };
+
+/** The steps of an install over SSH, in order; a found ahpd skips node, server, folder and unit. */
+export type InstallStep = 'connect' | 'probe' | 'node' | 'server' | 'backends' | 'folder' | 'unit' | 'start' | 'ready';
 
 /** Installs ahpd and the `backends` with the desk's Node, calling `onEvent` as it goes, and answers the ahpd now used. */
 export function installLocalAhpd(backends: string[], onEvent: (event: InstallEvent) => void): Promise<FoundAhpd | null> {

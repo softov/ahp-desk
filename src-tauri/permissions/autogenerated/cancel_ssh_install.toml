@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-cancel-ssh-install"
+description = "Enables the cancel_ssh_install command without any pre-configured scope."
+commands.allow = ["cancel_ssh_install"]
+
+[[permission]]
+identifier = "deny-cancel-ssh-install"
+description = "Denies the cancel_ssh_install command without any pre-configured scope."
+commands.deny = ["cancel_ssh_install"]

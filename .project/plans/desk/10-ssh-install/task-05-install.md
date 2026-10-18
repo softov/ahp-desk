@@ -1,6 +1,6 @@
 ---
 title: The desk installs ahpd over SSH as a user service, or uses the one it finds, with the backends, folder, port and token, streaming its steps and able to cancel
-status: todo
+status: done
 depends: [task-04-node.md]
 layer: "src-tauri"
 refs:
@@ -65,3 +65,17 @@ Each step is sent to the shell over a Tauri `Channel` as it starts and ends, wit
   The test removes what it installed at the end: `systemctl --user disable --now ahpd.service`, the unit, and `~/.local/share/ahpd`.
 
 ## Resume
+
+- 2026-10-18: `ssh_install.rs` has `SshInstall`, `Bind`, `SshInstalled`, `install()` (`install_new`, `use_found`), `render_unit()`, `systemctl_user()`, `InstallControl`, `check_ready()`, `not_ready()`, and the commands `install_ssh_ahpd` and `cancel_ssh_install`; `InstallEvent` has `Step { id, status }`; `ipc.ts` has `installSshAhpd`, `cancelSshInstall`, `SshInstall`, `SshInstalled` and `InstallStep`.
+- Every remote command starts with `# ahp-desk <step>`; `node`, `server` and `backends` run under `setsid -w` with `<install>/.step.pid`, and a cancel kills that process group over a second channel.
+- The unit runs `<install>/node_modules/.bin/ahpd`, the path the probe runs, rather than the `bin` read from `package.json`; unit values are double-quoted for systemd when they hold a space, with `%` as `%%`.
+- `folder` always runs `ahpd paths add`, as the local install does, since ahpd leaves a folder already served as it is; it is never `skipped`.
+- Every ahpd command of the desk's install goes through `ahpd_command`, which now also puts its Node's folder first on `PATH`, as `plugin install` runs npm.
+- `ready` asks the port with the server's Node; for an ahpd the desk did not install, it reads `status --json` until it gives a URL, and the token from `daemon.json`'s `connectUrl`.
+- Found on the real server: an older ahpd's `~/.config/ahpd` with plugins in its `node_modules` makes the new ahpd skip them and exit, since ahpd looks in the config folder before `AHPD_PLUGIN_ROOT` on purpose. Hence [the decision](../../../decisions/an-ahpd-config-whose-plugins-the-new-ahpd-cannot-load-stops-the-install.md): the `backends` step checks that every backend ticked is ready, and the probe warns when the folder is there.
+- `plugin list --json` rows are matched by their `spec`, not their `name`: ahpd 0.12 keys a plugin by its module's id. The local install's `ready_plugins` had the same mismatch and now uses the same `ready_specs`.
+- Task 01's `remote_home` is gone: the probe reads the home.
+- Verified: `cargo test` (111: the unit, `systemctl --user` with a runtime folder, a whole install against the test server with its commands, a found ahpd given only the backend it lacks, one too old refused, a backend the new ahpd cannot load stopping before the unit, a `ready` that times out with the journal, a cancel, one install at a time), `cargo clippy --all-targets -- -D warnings`, `pnpm typecheck`, `pnpm test`.
+- By hand, `ssh_a_real_install` on the test server Softov named, on port 9387, with its old ahpd config moved aside by his leave: an install with `@ahpd/agent-claude` (Node v22.23.3 downloaded) came up `active` with the token equal to its file; a second run used it and added `@ahpd/bot` with no `npm install` of the server; from a clean server, a cancel during `server` stopped it; a fourth run installed over it; the test removed the unit and the install after.
+- Pending check: `ahpd status --json` from a login shell on the server answers `{"running":false}` for the desk's ahpd, since `ahpd run` under the unit writes no `daemon.json` record, so a terminal `ahpd status` does not see it, though they share the config folder.
+  ahpd handles it (Softov, 2026-10-18: "ahpd will handle that"); `ssh_a_real_install` prints that status, to be checked again on the ahpd release that does.

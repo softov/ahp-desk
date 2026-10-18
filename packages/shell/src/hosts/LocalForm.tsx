@@ -150,7 +150,10 @@ export function LocalForm({
     setError(null);
     const id = hostId(name, taken);
     try {
-      const heard = (step: InstallEvent) => setLines((all) => [...all, step.text]);
+      // The local install sends lines only; steps are the SSH install's.
+      const heard = (event: InstallEvent) => {
+        if (event.kind === 'line') setLines((all) => [...all, event.text]);
+      };
       if (install) {
         setPhase('installing');
         setLines([]);
