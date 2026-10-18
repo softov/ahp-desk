@@ -139,6 +139,13 @@ export TAURI_SIGNING_PRIVATE_KEY_PATH=.tauri/updater.key
 export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=...
 ```
 
+A build makes the signed updater bundles only with `--config src-tauri/tauri.release.conf.json`, which turns on `createUpdaterArtifacts`; without it, a clone builds installers with no key.
+
+CI signs with two repository secrets, in GitHub, Settings, Secrets and variables, Actions: `TAURI_SIGNING_PRIVATE_KEY`, the content of `.tauri/updater.key`, and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, its password.
+
+Keep a copy of the key and its password off the machine.
+A lost key leaves every installed desk unable to update: a release signed with a new key is refused by them, and each one has to be installed again by hand.
+
 Windows code signing certificates (`*.pfx`, `*.p12`) are also kept out of git.
 
 ## Releasing
@@ -153,11 +160,14 @@ A fix in ahpw reaches people only through these steps, so make a desk release fo
 3. Raise the desk's version in `package.json`, `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`, the same in all three.
    The updater compares the version in `tauri.conf.json`.
 4. Commit, tag `v<version>`, and push the tag.
-   CI builds the installers and publishes them with `latest.json`.
-5. An installed desk finds the release within 6 hours, downloads it, and asks before it restarts.
+   `.github/workflows/release.yml` checks that the tag matches the three versions, builds on Windows and on Ubuntu 22.04, and publishes one release with the NSIS installer, the AppImage, the deb, their `.sig` files and `latest.json`.
+   The release stays a draft until both builds pass.
+5. An installed desk finds the release at its next start, downloads it, and asks before it restarts.
 
-Steps 4 and 5 need the release workflow and the updater, which are not built yet (plan 04, tasks 03, 04 and 06).
-Until then, a release ends at step 3.
+The Windows installer has no code signature, so SmartScreen warns before it runs.
+
+On Linux, `latest.json` points the updater at the AppImage.
+A desk installed from the deb updates itself only when `latest.json` also has `linux-x86_64-deb`; the workflow's last job warns when it does not, and then the next deb is installed by hand.
 
 ahpw's own release steps live in the ahpw repository.
 

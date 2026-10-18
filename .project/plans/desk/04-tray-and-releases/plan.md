@@ -82,7 +82,7 @@ git tag v* -> GitHub Actions -> tauri-action with --config src-tauri/tauri.relea
 | [01 - tray icon and menu](task-01-tray-icon-and-menu.md) | doing | - |
 | [02 - close to the tray, and the setting](task-02-close-to-tray-and-setting.md) | doing | 01 |
 | [03 - updater with the signing key](task-03-updater-with-signing-key.md) | done | 01 |
-| [04 - release workflow for Windows and Linux](task-04-release-workflow.md) | todo | 03 |
+| [04 - release workflow for Windows and Linux](task-04-release-workflow.md) | doing | 03 |
 | [05 - start with the OS, on the first run and in Settings](task-05-start-with-the-os.md) | doing | 01, 02 |
 | [06 - install, update and remove on a clean Windows](task-06-install-update-remove-on-windows.md) | todo | 04, 05 |
 
@@ -97,7 +97,7 @@ git tag v* -> GitHub Actions -> tauri-action with --config src-tauri/tauri.relea
 - **Done so far:** tasks 01, 02 and 05 are built and checked on the debug desk, 2026-10-16.
   Each one's Resume lists the checks left by hand.
   Task 03 is built and checked on a release build, 2026-10-18.
-- **Next action:** [task 04](task-04-release-workflow.md); before its first tag, the user adds the two CI secrets.
+- **Next action:** [task 04](task-04-release-workflow.md)'s first tag: the workflow and the secrets are in, and its Validation runs on GitHub.
   The hand checks of tasks 01, 02 and 05 can run beside it.
 - **Open questions:** none.
 - **Watch out for:** the release build needs `--config src-tauri/tauri.release.conf.json`, which turns on `createUpdaterArtifacts` (Answers: the updater artifacts), or no `.sig` file is made; an update must not remove the login entry that the uninstaller hook removes (task 05).

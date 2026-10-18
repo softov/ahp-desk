@@ -1,6 +1,6 @@
 ---
 title: A tag v* builds the Windows and Linux installers in CI and publishes them with latest.json
-status: todo
+status: doing
 depends: [task-03-updater-with-signing-key.md]
 layer: ".github/workflows, src-tauri, docs"
 refs:
@@ -64,3 +64,13 @@ Nothing in the workflow prints them, and no task file or log holds them.
 - The workflow log shows no key: GitHub masks the secrets, and no step echoes them.
 
 ## Resume
+
+- 2026-10-18: the user added both secrets; `gh secret list` shows `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, and no value was read.
+- `.github/workflows/release.yml` has the four jobs of the steps; `src-tauri/tauri.release.conf.json` turns on `createUpdaterArtifacts`.
+- `draft` finds the draft's id in `gh api repos/<repo>/releases`, since a draft has no public tag for `releases/tags/<tag>` to find.
+- tauri-action gets `tauriScript: pnpm tauri`, so it runs the pinned pnpm's `tauri` rather than guessing.
+- Step 7: `tauri-plugin-updater` 2.14.0 looks for `linux-x86_64-deb` first on a deb install, then `linux-x86_64`, the AppImage, which `install_deb` refuses as not a deb; so `publish` requires `windows-x86_64` and `linux-x86_64`, and only warns when `linux-x86_64-deb` is missing, and DEVELOPER.md says so; the first release shows which, and the words are fixed then.
+- DEVELOPER.md: "Signing keys" names the two secrets, the release config and what a lost key costs; there was already a "Releasing" section from plan 09 task 07, so the steps went into it rather than a second "Releases" section, and its sentence saying steps 4 and 5 wait on this plan is gone.
+  Step 5 there says "at its next start", since the check every 6 hours is plan 09 task 06.
+- Verified: `actionlint` 1.7.12 passes (with no shellcheck on this machine); the `version` job's script, run here with the files, passes `v0.1.0` and fails `v0.2.0`; `pnpm tauri build --no-bundle --config src-tauri/tauri.release.conf.json` from the repository root reads the file, and a wrong path fails.
+- Left: the first tag and the Validation that follows it (the four jobs, the release's files, `latest.json`, a wrong tag failing, no key in the log).

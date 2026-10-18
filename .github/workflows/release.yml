@@ -1,0 +1,118 @@
+# A tag v<version> builds the Windows and Linux installers, signs the updater
+# bundles, and publishes one release with latest.json. The release stays a
+# draft until both builds pass, so latest.json never names a missing bundle.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      # A release is cut from the version the files say.
+      - id: check
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          conf=$(jq -r .version src-tauri/tauri.conf.json)
+          pkg=$(jq -r .version package.json)
+          cargo=$(sed -n 's/^version = "\(.*\)"$/\1/p' src-tauri/Cargo.toml | head -n 1)
+          echo "tag $tag, tauri.conf.json $conf, package.json $pkg, Cargo.toml $cargo"
+          if [ "$tag" != "$conf" ] || [ "$tag" != "$pkg" ] || [ "$tag" != "$cargo" ]; then
+            echo "::error::the tag $GITHUB_REF_NAME does not match the version in the files"
+            exit 1
+          fi
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+
+  draft:
+    needs: version
+    runs-on: ubuntu-latest
+    outputs:
+      release-id: ${{ steps.create.outputs.release-id }}
+    steps:
+      - id: create
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft \
+            --title "ahp-desk $VERSION" --notes "ahp-desk $VERSION"
+          # A draft has no public tag yet, so it is found in the list.
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
+            --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\" and .draft) | .id")
+          echo "release-id=$id" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: draft
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22.04, so the AppImage runs on an older glibc.
+        os: [windows-latest, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libssl-dev libxdo-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+
+      # Reads packageManager from package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - run: pnpm install --frozen-lockfile
+
+      # beforeBuildCommand runs pnpm stage:all, which stages this runner's own Node.
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # The public build only.
+          AHP_DESK_UI: ahpw
+          AHP_DESK_AHPW: npm
+        with:
+          releaseId: ${{ needs.draft.outputs.release-id }}
+          tauriScript: pnpm tauri
+          args: --config src-tauri/tauri.release.conf.json
+          includeUpdaterJson: true
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern latest.json
+          jq . latest.json
+          for platform in windows-x86_64 linux-x86_64; do
+            if [ "$(jq -r --arg p "$platform" '.platforms[$p].url // empty' latest.json)" = "" ]; then
+              echo "::error::latest.json has no $platform"
+              exit 1
+            fi
+          done
+          # A desk installed from the deb updates only through this entry.
+          if [ "$(jq -r '.platforms["linux-x86_64-deb"].url // empty' latest.json)" = "" ]; then
+            echo "::warning::latest.json has no linux-x86_64-deb, so a desk installed from the deb cannot update itself"
+          fi
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --latest
