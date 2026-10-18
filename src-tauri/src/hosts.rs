@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State, WebviewWindow};
 
 use crate::app_window::AppWindows;
+use crate::ssh::{password, Secrets, SignIn};
 use crate::statuses::HostStatuses;
 use crate::tokens::{self, Vault};
 
@@ -40,8 +41,59 @@ pub struct Host {
     /// desk may stop it; one it only found it never stops.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub started_by_desk: bool,
+    /// How the desk reaches the host's server over SSH, on a host with one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ssh: Option<SshHost>,
     #[serde(flatten)]
     pub on_desk: OnDesk,
+}
+
+/// A host's server over SSH, as `hosts.json` keeps it.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SshHost {
+    pub address: String,
+    #[serde(default = "ssh_port")]
+    pub port: u16,
+    pub user: String,
+    /// The way the last sign-in went through.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sign_in: Option<SignIn>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_file: Option<String>,
+    /// The kept password, only when the keyring could not keep it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
+}
+
+fn ssh_port() -> u16 {
+    22
+}
+
+/// `SshHost` as a window reads and the form sends it: never a password.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SshHostView {
+    pub address: String,
+    #[serde(default = "ssh_port")]
+    pub port: u16,
+    pub user: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sign_in: Option<SignIn>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_file: Option<String>,
+}
+
+impl From<&SshHost> for SshHostView {
+    fn from(ssh: &SshHost) -> Self {
+        SshHostView {
+            address: ssh.address.clone(),
+            port: ssh.port,
+            user: ssh.user.clone(),
+            sign_in: ssh.sign_in,
+            key_file: ssh.key_file.clone(),
+        }
+    }
 }
 
 /// What a `local` host's ahpd does when the desk starts and quits.
@@ -87,6 +139,9 @@ pub struct HostInput {
     /// A `local` host's two settings; absent keeps what the host has.
     #[serde(default)]
     pub on_desk: Option<OnDeskView>,
+    /// The host's server over SSH; its kept password comes apart.
+    #[serde(default)]
+    pub ssh: Option<SshHostView>,
 }
 
 /// `OnDesk` as the shell reads and sends it: both settings, always.
@@ -122,6 +177,11 @@ pub struct HostView {
     /// A `local` host's two settings; none on a `url` host.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub on_desk: Option<OnDeskView>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ssh: Option<SshHostView>,
+    /// The SSH password sits in the plain file, as a token can.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub ssh_password_in_file: bool,
 }
 
 impl From<&Host> for HostView {
@@ -137,6 +197,8 @@ impl From<&Host> for HostView {
                 start_on_launch: host.on_desk.start_on_launch,
                 stop_on_quit: host.on_desk.stop_on_quit,
             }),
+            ssh: host.ssh.as_ref().map(SshHostView::from),
+            ssh_password_in_file: host.ssh.as_ref().is_some_and(|ssh| ssh.password.is_some()),
         }
     }
 }
@@ -145,11 +207,14 @@ pub struct HostStore {
     path: PathBuf,
     hosts: Mutex<Vec<Host>>,
     vault: Box<dyn Vault>,
+    /// What a person typed for each host's SSH sign-in, until the desk quits;
+    /// here so that removing a host drops it with the host.
+    secrets: Secrets,
 }
 
 impl HostStore {
     /// Reads `path`, or starts empty when it does not exist, and moves any
-    /// token left in the file into the vault when the vault works.
+    /// token or SSH password left in the file into the vault when the vault works.
     pub fn load(path: PathBuf, vault: Box<dyn Vault>) -> Result<Self, String> {
         let mut hosts: Vec<Host> = match fs::read_to_string(&path) {
             Ok(text) => serde_json::from_str(&text)
@@ -160,6 +225,7 @@ impl HostStore {
         let mut moved = false;
         for host in &mut hosts {
             moved |= tokens::move_to_vault(vault.as_ref(), host);
+            moved |= password::move_to_vault(vault.as_ref(), host);
         }
         if moved {
             write_json(&path, &hosts[..])?;
@@ -168,6 +234,7 @@ impl HostStore {
             path,
             hosts: Mutex::new(hosts),
             vault,
+            secrets: Secrets::default(),
         })
     }
 
@@ -203,6 +270,7 @@ impl HostStore {
         }
         let mut hosts = self.lock();
         let index = hosts.iter().position(|host| host.id == input.id);
+        let before = index.and_then(|i| hosts[i].ssh.clone());
         let mut host = Host {
             token: index.and_then(|i| hosts[i].token.clone()),
             // The form never says whether the desk started an ahpd; the desk does.
@@ -216,6 +284,15 @@ impl HostStore {
                 Some(view) => view.into(),
                 None => index.map(|i| hosts[i].on_desk).unwrap_or_default(),
             },
+            // The form never sends a password, nor needs to say how the last sign-in went.
+            ssh: input.ssh.map(|view| SshHost {
+                sign_in: view.sign_in.or(before.as_ref().and_then(|ssh| ssh.sign_in)),
+                password: before.as_ref().and_then(|ssh| ssh.password.clone()),
+                address: view.address,
+                port: view.port,
+                user: view.user,
+                key_file: view.key_file,
+            }),
         };
         if let Some(token) = token {
             tokens::set(self.vault.as_ref(), &mut host, &token);
@@ -237,6 +314,8 @@ impl HostStore {
         }
         // A keyring that cannot be reached holds no copy to delete.
         let _ = self.vault.delete(id);
+        password::forget(self.vault.as_ref(), id);
+        self.secrets.forget(id);
         write_json(&self.path, &hosts[..])?;
         Ok(hosts.iter().map(HostView::from).collect())
     }
@@ -248,6 +327,54 @@ impl HostStore {
             .find(|host| host.id == id)
             .ok_or_else(|| format!("no host {id}"))?;
         Ok(tokens::get(self.vault.as_ref(), host))
+    }
+
+    /// What a person typed for each host's SSH sign-in.
+    #[cfg_attr(not(test), allow(dead_code))] // plan 10, tasks 05 to 07
+    pub fn secrets(&self) -> &Secrets {
+        &self.secrets
+    }
+
+    pub fn keyring_works(&self) -> bool {
+        password::keyring_works(self.vault.as_ref())
+    }
+
+    /// A host's SSH details, `None` on a host with none.
+    #[cfg_attr(not(test), allow(dead_code))] // plan 10, tasks 05 to 07
+    pub fn ssh(&self, id: &str) -> Result<Option<SshHost>, String> {
+        let hosts = self.lock();
+        let host = hosts
+            .iter()
+            .find(|host| host.id == id)
+            .ok_or_else(|| format!("no host {id}"))?;
+        Ok(host.ssh.clone())
+    }
+
+    /// Keeps the SSH password the person asked to keep, as `password::keep` does.
+    #[cfg_attr(not(test), allow(dead_code))] // plan 10, tasks 05 to 07
+    pub fn keep_ssh_password(&self, id: &str, password: &str) -> Result<Vec<HostView>, String> {
+        let mut hosts = self.lock();
+        let host = hosts
+            .iter_mut()
+            .find(|host| host.id == id)
+            .ok_or_else(|| format!("no host {id}"))?;
+        if host.ssh.is_none() {
+            return Err(format!("{id} has no SSH details"));
+        }
+        password::keep(self.vault.as_ref(), host, password);
+        write_json(&self.path, &hosts[..])?;
+        Ok(hosts.iter().map(HostView::from).collect())
+    }
+
+    /// The SSH password kept for a host.
+    #[cfg_attr(not(test), allow(dead_code))] // plan 10, tasks 05 to 07
+    pub fn ssh_password(&self, id: &str) -> Result<Option<String>, String> {
+        let hosts = self.lock();
+        let host = hosts
+            .iter()
+            .find(|host| host.id == id)
+            .ok_or_else(|| format!("no host {id}"))?;
+        Ok(password::kept(self.vault.as_ref(), host))
     }
 
     /// The `local` hosts whose ahpd the desk starts when it starts.
@@ -408,6 +535,7 @@ mod tests {
             url: "ws://127.0.0.1:9187".into(),
             ahpd_path: None,
             on_desk: None,
+            ssh: None,
         }
     }
 
@@ -509,6 +637,7 @@ mod tests {
             ahpd_path: None,
             token: Some("from-file".into()),
             started_by_desk: false,
+            ssh: None,
             on_desk: OnDesk::default(),
         };
         assert_eq!(tokens::get(&vault, &host).as_deref(), Some("from-vault"));
@@ -603,6 +732,90 @@ mod tests {
         kept.on_desk = None;
         store.save(kept, None).unwrap();
         assert_eq!(store.to_start_on_launch(), ["plain", "ours"]);
+    }
+
+    fn ssh_input(id: &str) -> HostInput {
+        let mut host = input(id, id);
+        host.ssh = Some(SshHostView {
+            address: "dev02".into(),
+            port: 2222,
+            user: "me".into(),
+            sign_in: None,
+            key_file: Some("C:/keys/id_ed25519".into()),
+        });
+        host
+    }
+
+    #[test]
+    fn hosts_a_host_with_ssh_round_trips_through_the_file() {
+        let scratch = Scratch::new();
+        let store = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
+        store.save(ssh_input("dev"), None).unwrap();
+        let reloaded = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
+        let ssh = reloaded.ssh("dev").unwrap().unwrap();
+        assert_eq!(
+            (ssh.address.as_str(), ssh.port, ssh.user.as_str()),
+            ("dev02", 2222, "me")
+        );
+        assert_eq!(ssh.key_file.as_deref(), Some("C:/keys/id_ed25519"));
+        assert_eq!(reloaded.ssh("dev").unwrap(), store.ssh("dev").unwrap());
+        assert!(!scratch.text().contains("password"));
+        assert_eq!(store.list()[0].ssh.as_ref().unwrap().port, 2222);
+    }
+
+    #[test]
+    fn hosts_an_ssh_password_goes_in_the_file_only_by_keep_on_a_failing_vault() {
+        let scratch = Scratch::new();
+        let store = HostStore::load(scratch.file(), Box::new(Broken)).unwrap();
+        store.save(ssh_input("dev"), None).unwrap();
+        store.secrets().set_passphrase("dev", "typed passphrase");
+        store.secrets().set_password("dev", "typed password");
+        assert!(
+            !scratch.text().contains("typed"),
+            "what was typed is never written"
+        );
+        let list = store.keep_ssh_password("dev", "kept pw").unwrap();
+        assert!(list[0].ssh_password_in_file);
+        assert!(scratch.text().contains("\"password\": \"kept pw\""));
+        assert!(!scratch.text().contains("typed"));
+        assert!(
+            !serde_json::to_string(&list).unwrap().contains("kept pw"),
+            "never to a window"
+        );
+        // A save from the form keeps it.
+        store.save(ssh_input("dev"), None).unwrap();
+        assert_eq!(
+            store.ssh_password("dev").unwrap().as_deref(),
+            Some("kept pw")
+        );
+    }
+
+    #[test]
+    fn hosts_an_ssh_password_in_the_file_moves_to_the_vault_on_load() {
+        let scratch = Scratch::new();
+        let broken = HostStore::load(scratch.file(), Box::new(Broken)).unwrap();
+        broken.save(ssh_input("dev"), None).unwrap();
+        broken.keep_ssh_password("dev", "kept pw").unwrap();
+        let store = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
+        assert!(!scratch.text().contains("kept pw"));
+        assert!(!store.list()[0].ssh_password_in_file);
+        assert_eq!(
+            store.ssh_password("dev").unwrap().as_deref(),
+            Some("kept pw")
+        );
+    }
+
+    #[test]
+    fn hosts_remove_forgets_the_ssh_password_and_what_was_typed() {
+        let scratch = Scratch::new();
+        let store = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
+        store.save(ssh_input("dev"), None).unwrap();
+        store.keep_ssh_password("dev", "kept pw").unwrap();
+        store.secrets().set_passphrase("dev", "typed");
+        store.remove("dev").unwrap();
+        assert!(!store.secrets().holds("dev"));
+        store.save(ssh_input("dev"), None).unwrap();
+        assert_eq!(store.ssh_password("dev").unwrap(), None);
     }
 
     #[test]

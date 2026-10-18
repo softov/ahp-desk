@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-ssh-keyring-works"
+description = "Enables the ssh_keyring_works command without any pre-configured scope."
+commands.allow = ["ssh_keyring_works"]
+
+[[permission]]
+identifier = "deny-ssh-keyring-works"
+description = "Denies the ssh_keyring_works command without any pre-configured scope."
+commands.deny = ["ssh_keyring_works"]

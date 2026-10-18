@@ -118,6 +118,11 @@ export function HostList({
                     {t('hosts.tokenInFile')}
                   </span>
                 )}
+                {host.sshPasswordInFile === true && (
+                  <span className="warn" title={t('hosts.noKeyring')}>
+                    {t('hosts.passwordInFile')}
+                  </span>
+                )}
               </span>
               <span
                 className="state"

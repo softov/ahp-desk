@@ -238,7 +238,11 @@ mod tests {
     #[test]
     fn settings_a_file_from_before_windows_opens_hosts_per_host() {
         let scratch = Scratch::new();
-        fs::write(scratch.path(), r#"{"closeBehavior":"quit","startWithOsAsked":true}"#).unwrap();
+        fs::write(
+            scratch.path(),
+            r#"{"closeBehavior":"quit","startWithOsAsked":true}"#,
+        )
+        .unwrap();
         let store = SettingsStore::load(scratch.path()).unwrap();
         assert_eq!(store.get().windows, Windows::PerHost);
     }

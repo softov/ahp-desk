@@ -1,6 +1,6 @@
 ---
 title: The desk opens an SSH session with the agent, a key file with its passphrase, or a password, and holds what was typed until it quits
-status: todo
+status: done
 depends: []
 layer: "src-tauri, packages/shell"
 refs:
@@ -69,3 +69,14 @@ A passphrase, or a password not kept, that the person typed is held in memory un
   Its `check` accepts only the fingerprint in `AHP_DESK_SSH_TEST_KEY`, taken from `ssh-keygen -lf` on dev02's host key; the ignored tests of tasks 03 to 05 and 08 use the same check.
 
 ## Resume
+
+- 2026-10-18: `src-tauri/src/ssh/` has `connect`, `open`, `sign_in` (agent, key file, password), `Secrets`, `exec_capture`, `exec_lines`, `remote_home` and `quote`; `ssh/password.rs` keeps a password in the keyring or, with none, in `hosts.json`; `Host.ssh` and `HostView.ssh` / `sshPasswordInFile`; the row warning and `hosts.passwordInFile` in three languages.
+- `russh` is built with its `ring` backend, not the default `aws-lc-rs`, which needs NASM to build on Windows.
+- `Secrets` lives in `HostStore`, not as its own Tauri state, so `HostStore::remove` drops what was typed with the host in the same call.
+- `sign_in` answers `Passphrase` on a first sign-in and `NeedsPerson` when the host signed in before (`signed_in_before`), which is how the two cases of step 3 are told apart.
+- `quote` also leaves `/` unquoted, so a plain path stays readable.
+- The SSH API is allowed unused outside tests until the install calls it (task 05); the allowance goes then.
+- Verified: `cargo test` (71, with 11 for SSH against the in-process server and 4 for the password), `cargo clippy --all-targets -- -D warnings`, `pnpm typecheck`, `pnpm test`.
+- By hand, 2026-10-18, on a test server Softov named: `ssh_a_real_sign_in` signed in with the key file, since the Windows agent service was stopped, and read `$HOME`; with a wrong `AHP_DESK_SSH_TEST_KEY` it was refused with `Unknown server key`.
+  The fingerprint was read with `ssh-keyscan` and Softov matched it on the server.
+- The test takes `AHP_DESK_SSH_TEST_KEY_FILE` for a key file when no agent runs.

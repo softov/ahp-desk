@@ -3,6 +3,7 @@ mod frame;
 mod hosts;
 mod local_ahpd;
 mod settings;
+mod ssh;
 mod statuses;
 mod tokens;
 mod tray;
@@ -123,6 +124,7 @@ pub fn run() {
             settings::save_settings,
             settings::start_with_os,
             settings::set_start_with_os,
+            ssh::password::ssh_keyring_works,
         ])
         .build(tauri::generate_context!())
         .expect("ahp-desk failed to start")

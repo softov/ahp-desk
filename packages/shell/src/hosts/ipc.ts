@@ -14,6 +14,18 @@ export interface Host {
   ahpdPath?: string;
   /** A `local` host's two settings; a `url` host has none. */
   onDesk?: OnDesk;
+  /** The host's server over SSH, on a host reached through one. */
+  ssh?: SshHost;
+}
+
+/** A host's server over SSH. A password is never part of it. */
+export interface SshHost {
+  address: string;
+  port: number;
+  user: string;
+  /** The way the last sign-in went through. */
+  signIn?: 'agent' | 'key-file' | 'password';
+  keyFile?: string;
 }
 
 /** What a `local` host's ahpd does when the desk starts and quits. */
@@ -22,9 +34,15 @@ export interface OnDesk {
   stopOnQuit: boolean;
 }
 
-/** A host as the host list sees it: with the flag for a token kept in the plain file. */
+/** A host as the host list sees it: with the flags for a token or an SSH password kept in the plain file. */
 export interface ShellHost extends Host {
   tokenInFile?: boolean;
+  sshPasswordInFile?: boolean;
+}
+
+/** Whether a kept SSH password would go in the OS keyring, so the form says where it goes. */
+export function sshKeyringWorks(): Promise<boolean> {
+  return invoke<boolean>('ssh_keyring_works');
 }
 
 /** An ahpd on this computer, and where it was found: the path set on the host, the desk's own install, or `PATH`. */

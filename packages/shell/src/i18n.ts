@@ -44,6 +44,7 @@ const en = {
   'hosts.open': 'Open',
   'hosts.retry': 'Retry',
   'hosts.tokenInFile': 'The token is in a plain file.',
+  'hosts.passwordInFile': 'The SSH password is in a plain file.',
   'hosts.noKeyring': 'No OS keyring was available.',
 
   'status.connected': 'connected',
@@ -139,6 +140,7 @@ const ptBR: Record<Key, string> = {
   'hosts.open': 'Abrir',
   'hosts.retry': 'Tentar de novo',
   'hosts.tokenInFile': 'O token está em um arquivo comum.',
+  'hosts.passwordInFile': 'A senha SSH está em um arquivo comum.',
   'hosts.noKeyring': 'Nenhum chaveiro do sistema estava disponível.',
 
   'status.connected': 'conectado',
@@ -232,6 +234,7 @@ const es: Record<Key, string> = {
   'hosts.open': 'Abrir',
   'hosts.retry': 'Reintentar',
   'hosts.tokenInFile': 'El token está en un archivo sin cifrar.',
+  'hosts.passwordInFile': 'La contraseña SSH está en un archivo sin cifrar.',
   'hosts.noKeyring': 'No había un llavero del sistema disponible.',
 
   'status.connected': 'conectado',

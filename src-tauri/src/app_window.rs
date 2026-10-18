@@ -310,7 +310,11 @@ pub const HOST_LIST_SETTINGS: &str = "host-list-settings";
 /// Shows and focuses the host list; with `add`, on its Add form, and with
 /// `edit`, on that host's form, as ahpw's Sign in on a host that refuses its token.
 #[tauri::command]
-pub fn show_host_list(app: AppHandle, add: Option<bool>, edit: Option<String>) -> Result<(), String> {
+pub fn show_host_list(
+    app: AppHandle,
+    add: Option<bool>,
+    edit: Option<String>,
+) -> Result<(), String> {
     let shell = app
         .get_webview_window(SHELL_WINDOW)
         .ok_or("the host list window is gone")?;

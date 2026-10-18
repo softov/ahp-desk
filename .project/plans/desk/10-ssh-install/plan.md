@@ -1,7 +1,7 @@
 ---
 title: Install ahpd on a Linux server over SSH
 domain: desk
-status: planned
+status: active
 priority: medium
 created: 2026-10-13
 revalidated: 2026-10-14
@@ -56,7 +56,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 
 - `Not found: an SSH client in the desk - doop's is in another repository, to be brought in.`
 - A user service stops at logout without lingering, which needs an administrator to turn on.
-- `ahpd paths add <folder>` sets the served folders with no terminal on ahpd main (git://54e4ef26), not yet released; the SSH install's folder step needs the release after 0.11.0.
+- `ahpd paths add <folder>` sets the served folders with no terminal; it is in ahpd 0.12.0.
 
 ## Answers
 
@@ -102,7 +102,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 
 | Task | Status | Depends on |
 | --- | --- | --- |
-| [01 - an SSH session: agent, key file with passphrase, password in the keyring or the plain file, secrets held until quit](task-01-ssh-session.md) | todo | - |
+| [01 - an SSH session: agent, key file with passphrase, password in the keyring or the plain file, secrets held until quit](task-01-ssh-session.md) | done | - |
 | [02 - the server key: known_hosts, refuse a new one until Trust, refuse a changed one with Forget](task-02-server-key.md) | todo | 01 |
 | [03 - the probe: Linux, CPU, systemctl --user, lingering, Node, an ahpd already there](task-03-probe.md) | todo | 01 |
 | [04 - Node: the server's own, or the newest 22 downloaded there](task-04-node.md) | todo | 03 |
@@ -122,8 +122,8 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 
 ## Resume state
 
-- **Done so far:** the plan and its first decisions, 2026-10-13; the task files and Softov's answers of 2026-10-14 in *Answers*.
-- **Next action:** task 01.
+- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; task 01, 2026-10-18, with its by-hand sign-in.
+- **Next action:** task 02.
 - **Open questions:** none.
 - **Watch out for:** doop's `AcceptAllHandler` must not be copied; the Answers row on the server key replaces it.
   The end to end and every real SSH test run against dev02 only.
