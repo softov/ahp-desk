@@ -1,6 +1,6 @@
 ---
 title: Remove on an SSH host the desk installed offers to stop and uninstall its ahpd on the server
-status: todo
+status: done
 depends: [task-05-install.md, task-06-reach.md, task-07-add-host-ssh.md]
 layer: "src-tauri, packages/shell"
 refs:
@@ -47,3 +47,14 @@ An ahpd the desk found on the server and did not install is left as it is, and R
 - By hand on the debug desk over CDP, against the test machine only: "Remove and uninstall" on a tunnelled host shows the steps and ends with the host gone from the list; "Remove from the desk only" leaves the server's ahpd running; the question in en, pt-BR and es at the window's smallest size.
 
 ## Resume
+
+- 2026-10-18: `src-tauri/src/ssh_install.rs` has `uninstall_script(home, runtime_dir)`, `uninstall(target, check, keys, send)`, `uninstall_host()` and the command `uninstall_ssh_ahpd(id, events)`, registered in `lib.rs`, `build.rs` and `capabilities/shell.json`.
+- The `connect` step also runs the probe, for the server's home and `XDG_RUNTIME_DIR` (defaulted: task 01's `remote_home` was removed in task 05, and the probe already answers both).
+- A step that finds nothing exits `NOTHING_THERE` (100) and is `skipped`: `stop` and `unit` with no unit file, `files` with no install folder; `files` refuses a folder with neither `node_modules/@ahpd/server` nor `connection-token`, and a home that is not an absolute folder is refused before any step.
+- The uninstall has no Cancel, and runs under `InstallControl`, so it never overlaps an install.
+- `ipc.ts` has `UninstallStep` and `uninstallSshAhpd(id, onEvent)`; `InstallEvent`, `StepState`, `InstallSteps` and `withStep` take the step type, and `InstallSteps` takes `wordOf`, so the uninstall's steps have their own words (`uninstall.*`), `unit` reading "Remove the user service" (defaulted: the install's `step.unit` reads "Write the user service").
+- `HostList.tsx` has `RemoveSshRow`: for an ahpd the desk installed, the note that `~/.config/ahpd` stays, Cancel, "Remove from the desk only" and "Remove and uninstall", the steps while it runs, and on a failure why, with Cancel and "Remove from the desk only"; for one it did not install, the note that the server's ahpd stays, Cancel and Remove; a host with no `ssh` keeps the plain question.
+- Verified: `cargo test` (130: the script with a home with a space, never naming `~/.config/ahpd`; the home guard; the steps in order against the test server, none touching the config; `stop` and `unit` skipped with no unit; a failing `stop` before any removal; a server that does not answer failing at `connect`; `uninstall_host` refusing an ahpd the desk did not install with no connection), `cargo clippy --all-targets -- -D warnings`, `cargo fmt --check`, `pnpm typecheck`, `pnpm test` (27, with `i18n.test.ts`).
+- By hand, `ssh_a_real_uninstall` on the test machine Softov named: install, uninstall, then no unit known to systemd, no unit file, no install, nothing on the ahpd port, and `~/.config/ahpd` as the install left it.
+- By hand on a release build over CDP with a scratch `AHP_DESK_CONFIG_DIR`: "Remove and uninstall" on a tunnelled host showed the four steps and ended with the host and its window gone, and nothing of the desk's ahpd on the server but `~/.config/ahpd`; "Remove from the desk only" left the server's ahpd active; a host marked as not installed by the desk showed that its ahpd stays; an unreachable server showed the failed Sign in, why, Cancel and "Remove from the desk only"; the questions in en, pt-BR and es at 480x300.
+- The test machine was left as before: the desk's ahpd, unit and the `~/.config/ahpd` these checks made were removed.

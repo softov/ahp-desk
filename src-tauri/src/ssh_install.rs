@@ -1378,6 +1378,149 @@ pub async fn update_host(
     .await
 }
 
+/// The exit code of an uninstall step that found nothing to do.
+const NOTHING_THERE: i32 = 100;
+
+/// The uninstall's steps after `connect`, each with its command: `stop`
+/// disables the unit, `unit` removes it, `files` removes the desk's install.
+/// A step that finds nothing exits `NOTHING_THERE`. `~/.config/ahpd` is never
+/// named. A home that is not an absolute folder is refused, so a wrong home
+/// never removes another folder.
+pub fn uninstall_script(
+    home: &str,
+    runtime_dir: Option<&str>,
+) -> Result<Vec<(&'static str, String)>, String> {
+    if !home.starts_with('/') || home.trim_end_matches('/').is_empty() || home.contains('\n') {
+        return Err(format!("{home:?} is not a home folder to uninstall from"));
+    }
+    let home = home.trim_end_matches('/');
+    let unit = quote(&format!("{home}/{UNIT_FILE}"));
+    let prefix = quote(&format!("{home}/{INSTALL_DIR}"));
+    Ok(vec![
+        (
+            "stop",
+            format!(
+                "test -f {unit} || exit {NOTHING_THERE}\n{}",
+                systemctl_user(runtime_dir, "disable --now ahpd.service")
+            ),
+        ),
+        (
+            "unit",
+            format!(
+                "test -f {unit} || exit {NOTHING_THERE}\nrm -f {unit} && {}",
+                systemctl_user(runtime_dir, "daemon-reload")
+            ),
+        ),
+        (
+            "files",
+            format!(
+                "test -e {prefix} || exit {NOTHING_THERE}\n\
+                 if [ ! -d {prefix}/node_modules/@ahpd/server ] && [ ! -f {prefix}/connection-token ]; then\n\
+                 echo {prefix} has no @ahpd/server and no connection-token, so the desk did not install it; exit 1\n\
+                 fi\n\
+                 rm -rf -- {prefix}"
+            ),
+        ),
+    ])
+}
+
+/// Stops and removes the ahpd the desk installed over SSH: its user unit and
+/// its install folder, with the token file in it; `~/.config/ahpd` stays.
+pub async fn uninstall(
+    target: &SshTarget,
+    check: crate::ssh::ServerCheck,
+    keys: Keys<'_>,
+    send: &(dyn Fn(InstallEvent) + Sync),
+) -> Result<(), String> {
+    // The uninstall has no Cancel: half a removal helps no one.
+    let never = AtomicBool::new(false);
+    let steps = Steps {
+        send,
+        cancel: &never,
+    };
+    let (session, probed) = steps
+        .run("connect", async {
+            let (session, _) = ssh::open(target, check, keys)
+                .await
+                .map_err(|err| err.to_string())?;
+            let probed = probe(&session).await?;
+            Ok((session, probed))
+        })
+        .await?;
+    for (id, body) in uninstall_script(&probed.home, probed.runtime_dir.as_deref())? {
+        steps.status(id, StepStatus::Running);
+        let ran = exec_capture(&session, &script(id, &body)).await;
+        match ran {
+            Ok((0, _)) => steps.status(id, StepStatus::Done),
+            Ok((NOTHING_THERE, _)) => steps.status(id, StepStatus::Skipped),
+            Ok((code, said)) => {
+                steps.status(id, StepStatus::Failed);
+                return Err(format!("{id} exited with {code}: {}", said.trim()));
+            }
+            Err(err) => {
+                steps.status(id, StepStatus::Failed);
+                return Err(err);
+            }
+        }
+    }
+    Ok(())
+}
+
+/// `uninstall` for host `id`, signed in as the host signs in; refused before
+/// any connection for a host not reached over SSH or whose ahpd the desk did
+/// not install.
+async fn uninstall_host(
+    store: &HostStore,
+    known: &KnownKeys,
+    id: &str,
+    send: &(dyn Fn(InstallEvent) + Sync),
+) -> Result<(), String> {
+    let ssh = store
+        .ssh(id)?
+        .ok_or_else(|| format!("{id} is not reached over SSH"))?;
+    if !ssh.by_desk {
+        return Err(format!(
+            "the desk did not install the ahpd of {id}, so it leaves it on the server"
+        ));
+    }
+    let target = SshTarget::new(
+        &ssh.address,
+        ssh.port,
+        &ssh.user,
+        ssh.key_file.clone().map(Into::into),
+    );
+    let keys = Keys {
+        id,
+        secrets: store.secrets(),
+        kept_password: store.ssh_password(id).ok().flatten(),
+        signed_in_before: ssh.sign_in,
+    };
+    uninstall(
+        &target,
+        known.checker(&target.address, target.port),
+        keys,
+        send,
+    )
+    .await
+}
+
+/// Stops and uninstalls the ahpd the desk installed on host `id`'s server;
+/// the shell removes the host once it is done.
+#[tauri::command]
+pub async fn uninstall_ssh_ahpd(
+    store: State<'_, HostStore>,
+    known: State<'_, KnownKeys>,
+    control: State<'_, InstallControl>,
+    id: String,
+    events: Channel<InstallEvent>,
+) -> Result<(), String> {
+    let _held = control.begin()?;
+    let send = move |event: InstallEvent| {
+        let _ = events.send(event);
+    };
+    uninstall_host(&store, &known, &id, &send).await
+}
+
 /// Installs ahpd on the server the form names, or uses the one found there.
 #[tauri::command]
 pub async fn install_ssh_ahpd(
@@ -2639,6 +2782,315 @@ mod tests {
         shell(clean).await;
         shell(restore).await;
         checked.unwrap();
+    }
+
+    /// By hand, on the test server Softov names, as `ssh_a_real_install`:
+    /// installs, uninstalls, and checks that no unit, no install and nothing on
+    /// the ahpd port is left, and that `~/.config/ahpd` is as the install left it.
+    #[tokio::test]
+    #[ignore]
+    async fn ssh_a_real_uninstall() {
+        let (target, check) = crate::ssh::tests::real_target();
+        drop(check);
+        let fingerprint = std::env::var("AHP_DESK_SSH_TEST_KEY").unwrap();
+        let trusted = move || -> crate::ssh::ServerCheck {
+            let fingerprint = fingerprint.clone();
+            Box::new(move |key| {
+                let offered = crate::ssh::known_keys::fingerprint(key);
+                if offered.sha256 == fingerprint {
+                    KeyCheck::Known
+                } else {
+                    KeyCheck::New { offered }
+                }
+            })
+        };
+        let secrets = Secrets::default();
+        let keys = || Keys {
+            id: "real",
+            secrets: &secrets,
+            kept_password: None,
+            signed_in_before: None,
+        };
+        let (session, _) = ssh::open(&target, trusted(), keys()).await.unwrap();
+        let shell = |command: String| {
+            let session = &session;
+            async move {
+                let (code, said) = exec_capture(session, &command).await.unwrap();
+                println!("$ {command}\n{said}");
+                (code, said)
+            }
+        };
+        let (_, home) = shell("printf %s \"$HOME\"".into()).await;
+        let backup = format!("{home}/.config/ahpd.desk-test-backup");
+        let config = format!("{home}/.config/ahpd");
+        let (code, _) = shell(format!(
+            "test ! -e {b} && if [ -e {c} ]; then cp -a {c} {b}; fi",
+            b = quote(&backup),
+            c = quote(&config)
+        ))
+        .await;
+        assert_eq!(
+            code, 0,
+            "a backup from an earlier run is still there: {backup}"
+        );
+        let clean = format!(
+            "systemctl --user disable --now ahpd.service 2>/dev/null; rm -f {unit}; systemctl --user daemon-reload; rm -rf {prefix}",
+            unit = quote(&format!("{home}/{UNIT_FILE}")),
+            prefix = quote(&format!("{home}/{INSTALL_DIR}"))
+        );
+        let restore = format!(
+            "rm -rf {c}; if [ -e {b} ]; then mv {b} {c}; fi",
+            b = quote(&backup),
+            c = quote(&config)
+        );
+        let send = |event: InstallEvent| match event {
+            InstallEvent::Line { text } => println!("  {text}"),
+            InstallEvent::Step { id, status } => println!("[{id}] {status:?}"),
+        };
+        let mut request = request(&["@ahpd/agent-claude"]);
+        request.target = ProbeTarget {
+            id: "real".into(),
+            address: target.address.clone(),
+            port: target.port,
+            user: target.user.clone(),
+            key_file: target
+                .key_file
+                .as_ref()
+                .map(|path| path.display().to_string()),
+        };
+        request.ahpd_port = 9387;
+
+        let checked = async {
+            let cancel = AtomicBool::new(false);
+            install(&target, trusted(), keys(), &request, &send, &cancel).await?;
+            let (_, config_before) = shell(format!("ls -A {}", quote(&config))).await;
+            uninstall(&target, trusted(), keys(), &send).await?;
+            let (unit_code, _) = shell("systemctl --user cat ahpd.service".into()).await;
+            assert_ne!(unit_code, 0, "systemd still knows the unit");
+            let (left, _) = shell(format!(
+                "test -e {} || test -e {}",
+                quote(&format!("{home}/{UNIT_FILE}")),
+                quote(&format!("{home}/{INSTALL_DIR}"))
+            ))
+            .await;
+            assert_ne!(left, 0, "the unit file or the install is still there");
+            let (listening, _) = shell("ss -ltn | grep -q ':9387\\b'".into()).await;
+            assert_ne!(listening, 0, "something still listens on 9387");
+            let (_, config_after) = shell(format!("ls -A {}", quote(&config))).await;
+            assert_eq!(
+                config_after, config_before,
+                "~/.config/ahpd is left as it was"
+            );
+            Ok::<(), String>(())
+        }
+        .await;
+        shell(clean).await;
+        shell(restore).await;
+        checked.unwrap();
+    }
+
+    #[test]
+    fn uninstall_script_quotes_a_home_with_a_space_and_never_names_the_config() {
+        let steps = uninstall_script("/home/ana b", Some("/run/user/1000")).unwrap();
+        let ids: Vec<&str> = steps.iter().map(|(id, _)| *id).collect();
+        assert_eq!(ids, ["stop", "unit", "files"]);
+        assert!(steps[0]
+            .1
+            .contains("test -f '/home/ana b/.config/systemd/user/ahpd.service'"));
+        assert!(steps[0].1.contains(
+            "XDG_RUNTIME_DIR=/run/user/1000 systemctl --user disable --now ahpd.service"
+        ));
+        assert!(steps[1]
+            .1
+            .contains("rm -f '/home/ana b/.config/systemd/user/ahpd.service'"));
+        assert!(steps[2]
+            .1
+            .contains("rm -rf -- '/home/ana b/.local/share/ahpd'"));
+        assert!(steps[2]
+            .1
+            .contains("'/home/ana b/.local/share/ahpd'/node_modules/@ahpd/server"));
+        assert!(steps.iter().all(|(_, body)| !body.contains(".config/ahpd")));
+    }
+
+    #[test]
+    fn uninstall_script_refuses_a_home_that_is_not_an_absolute_folder() {
+        for home in ["", "/", "//", "home/ana", "~", "/home/ana\nrm"] {
+            assert!(uninstall_script(home, None).is_err(), "{home:?}");
+        }
+    }
+
+    /// Runs an uninstall against the test server and answers its result, the
+    /// steps in the order they ended, and the commands the server saw.
+    async fn run_uninstall(
+        server: &TestServer,
+    ) -> (Result<(), String>, Vec<(String, StepStatus)>, Vec<String>) {
+        let secrets = Secrets::default();
+        secrets.set_password("dev", PASSWORD);
+        let keys = Keys {
+            id: "dev",
+            secrets: &secrets,
+            kept_password: None,
+            signed_in_before: None,
+        };
+        let events = Mutex::new(Vec::new());
+        let send = |event: InstallEvent| events.lock().unwrap().push(event);
+        let done = uninstall(
+            &server.target(None),
+            Box::new(|_| KeyCheck::Known),
+            keys,
+            &send,
+        )
+        .await;
+        let steps = events
+            .into_inner()
+            .unwrap()
+            .into_iter()
+            .filter_map(|event| match event {
+                InstallEvent::Step { id, status } if status != StepStatus::Running => {
+                    Some((id, status))
+                }
+                _ => None,
+            })
+            .collect();
+        (done, steps, server.commands())
+    }
+
+    fn ran(commands: &[String]) -> Vec<&str> {
+        commands
+            .iter()
+            .filter_map(|command| command.strip_prefix("# ahp-desk "))
+            .map(|rest| rest.split('\n').next().unwrap())
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn uninstall_stops_removes_the_unit_and_the_install_and_leaves_the_config() {
+        let server = TestServer::start().await;
+        server.answer(
+            PROBE_MARK,
+            &format!("{DEBIAN}{DESK_INSTALL}ahpdConfig=/home/ana/.config/ahpd\n"),
+            0,
+        );
+        for id in ["found", "stop", "unit", "files"] {
+            server.answer(&format!("# ahp-desk {id}\n"), "", 0);
+        }
+        let (done, steps, commands) = run_uninstall(&server).await;
+        done.unwrap();
+        assert_eq!(ids(&steps), ["connect", "stop", "unit", "files"]);
+        assert!(steps.iter().all(|(_, status)| *status == StepStatus::Done));
+        assert_eq!(ran(&commands), ["probe", "found", "stop", "unit", "files"]);
+        assert!(commands
+            .iter()
+            .filter(|command| !command.starts_with(PROBE_MARK))
+            .all(|command| !command.contains(".config/ahpd")));
+    }
+
+    #[tokio::test]
+    async fn uninstall_with_no_unit_skips_the_stop_and_the_unit() {
+        let server = TestServer::start().await;
+        server.answer(PROBE_MARK, &format!("{DEBIAN}{DESK_INSTALL}"), 0);
+        server.answer("# ahp-desk found\n", "", 0);
+        server.answer("# ahp-desk stop\n", "", NOTHING_THERE as u32);
+        server.answer("# ahp-desk unit\n", "", NOTHING_THERE as u32);
+        server.answer("# ahp-desk files\n", "", 0);
+        let (done, steps, _) = run_uninstall(&server).await;
+        done.unwrap();
+        assert_eq!(
+            steps,
+            [
+                ("connect".to_string(), StepStatus::Done),
+                ("stop".to_string(), StepStatus::Skipped),
+                ("unit".to_string(), StepStatus::Skipped),
+                ("files".to_string(), StepStatus::Done)
+            ]
+        );
+    }
+
+    #[tokio::test]
+    async fn uninstall_stops_at_a_failing_stop_before_any_removal() {
+        let server = TestServer::start().await;
+        server.answer(PROBE_MARK, &format!("{DEBIAN}{DESK_INSTALL}"), 0);
+        server.answer("# ahp-desk found\n", "", 0);
+        server.answer("# ahp-desk stop\n", "Failed to connect to bus\n", 1);
+        let (done, steps, commands) = run_uninstall(&server).await;
+        assert!(done.unwrap_err().contains("Failed to connect to bus"));
+        assert_eq!(
+            steps.last().unwrap(),
+            &("stop".to_string(), StepStatus::Failed)
+        );
+        assert!(!ran(&commands).contains(&"unit") && !ran(&commands).contains(&"files"));
+    }
+
+    #[tokio::test]
+    async fn uninstall_of_a_server_that_does_not_answer_fails_at_connect() {
+        let server = TestServer::start().await;
+        let mut target = server.target(None);
+        drop(server);
+        // Nothing listens on the port once the test server is gone.
+        target.port = {
+            let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+            listener.local_addr().unwrap().port()
+        };
+        let secrets = Secrets::default();
+        let keys = Keys {
+            id: "dev",
+            secrets: &secrets,
+            kept_password: None,
+            signed_in_before: None,
+        };
+        let events = Mutex::new(Vec::new());
+        let send = |event: InstallEvent| events.lock().unwrap().push(event);
+        let done = uninstall(&target, Box::new(|_| KeyCheck::Known), keys, &send).await;
+        assert!(done.is_err());
+        assert_eq!(
+            events.into_inner().unwrap().last().unwrap(),
+            &InstallEvent::Step {
+                id: "connect".into(),
+                status: StepStatus::Failed
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn uninstall_host_refuses_a_host_not_installed_by_the_desk_without_connecting() {
+        use crate::hosts::{HostInput, HostKind, SshHostView};
+        let server = TestServer::start().await;
+        let scratch = crate::ssh::known_keys::tests::Scratch::new();
+        let store = HostStore::load(
+            scratch.0.join("hosts.json"),
+            Box::new(crate::tokens::test_vaults::Memory::default()),
+        )
+        .unwrap();
+        store
+            .save(
+                HostInput {
+                    id: "found".into(),
+                    name: "found".into(),
+                    kind: HostKind::Url,
+                    url: "ws://127.0.0.1:9187".into(),
+                    ahpd_path: None,
+                    on_desk: None,
+                    ssh: Some(SshHostView {
+                        address: "127.0.0.1".into(),
+                        port: server.target(None).port,
+                        user: "tester".into(),
+                        sign_in: None,
+                        key_file: None,
+                        reach: Reach::Port,
+                        remote_port: 9187,
+                        folder: None,
+                        by_desk: false,
+                        local_port: None,
+                    }),
+                },
+                None,
+            )
+            .unwrap();
+        let send = |_: InstallEvent| {};
+        let done = uninstall_host(&store, &scratch.known(), "found", &send).await;
+        assert!(done.unwrap_err().contains("leaves it on the server"));
+        assert_eq!(server.sign_in_attempts(), 0);
+        assert!(server.commands().is_empty());
     }
 
     const DESK_INSTALL: &str = "deskUnit=yes\nahpd=/home/ana/.local/share/ahpd/node_modules/.bin/ahpd\nahpdNode=/home/ana/.local/share/ahpd/node/bin/node\nahpdVersion=0.11.0\nahpdDesk=yes\n";

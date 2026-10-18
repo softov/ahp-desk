@@ -84,6 +84,7 @@ fn main() {
             "probe_ssh_server",
             "install_ssh_ahpd",
             "cancel_ssh_install",
+            "uninstall_ssh_ahpd",
             "ssh_tunnel_states",
             "open_ssh_tunnel",
             "ssh_sign_in",

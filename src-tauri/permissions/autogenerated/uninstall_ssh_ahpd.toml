@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-uninstall-ssh-ahpd"
+description = "Enables the uninstall_ssh_ahpd command without any pre-configured scope."
+commands.allow = ["uninstall_ssh_ahpd"]
+
+[[permission]]
+identifier = "deny-uninstall-ssh-ahpd"
+description = "Denies the uninstall_ssh_ahpd command without any pre-configured scope."
+commands.deny = ["uninstall_ssh_ahpd"]

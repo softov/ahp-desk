@@ -357,6 +357,35 @@ button.choice:hover:not(:disabled) {
   margin-right: auto;
 }
 
+/* Remove's question on an SSH host: the question, what happens on the server, the steps, the buttons. */
+.host.confirm.removing {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+.remove-note {
+  margin: 0;
+  color: var(--oo-color-muted);
+  font-size: var(--oo-font-size-sm);
+}
+
+.host.removing .step-list,
+.host.removing .result {
+  margin: 0;
+}
+
+.remove-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.remove-actions button {
+  white-space: nowrap;
+}
+
 /* A tunnel's Sign in, in the row: the host's name, what it asks, and the two buttons. */
 .host.signing {
   background: color-mix(in srgb, var(--oo-color-accent) 8%, transparent);

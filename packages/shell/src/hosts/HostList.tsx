@@ -1,10 +1,93 @@
 import { useRef, useState } from 'react';
 import { t } from '../i18n.js';
 import { useOutsideClose } from '../useOutsideClose.js';
-import { openHost, openSshTunnel, removeHost, sshSignIn, type ShellHost, type TunnelState } from './ipc.js';
+import {
+  openHost,
+  openSshTunnel,
+  removeHost,
+  sshSignIn,
+  uninstallSshAhpd,
+  type ShellHost,
+  type SshHost,
+  type TunnelState,
+  type UninstallStep,
+} from './ipc.js';
+import { InstallSteps, withStep, type StepState } from './InstallSteps.js';
 import type { HostStatus, HostStatuses } from './status.js';
 import { shortUrl } from './url.js';
 import { useTunnels } from './useTunnels.js';
+
+const UNINSTALL_WORDS = {
+  connect: 'uninstall.connect',
+  stop: 'uninstall.stop',
+  unit: 'uninstall.unit',
+  files: 'uninstall.files',
+} as const;
+
+/**
+ * Remove's question on a host reached over SSH. For an ahpd the desk
+ * installed: remove and uninstall it on the server, with the steps, or remove
+ * from the desk only; a failure keeps the host and says why. For one the desk
+ * did not install: the server's ahpd stays, and the question says so.
+ */
+function RemoveSshRow({ host, ssh, onDone }: { host: ShellHost; ssh: SshHost; onDone: () => void }) {
+  const [phase, setPhase] = useState<'ask' | 'running' | 'failed'>('ask');
+  const [steps, setSteps] = useState<StepState<UninstallStep>[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const server = ssh.address;
+  const remove = () =>
+    removeHost(host.id).catch((err: unknown) => {
+      setError(err instanceof Error ? err.message : String(err));
+      setPhase('failed');
+    });
+  const uninstall = async () => {
+    setPhase('running');
+    setSteps([]);
+    setError(null);
+    try {
+      await uninstallSshAhpd(host.id, (event) => {
+        if (event.kind === 'step') setSteps((all) => withStep(all, { id: event.id, status: event.status }));
+      });
+      await removeHost(host.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setPhase('failed');
+    }
+  };
+  return (
+    <li className="host confirm removing">
+      <span className="question">{t('hosts.removeQuestion', { name: host.name })}</span>
+      <p className="remove-note">
+        {phase === 'running'
+          ? t('hosts.uninstalling', { server })
+          : ssh.byDesk
+            ? t('hosts.uninstallNote', { server })
+            : t('hosts.foundStays', { server })}
+      </p>
+      <InstallSteps lines={[]} steps={steps} wordOf={(id) => t(UNINSTALL_WORDS[id])} />
+      {error !== null && <p className="result bad">{error}</p>}
+      {phase !== 'running' && (
+        <div className="remove-actions">
+          <button onClick={onDone}>{t('form.cancel')}</button>
+          {ssh.byDesk ? (
+            <>
+              <button onClick={() => void remove()}>{t('hosts.removeDeskOnly')}</button>
+              {phase === 'ask' && (
+                <button className="danger" onClick={() => void uninstall()}>
+                  {t('hosts.removeAndUninstall')}
+                </button>
+              )}
+            </>
+          ) : (
+            <button className="danger" onClick={() => void remove()}>
+              {t('hosts.remove')}
+            </button>
+          )}
+        </div>
+      )}
+    </li>
+  );
+}
 
 /** A row's Sign in for a tunnel that needs what the person types, as after a restart. */
 function SignInRow({ host, tunnel, onDone }: { host: ShellHost; tunnel: TunnelState; onDone: () => void }) {
@@ -137,6 +220,9 @@ export function HostList({
           const tunnelDown = tunnel !== undefined && !tunnel.on;
           if (signingIn === host.id && tunnel !== undefined && tunnel.needs !== null) {
             return <SignInRow key={host.id} host={host} tunnel={tunnel} onDone={() => setSigningIn(null)} />;
+          }
+          if (removing === host.id && host.ssh !== undefined) {
+            return <RemoveSshRow key={host.id} host={host} ssh={host.ssh} onDone={() => setRemoving(null)} />;
           }
           if (removing === host.id) {
             return (

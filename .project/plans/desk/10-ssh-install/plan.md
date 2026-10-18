@@ -113,7 +113,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | [06 - reach it: the tunnel on a kept local port (host kind `ssh`) or the open port (a URL host)](task-06-reach.md) | done | 05 |
 | [07 - Add host and the first run: "A server over SSH"](task-07-add-host-ssh.md) | done | 02, 05, 06 |
 | [08 - update over SSH, for plan 09](task-08-update-over-ssh.md) | done | 05 |
-| [10 - Remove offers to uninstall the desk's ahpd on the server](task-10-uninstall-over-ssh.md) | todo | 05, 06, 07 |
+| [10 - Remove offers to uninstall the desk's ahpd on the server](task-10-uninstall-over-ssh.md) | done | 05, 06, 07 |
 | [11 - A saved host's refused server key on its row and in Edit host](task-11-refused-key-on-a-saved-host.md) | done | 02, 06, 07 |
 | [09 - end to end on the test machine](task-09-end-to-end.md) | todo | 01 to 08, 10, 11 |
 
@@ -126,8 +126,8 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 
 ## Resume state
 
-- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 08 and 11, 2026-10-18, with their by-hand checks, task 06's window checks among task 07's.
-- **Next action:** task 10, then task 09.
+- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 08, 10 and 11, 2026-10-18, with their by-hand checks, task 06's window checks among task 07's.
+- **Next action:** task 09, the end to end.
 - **Open questions:** none.
 - **Watch out for:** doop's `AcceptAllHandler` must not be copied; the Answers row on the server key replaces it.
   The end to end and every real SSH test run against the test machine only.

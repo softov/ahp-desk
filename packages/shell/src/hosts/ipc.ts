@@ -208,6 +208,16 @@ export function installSshAhpd(request: SshInstall, onEvent: (event: InstallEven
   return invoke<SshInstalled>('install_ssh_ahpd', { request, events });
 }
 
+/** The steps of an uninstall over SSH, in order; `stop` and `unit` are skipped when there is no unit. */
+export type UninstallStep = 'connect' | 'stop' | 'unit' | 'files';
+
+/** Stops and removes the ahpd the desk installed on the host's server, calling `onEvent` with each step; then remove the host. */
+export function uninstallSshAhpd(id: string, onEvent: (event: InstallEvent<UninstallStep>) => void): Promise<void> {
+  const events = new Channel<InstallEvent<UninstallStep>>();
+  events.onmessage = onEvent;
+  return invoke('uninstall_ssh_ahpd', { id, events });
+}
+
 /** Stops the install over SSH between steps, or in the middle of a long one. */
 export function cancelSshInstall(): Promise<void> {
   return invoke('cancel_ssh_install');
@@ -277,9 +287,9 @@ export function stopLocalAhpd(id: string): Promise<LocalState> {
 }
 
 /** One event of an install: a line npm or ahpd wrote, or, over SSH, a named step starting or ending. */
-export type InstallEvent =
+export type InstallEvent<S extends string = InstallStep> =
   | { kind: 'line'; text: string }
-  | { kind: 'step'; id: InstallStep; status: 'running' | 'done' | 'failed' | 'skipped' };
+  | { kind: 'step'; id: S; status: 'running' | 'done' | 'failed' | 'skipped' };
 
 /** The steps of an install over SSH, in order; a found ahpd skips node, server, folder and unit. */
 export type InstallStep = 'connect' | 'probe' | 'node' | 'server' | 'backends' | 'folder' | 'unit' | 'start' | 'ready';

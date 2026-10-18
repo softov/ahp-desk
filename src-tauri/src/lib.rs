@@ -139,6 +139,7 @@ pub fn run() {
             ssh_install::probe_ssh_server,
             ssh_install::install_ssh_ahpd,
             ssh_install::cancel_ssh_install,
+            ssh_install::uninstall_ssh_ahpd,
             ssh::tunnel::ssh_tunnel_states,
             ssh::tunnel::open_ssh_tunnel,
             ssh::tunnel::ssh_sign_in,
