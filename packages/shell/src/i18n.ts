@@ -46,6 +46,10 @@ const en = {
   'hosts.tokenInFile': 'The token is in a plain file.',
   'hosts.passwordInFile': 'The SSH password is in a plain file.',
   'hosts.noKeyring': 'No OS keyring was available.',
+  'tunnel.down': 'tunnel down',
+  'tunnel.signIn': 'Sign in',
+  'tunnel.passphrase': 'Key file passphrase',
+  'tunnel.password': 'SSH password',
 
   'status.connected': 'connected',
   'status.connecting': 'connecting',
@@ -142,6 +146,10 @@ const ptBR: Record<Key, string> = {
   'hosts.tokenInFile': 'O token está em um arquivo comum.',
   'hosts.passwordInFile': 'A senha SSH está em um arquivo comum.',
   'hosts.noKeyring': 'Nenhum chaveiro do sistema estava disponível.',
+  'tunnel.down': 'túnel fora do ar',
+  'tunnel.signIn': 'Entrar',
+  'tunnel.passphrase': 'Senha da chave',
+  'tunnel.password': 'Senha SSH',
 
   'status.connected': 'conectado',
   'status.connecting': 'conectando',
@@ -236,6 +244,10 @@ const es: Record<Key, string> = {
   'hosts.tokenInFile': 'El token está en un archivo sin cifrar.',
   'hosts.passwordInFile': 'La contraseña SSH está en un archivo sin cifrar.',
   'hosts.noKeyring': 'No había un llavero del sistema disponible.',
+  'tunnel.down': 'túnel caído',
+  'tunnel.signIn': 'Iniciar sesión',
+  'tunnel.passphrase': 'Frase de la clave',
+  'tunnel.password': 'Contraseña SSH',
 
   'status.connected': 'conectado',
   'status.connecting': 'conectando',

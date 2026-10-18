@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-open-ssh-tunnel"
+description = "Enables the open_ssh_tunnel command without any pre-configured scope."
+commands.allow = ["open_ssh_tunnel"]
+
+[[permission]]
+identifier = "deny-open-ssh-tunnel"
+description = "Denies the open_ssh_tunnel command without any pre-configured scope."
+commands.deny = ["open_ssh_tunnel"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-ssh-tunnel-states"
+description = "Enables the ssh_tunnel_states command without any pre-configured scope."
+commands.allow = ["ssh_tunnel_states"]
+
+[[permission]]
+identifier = "deny-ssh-tunnel-states"
+description = "Denies the ssh_tunnel_states command without any pre-configured scope."
+commands.deny = ["ssh_tunnel_states"]

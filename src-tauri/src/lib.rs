@@ -71,6 +71,7 @@ pub fn run() {
             app.manage(AppWindows::default());
             app.manage(HostStatuses::default());
             app.manage(ssh_install::InstallControl::default());
+            ssh::tunnel::manage(app.handle());
             app.manage(LocalAhpd::new(app.handle())?);
             app.manage(ui_source::resolve(app.handle())?);
             // Frameless and rounded, as an app window; the host list draws its title bar.
@@ -106,6 +107,7 @@ pub fn run() {
             });
             // After the host list window, so its rows show each host as it comes up.
             local_ahpd::start_on_launch(app.handle());
+            ssh::tunnel::open_on_launch(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -137,11 +139,16 @@ pub fn run() {
             ssh_install::probe_ssh_server,
             ssh_install::install_ssh_ahpd,
             ssh_install::cancel_ssh_install,
+            ssh::tunnel::ssh_tunnel_states,
+            ssh::tunnel::open_ssh_tunnel,
+            ssh::tunnel::ssh_sign_in,
+            ssh::tunnel::pick_ssh_local_port,
         ])
         .build(tauri::generate_context!())
         .expect("ahp-desk failed to start")
         .run(|app, event| {
             if let RunEvent::Exit = event {
+                app.state::<ssh::tunnel::Tunnels>().close_all();
                 local_ahpd::stop_on_quit(app);
             }
         });

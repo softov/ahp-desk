@@ -109,7 +109,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | [03 - the probe: Linux, CPU, systemctl --user, lingering, Node, an ahpd already there](task-03-probe.md) | done | 01 |
 | [04 - Node: the server's own, or the newest 22 downloaded there](task-04-node.md) | done | 03 |
 | [05 - the install, or the found ahpd: @ahpd/server and the backends, the folder, the token file, the user unit, the health wait, with steps and cancel](task-05-install.md) | done | 04 |
-| [06 - reach it: the tunnel on a kept local port (host kind `ssh`) or the open port (a URL host)](task-06-reach.md) | todo | 05 |
+| [06 - reach it: the tunnel on a kept local port (host kind `ssh`) or the open port (a URL host)](task-06-reach.md) | done | 05 |
 | [07 - Add host and the first run: "A server over SSH"](task-07-add-host-ssh.md) | todo | 02, 05, 06 |
 | [08 - update over SSH, for plan 09](task-08-update-over-ssh.md) | todo | 05 |
 | [10 - Remove offers to uninstall the desk's ahpd on the server](task-10-uninstall-over-ssh.md) | todo | 05, 06, 07 |
@@ -124,8 +124,8 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 
 ## Resume state
 
-- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 05, 2026-10-18, with their by-hand checks.
-- **Next action:** task 06.
+- **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 06, 2026-10-18, with their by-hand checks; task 06's window checks run with task 07's.
+- **Next action:** task 07.
 - **Open questions:** none.
 - **Watch out for:** doop's `AcceptAllHandler` must not be copied; the Answers row on the server key replaces it.
   The end to end and every real SSH test run against dev02 only.

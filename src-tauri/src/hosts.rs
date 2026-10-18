@@ -3,12 +3,13 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State, WebviewWindow};
 
 use crate::app_window::AppWindows;
+use crate::ssh::tunnel::Tunnels;
 use crate::ssh::{password, Secrets, SignIn};
 use crate::statuses::HostStatuses;
 use crate::tokens::{self, Vault};
@@ -21,6 +22,19 @@ pub const HOSTS_CHANGED: &str = "hosts-changed";
 pub enum HostKind {
     Url,
     Local,
+    /// A server reached through a tunnel the desk holds over SSH.
+    Ssh,
+}
+
+/// How the desk reaches the ahpd of a host over SSH.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Reach {
+    /// Through the SSH connection, to ahpd on the server's 127.0.0.1.
+    #[default]
+    Tunnel,
+    /// On ahpd's open port, with its token.
+    Port,
 }
 
 /// A host as `hosts.json` keeps it.
@@ -61,6 +75,20 @@ pub struct SshHost {
     pub sign_in: Option<SignIn>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key_file: Option<String>,
+    #[serde(default)]
+    pub reach: Reach,
+    /// The port ahpd listens on, on the server.
+    #[serde(default = "remote_port")]
+    pub remote_port: u16,
+    /// The folder ahpd serves.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folder: Option<String>,
+    /// The desk installed this ahpd, so Update and Remove may touch it.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub by_desk: bool,
+    /// A tunnel's local port, chosen once, when the host is added.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub local_port: Option<u16>,
     /// The kept password, only when the keyring could not keep it.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub password: Option<String>,
@@ -68,6 +96,10 @@ pub struct SshHost {
 
 fn ssh_port() -> u16 {
     22
+}
+
+fn remote_port() -> u16 {
+    crate::ssh_install::AHPD_PORT
 }
 
 /// `SshHost` as a window reads and the form sends it: never a password.
@@ -82,6 +114,17 @@ pub struct SshHostView {
     pub sign_in: Option<SignIn>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key_file: Option<String>,
+    #[serde(default)]
+    pub reach: Reach,
+    #[serde(default = "remote_port")]
+    pub remote_port: u16,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub folder: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub by_desk: bool,
+    /// Absent from the form on an edit, which keeps the one the host has.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub local_port: Option<u16>,
 }
 
 impl From<&SshHost> for SshHostView {
@@ -92,6 +135,11 @@ impl From<&SshHost> for SshHostView {
             user: ssh.user.clone(),
             sign_in: ssh.sign_in,
             key_file: ssh.key_file.clone(),
+            reach: ssh.reach,
+            remote_port: ssh.remote_port,
+            folder: ssh.folder.clone(),
+            by_desk: ssh.by_desk,
+            local_port: ssh.local_port,
         }
     }
 }
@@ -209,7 +257,7 @@ pub struct HostStore {
     vault: Box<dyn Vault>,
     /// What a person typed for each host's SSH sign-in, until the desk quits;
     /// here so that removing a host drops it with the host.
-    secrets: Secrets,
+    secrets: Arc<Secrets>,
 }
 
 impl HostStore {
@@ -234,7 +282,7 @@ impl HostStore {
             path,
             hosts: Mutex::new(hosts),
             vault,
-            secrets: Secrets::default(),
+            secrets: Arc::default(),
         })
     }
 
@@ -288,12 +336,25 @@ impl HostStore {
             ssh: input.ssh.map(|view| SshHost {
                 sign_in: view.sign_in.or(before.as_ref().and_then(|ssh| ssh.sign_in)),
                 password: before.as_ref().and_then(|ssh| ssh.password.clone()),
+                // Chosen once: an edit keeps the port the host's address names.
+                local_port: before
+                    .as_ref()
+                    .and_then(|ssh| ssh.local_port)
+                    .or(view.local_port),
                 address: view.address,
                 port: view.port,
                 user: view.user,
                 key_file: view.key_file,
+                reach: view.reach,
+                remote_port: view.remote_port,
+                folder: view.folder,
+                by_desk: view.by_desk,
             }),
         };
+        if host.kind == HostKind::Ssh && host.ssh.as_ref().and_then(|ssh| ssh.local_port).is_none()
+        {
+            return Err("an ssh host needs its SSH details and a local port".into());
+        }
         if let Some(token) = token {
             tokens::set(self.vault.as_ref(), &mut host, &token);
         }
@@ -330,7 +391,7 @@ impl HostStore {
     }
 
     /// What a person typed for each host's SSH sign-in.
-    pub fn secrets(&self) -> &Secrets {
+    pub fn secrets(&self) -> &Arc<Secrets> {
         &self.secrets
     }
 
@@ -467,9 +528,11 @@ pub fn remove_host(
     store: State<'_, HostStore>,
     windows: State<'_, AppWindows>,
     statuses: State<'_, HostStatuses>,
+    tunnels: State<'_, Tunnels>,
     id: String,
 ) -> Result<(), String> {
     let list = store.remove(&id)?;
+    tunnels.close(&id);
     windows.close_host(&app, &id);
     statuses.forget(&id);
     app.emit(HOSTS_CHANGED, list).map_err(|err| err.to_string())
@@ -739,8 +802,64 @@ mod tests {
             user: "me".into(),
             sign_in: None,
             key_file: Some("C:/keys/id_ed25519".into()),
+            reach: Reach::Port,
+            remote_port: 9187,
+            folder: None,
+            by_desk: false,
+            local_port: None,
         });
         host
+    }
+
+    #[test]
+    fn hosts_an_ssh_host_round_trips_and_keeps_its_local_port() {
+        let scratch = Scratch::new();
+        let store = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
+        let mut tunnelled = ssh_input("dev");
+        tunnelled.kind = HostKind::Ssh;
+        tunnelled.url = "ws://127.0.0.1:40123".into();
+        if let Some(ssh) = tunnelled.ssh.as_mut() {
+            ssh.reach = Reach::Tunnel;
+            ssh.remote_port = 9300;
+            ssh.folder = Some("/srv/work".into());
+            ssh.by_desk = true;
+            ssh.local_port = Some(40123);
+        }
+        store.save(tunnelled.clone(), None).unwrap();
+        let reloaded = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
+        let ssh = reloaded.ssh("dev").unwrap().unwrap();
+        assert_eq!(
+            (
+                ssh.reach,
+                ssh.remote_port,
+                ssh.local_port,
+                ssh.folder.as_deref(),
+                ssh.by_desk
+            ),
+            (Reach::Tunnel, 9300, Some(40123), Some("/srv/work"), true)
+        );
+        assert!(scratch.text().contains("\"kind\": \"ssh\""));
+        // An edit that names another local port keeps the one the host has.
+        if let Some(ssh) = tunnelled.ssh.as_mut() {
+            ssh.local_port = Some(50000);
+        }
+        store.save(tunnelled, None).unwrap();
+        assert_eq!(store.ssh("dev").unwrap().unwrap().local_port, Some(40123));
+    }
+
+    #[test]
+    fn hosts_an_ssh_host_needs_its_ssh_and_a_local_port() {
+        let scratch = Scratch::new();
+        let store = HostStore::load(scratch.file(), Box::new(Memory::default())).unwrap();
+        let mut bare = input("dev", "dev");
+        bare.kind = HostKind::Ssh;
+        assert!(store.save(bare, None).is_err());
+        let mut no_port = ssh_input("dev");
+        no_port.kind = HostKind::Ssh;
+        assert!(store.save(no_port, None).is_err());
+        // A url host on an open port keeps its SSH details, for Update and Remove.
+        store.save(ssh_input("open"), None).unwrap();
+        assert_eq!(store.ssh("open").unwrap().unwrap().reach, Reach::Port);
     }
 
     #[test]

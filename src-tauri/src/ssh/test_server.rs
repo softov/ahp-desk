@@ -29,6 +29,8 @@ pub struct TestServer {
     answers: Answers,
     /// Every command run, in order.
     commands: Arc<Mutex<Vec<String>>>,
+    /// A clone of each connection's socket, which `drop_sessions` shuts.
+    sessions: Arc<Mutex<Vec<std::net::TcpStream>>>,
 }
 
 /// (the command's start, stdout, exit code).
@@ -46,6 +48,8 @@ impl TestServer {
         let commands: Arc<Mutex<Vec<String>>> = Arc::default();
         let (serving, counted) = (config.clone(), attempts.clone());
         let (answering, recording) = (answers.clone(), commands.clone());
+        let sessions: Arc<Mutex<Vec<std::net::TcpStream>>> = Arc::default();
+        let held = sessions.clone();
         tokio::spawn(async move {
             while let Ok((stream, _)) = listener.accept().await {
                 let handler = Handler {
@@ -55,6 +59,10 @@ impl TestServer {
                     commands: recording.clone(),
                 };
                 let config = serving.lock().unwrap().clone();
+                // The session runs in the background; shutting its socket is how a test ends it.
+                let socket = stream.into_std().unwrap();
+                held.lock().unwrap().push(socket.try_clone().unwrap());
+                let stream = tokio::net::TcpStream::from_std(socket).unwrap();
                 if let Ok(running) = server::run_stream(config, stream, handler).await {
                     tokio::spawn(running);
                 }
@@ -67,6 +75,14 @@ impl TestServer {
             attempts,
             answers,
             commands,
+            sessions,
+        }
+    }
+
+    /// Ends every session served so far, as a dropped network does.
+    pub fn drop_sessions(&self) {
+        for socket in self.sessions.lock().unwrap().drain(..) {
+            let _ = socket.shutdown(std::net::Shutdown::Both);
         }
     }
 
@@ -199,6 +215,23 @@ impl server::Handler for Handler {
                 Auth::reject()
             },
         )
+    }
+
+    /// A forwarded connection: whatever comes in goes back out.
+    async fn channel_open_direct_tcpip(
+        &mut self,
+        channel: Channel<Msg>,
+        _host: &str,
+        _port: u32,
+        _from: &str,
+        _from_port: u32,
+        _session: &mut Session,
+    ) -> Result<bool, Self::Error> {
+        tokio::spawn(async move {
+            let (mut read, mut write) = tokio::io::split(channel.into_stream());
+            let _ = tokio::io::copy(&mut read, &mut write).await;
+        });
+        Ok(true)
     }
 
     async fn channel_open_session(

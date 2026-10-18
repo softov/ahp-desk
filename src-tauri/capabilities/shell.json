@@ -35,6 +35,10 @@
     "allow-probe-ssh-server",
     "allow-install-ssh-ahpd",
     "allow-cancel-ssh-install",
+    "allow-ssh-tunnel-states",
+    "allow-open-ssh-tunnel",
+    "allow-ssh-sign-in",
+    "allow-pick-ssh-local-port",
     "dialog:allow-open",
     {
       "identifier": "opener:allow-open-url",

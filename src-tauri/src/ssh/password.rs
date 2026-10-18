@@ -69,7 +69,7 @@ pub fn ssh_keyring_works(store: State<'_, HostStore>) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::hosts::{HostKind, OnDesk, SshHost};
+    use crate::hosts::{HostKind, OnDesk, Reach, SshHost};
     use crate::tokens::test_vaults::{Broken, Memory};
 
     fn host() -> Host {
@@ -87,6 +87,11 @@ mod tests {
                 user: "me".into(),
                 sign_in: None,
                 key_file: None,
+                reach: Reach::Port,
+                remote_port: 9187,
+                folder: None,
+                by_desk: false,
+                local_port: None,
                 password: None,
             }),
             on_desk: OnDesk::default(),

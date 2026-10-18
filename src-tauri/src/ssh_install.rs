@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use tauri::ipc::Channel;
 use tauri::State;
 
-use crate::hosts::HostStore;
+use crate::hosts::{HostStore, Reach};
 use crate::local_ahpd::{
     check_backends, ready_specs, spec_of, token_in_connect_url, version_of_text, InstallEvent,
     StepStatus, OLDEST_SUPPORTED, QUIET_NPM,
@@ -744,8 +744,18 @@ pub struct SshInstall {
     pub folder: Option<String>,
     #[serde(default = "ahpd_port")]
     pub ahpd_port: u16,
+    /// The tunnel keeps ahpd on the server's 127.0.0.1; an open port puts it on every address.
     #[serde(default)]
-    pub bind: Bind,
+    pub reach: Reach,
+}
+
+impl SshInstall {
+    pub fn bind(&self) -> Bind {
+        match self.reach {
+            Reach::Tunnel => Bind::Loopback,
+            Reach::Port => Bind::All,
+        }
+    }
 }
 
 fn ahpd_port() -> u16 {
@@ -970,7 +980,7 @@ async fn install_new(
         &node.node,
         &ahpd.path,
         &prefix,
-        request.bind,
+        request.bind(),
         request.ahpd_port,
     );
     let runtime = probed.runtime_dir.as_deref();
@@ -1989,7 +1999,7 @@ mod tests {
             backends: backends.iter().map(|name| name.to_string()).collect(),
             folder: None,
             ahpd_port: 9300,
-            bind: Bind::Loopback,
+            reach: Reach::Tunnel,
         }
     }
 

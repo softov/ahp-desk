@@ -7,7 +7,8 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 export interface Host {
   id: string;
   name: string;
-  kind: 'url' | 'local';
+  /** `ssh`: reached through a tunnel the desk holds over SSH, its `url` a kept local port. */
+  kind: 'url' | 'local' | 'ssh';
   /** The host's WebSocket address, as `ws://127.0.0.1:9187`. */
   url: string;
   /** The ahpd a `local` host uses, when one is set instead of the one found. */
@@ -26,6 +27,46 @@ export interface SshHost {
   /** The way the last sign-in went through. */
   signIn?: 'agent' | 'key-file' | 'password';
   keyFile?: string;
+  /** Through the SSH connection, or on ahpd's open port. */
+  reach: 'tunnel' | 'port';
+  /** The port ahpd listens on, on the server. */
+  remotePort: number;
+  folder?: string;
+  /** The desk installed this ahpd. */
+  byDesk?: boolean;
+  /** A tunnel's local port, chosen once when the host is added. */
+  localPort?: number;
+}
+
+/** A tunnel's state: on, or why it is down, and what the person types to open it again. */
+export interface TunnelState {
+  on: boolean;
+  error: string | null;
+  needs: 'passphrase' | 'password' | null;
+}
+
+export function sshTunnelStates(): Promise<Record<string, TunnelState>> {
+  return invoke<Record<string, TunnelState>>('ssh_tunnel_states');
+}
+
+/** Calls `handler` with every tunnel's state each time one changes. */
+export function onTunnelsChanged(handler: (all: Record<string, TunnelState>) => void): Promise<UnlistenFn> {
+  return listen<Record<string, TunnelState>>('tunnels-changed', (event) => handler(event.payload));
+}
+
+/** Opens a down tunnel now, as Retry does. */
+export function openSshTunnel(id: string): Promise<void> {
+  return invoke('open_ssh_tunnel', { id });
+}
+
+/** What the person typed on a row's Sign in, held until the desk quits, then the tunnel opens. */
+export function sshSignIn(id: string, secret: string): Promise<void> {
+  return invoke('ssh_sign_in', { id, secret });
+}
+
+/** A free local port, which a new tunnelled host keeps from then on. */
+export function pickSshLocalPort(): Promise<number> {
+  return invoke<number>('pick_ssh_local_port');
 }
 
 /** What a `local` host's ahpd does when the desk starts and quits. */
@@ -138,8 +179,8 @@ export interface SshInstall {
   folder?: string;
   /** 9187 when none. */
   ahpdPort?: number;
-  /** `loopback` for the tunnel, `all` for an open port. */
-  bind?: 'loopback' | 'all';
+  /** The tunnel keeps ahpd on the server's 127.0.0.1; an open port puts it on every address. */
+  reach?: 'tunnel' | 'port';
 }
 
 /** The ahpd the desk connects to after an install or with a found one. */

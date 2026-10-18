@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-ssh-sign-in"
+description = "Enables the ssh_sign_in command without any pre-configured scope."
+commands.allow = ["ssh_sign_in"]
+
+[[permission]]
+identifier = "deny-ssh-sign-in"
+description = "Denies the ssh_sign_in command without any pre-configured scope."
+commands.deny = ["ssh_sign_in"]

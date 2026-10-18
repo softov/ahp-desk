@@ -357,6 +357,26 @@ button.choice:hover:not(:disabled) {
   margin-right: auto;
 }
 
+/* A tunnel's Sign in, in the row: the host's name, what it asks, and the two buttons. */
+.host.signing {
+  background: color-mix(in srgb, var(--oo-color-accent) 8%, transparent);
+}
+
+.sign-in {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+}
+
+.sign-in .question {
+  margin-right: auto;
+}
+
+.sign-in input {
+  width: 180px;
+}
+
 /* As ahpw's host switcher: filled connected, half connecting, hollow down. */
 .dot {
   width: 10px;

@@ -1,6 +1,6 @@
 ---
 title: The desk reaches an ahpd over SSH through a tunnel on a kept local port, as host kind ssh, or through its open port, as a URL host
-status: todo
+status: done
 depends: [task-05-install.md]
 layer: "src-tauri, packages/shell"
 refs:
@@ -55,3 +55,15 @@ An open port: ahpd listens on 0.0.0.0 with its token, and the host is kind `url`
 - By hand on dev02 only, with a host list in `AHP_DESK_CONFIG_DIR`: a tunnelled host connects and its app window opens; with the desk closed, nothing on dev02 listens beyond 127.0.0.1 (`ss -ltn`); restarting the desk opens the tunnel again on the same local port and the window keeps its tabs; a host signed in with a key with a passphrase shows "Sign in" after the restart, and opens once it is typed; an open-port host connects from the desk.
 
 ## Resume
+
+- 2026-10-18: `src-tauri/src/ssh/tunnel.rs` has `Tunnels` (`open`, `retry`, `sign_in`, `close`, `close_all`, `states`), `TunnelSpec`, `spec_of()`, `TunnelState`, `pick_local_port()`, `open_on_launch()`, `manage()`, the event `tunnels-changed`, and the commands `ssh_tunnel_states`, `open_ssh_tunnel`, `ssh_sign_in` and `pick_ssh_local_port`.
+- `HostKind::Ssh` and `Reach` (`tunnel`, `port`); `SshHost` and `SshHostView` have `reach`, `remotePort`, `folder`, `byDesk` and `localPort`; an edit keeps the host's `localPort`; `remove_host` closes the host's tunnel; `SshInstall.reach` replaces `bind`.
+- The tunnel's core takes a callback for each change, so it runs under tests against the test server; `manage()` makes that callback emit `tunnels-changed`.
+- `Secrets` is an `Arc` in `HostStore`, so a tunnel keeps signing in with what was typed.
+- A tunnel retries a dropped session after 2 s, doubling to 60 s, or at once on Retry; a sign-in that needs the person, a refused key and a refused sign-in wait for them.
+- The row of a down `ssh` host shows `tunnel down` with its error as the title, Retry opening the tunnel, or Sign in, which asks the passphrase or the password in the row (`tunnel.*` words in three languages); `useTunnels()` keeps the states.
+- The test server echoes a `direct-tcpip` channel, and `drop_sessions` shuts each connection's socket, since `run_stream` runs the session in the background.
+- Step 8's open port is saved by task 07's form as a `url` host with its `ssh` details; the choice for a found ahpd, by how it listens, is task 07's form too.
+- Verified: `cargo test` (117: 4 for the tunnel, a forward with two connections, a dropped session reopened on the same port asking nothing, the local port taken, a passphrase needed and Sign in; 2 in `hosts.rs`), the suite five times in a row, `cargo clippy --all-targets -- -D warnings`, `pnpm typecheck`, `pnpm test`.
+- By hand, `ssh_a_real_tunnel` on the test server Softov named: a tunnel to the server's own SSH port read its `SSH-2.0-` banner, with only the key Softov matched trusted.
+- The window checks of this task (a tunnelled host's app window, the same port after a restart, Sign in after a restart, an open-port host) need a host added from the form, and run with task 07's.

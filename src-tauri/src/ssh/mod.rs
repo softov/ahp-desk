@@ -7,6 +7,7 @@ pub mod known_keys;
 pub mod password;
 #[cfg(test)]
 pub(crate) mod test_server;
+pub mod tunnel;
 
 use std::collections::HashMap;
 use std::path::PathBuf;

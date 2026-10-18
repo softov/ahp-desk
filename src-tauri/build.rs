@@ -84,6 +84,10 @@ fn main() {
             "probe_ssh_server",
             "install_ssh_ahpd",
             "cancel_ssh_install",
+            "ssh_tunnel_states",
+            "open_ssh_tunnel",
+            "ssh_sign_in",
+            "pick_ssh_local_port",
         ]),
     ))
     .expect("the Tauri build failed");

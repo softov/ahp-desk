@@ -1,9 +1,47 @@
 import { useRef, useState } from 'react';
 import { t } from '../i18n.js';
 import { useOutsideClose } from '../useOutsideClose.js';
-import { openHost, removeHost, type ShellHost } from './ipc.js';
+import { openHost, openSshTunnel, removeHost, sshSignIn, type ShellHost, type TunnelState } from './ipc.js';
 import type { HostStatus, HostStatuses } from './status.js';
 import { shortUrl } from './url.js';
+import { useTunnels } from './useTunnels.js';
+
+/** A row's Sign in for a tunnel that needs what the person types, as after a restart. */
+function SignInRow({ host, tunnel, onDone }: { host: ShellHost; tunnel: TunnelState; onDone: () => void }) {
+  const [secret, setSecret] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const label = t(tunnel.needs === 'passphrase' ? 'tunnel.passphrase' : 'tunnel.password');
+  return (
+    <li className="host signing">
+      <form
+        className="sign-in"
+        onSubmit={(event) => {
+          event.preventDefault();
+          sshSignIn(host.id, secret)
+            .then(onDone)
+            .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+        }}
+      >
+        <span className="question">{host.name}</span>
+        <input
+          type="password"
+          aria-label={label}
+          placeholder={label}
+          value={secret}
+          autoFocus
+          onChange={(event) => setSecret(event.target.value)}
+        />
+        <button type="button" onClick={onDone}>
+          {t('form.cancel')}
+        </button>
+        <button className="primary" type="submit" disabled={secret === ''}>
+          {t('tunnel.signIn')}
+        </button>
+        {error !== null && <span className="result bad">{error}</span>}
+      </form>
+    </li>
+  );
+}
 
 function statusText(status: HostStatus): string {
   switch (status.kind) {
@@ -65,7 +103,9 @@ export function HostList({
   onEdit: (host: ShellHost) => void;
 }) {
   const [removing, setRemoving] = useState<string | null>(null);
+  const [signingIn, setSigningIn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const tunnels = useTunnels();
 
   const run = (work: Promise<void>) =>
     work.catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
@@ -86,6 +126,12 @@ export function HostList({
       <ul className="hosts">
         {hosts.map((host) => {
           const status = statuses.status(host.id);
+          // A tunnelled host is down while its tunnel is: the row says why.
+          const tunnel = host.kind === 'ssh' ? tunnels[host.id] : undefined;
+          const tunnelDown = tunnel !== undefined && !tunnel.on;
+          if (signingIn === host.id && tunnel !== undefined && tunnel.needs !== null) {
+            return <SignInRow key={host.id} host={host} tunnel={tunnel} onDone={() => setSigningIn(null)} />;
+          }
           if (removing === host.id) {
             return (
               <li key={host.id} className="host confirm">
@@ -126,18 +172,24 @@ export function HostList({
               </span>
               <span
                 className="state"
-                title={status.kind === 'down' ? (status.error ?? undefined) : undefined}
+                title={tunnelDown ? (tunnel.error ?? undefined) : status.kind === 'down' ? (status.error ?? undefined) : undefined}
               >
-                {statusText(status)}
+                {tunnelDown ? t('tunnel.down') : statusText(status)}
               </span>
               <span className="address" title={host.url}>
                 {shortUrl(host.url)}
               </span>
               <span className="action">
-                {status.kind === 'connected' && (
+                {status.kind === 'connected' && !tunnelDown && (
                   <button onClick={() => void run(openHost(host.id))}>{t('hosts.open')}</button>
                 )}
-                {status.kind === 'down' && (
+                {tunnelDown && tunnel.needs !== null && (
+                  <button onClick={() => setSigningIn(host.id)}>{t('tunnel.signIn')}</button>
+                )}
+                {tunnelDown && tunnel.needs === null && (
+                  <button onClick={() => void run(openSshTunnel(host.id))}>{t('hosts.retry')}</button>
+                )}
+                {status.kind === 'down' && !tunnelDown && (
                   <button onClick={() => void run(statuses.retry(host.id))}>{t('hosts.retry')}</button>
                 )}
               </span>
