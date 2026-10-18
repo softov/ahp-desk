@@ -10,6 +10,7 @@ use crate::app_window::HOST_LIST_SETTINGS;
 use crate::SHELL_WINDOW;
 
 pub const TRAY_ID: &str = "ahp-desk";
+const MENU_UPDATE: &str = "tray.update";
 const MENU_HOSTS: &str = "tray.hosts";
 const MENU_SETTINGS: &str = "tray.settings";
 const MENU_QUIT: &str = "tray.quit";
@@ -21,15 +22,20 @@ pub struct TrayWords {
     pub hosts: String,
     pub settings: String,
     pub quit: String,
+    /// The desk update's words, while one is ready.
+    pub update: Option<String>,
 }
 
 /// The menu's items, in order, as ids and words.
 fn entries(words: &TrayWords) -> Vec<(&'static str, String)> {
-    vec![
-        (MENU_HOSTS, words.hosts.clone()),
-        (MENU_SETTINGS, words.settings.clone()),
-        (MENU_QUIT, words.quit.clone()),
-    ]
+    let update = words.update.iter().map(|text| (MENU_UPDATE, text.clone()));
+    update
+        .chain([
+            (MENU_HOSTS, words.hosts.clone()),
+            (MENU_SETTINGS, words.settings.clone()),
+            (MENU_QUIT, words.quit.clone()),
+        ])
+        .collect()
 }
 
 /// The icon, with no menu until the host list sends its words.
@@ -65,6 +71,14 @@ pub fn set_tray_words(app: AppHandle, words: TrayWords) -> Result<(), String> {
 
 fn on_menu_event(app: &AppHandle, event: MenuEvent) {
     match event.id().as_ref() {
+        MENU_UPDATE => {
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(err) = crate::updates::install(app).await {
+                    eprintln!("ahp-desk: the desk update did not install: {err}");
+                }
+            });
+        }
         MENU_HOSTS => show_host_list(app),
         MENU_SETTINGS => {
             show_host_list(app);
@@ -107,6 +121,7 @@ mod tests {
             hosts: "Hosts".into(),
             settings: "Settings".into(),
             quit: "Quit ahp-desk".into(),
+            update: None,
         };
         assert_eq!(
             entries(&words),
@@ -116,5 +131,17 @@ mod tests {
                 (MENU_QUIT, "Quit ahp-desk".to_string())
             ]
         );
+    }
+
+    #[test]
+    fn tray_entries_start_with_a_ready_update() {
+        let words = TrayWords {
+            hosts: "Hosts".into(),
+            settings: "Settings".into(),
+            quit: "Quit ahp-desk".into(),
+            update: Some("ahp-desk 0.2.0 is ready. Restart to update.".into()),
+        };
+        let ids: Vec<_> = entries(&words).into_iter().map(|(id, _)| id).collect();
+        assert_eq!(ids, [MENU_UPDATE, MENU_HOSTS, MENU_SETTINGS, MENU_QUIT]);
     }
 }

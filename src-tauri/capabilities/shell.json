@@ -38,6 +38,8 @@
     "allow-uninstall-ssh-ahpd",
     "allow-updates",
     "allow-update-ssh-ahpd",
+    "allow-desk-update",
+    "allow-install-desk-update",
     "allow-ssh-tunnel-states",
     "allow-open-ssh-tunnel",
     "allow-ssh-sign-in",

@@ -9,6 +9,8 @@ import {
   listHosts,
   onAddAsked,
   onEditAsked,
+  deskUpdate,
+  onDeskUpdateReady,
   onHostsChanged,
   onTunnelsChanged,
   onUpdatesChanged,
@@ -71,12 +73,26 @@ export function App() {
     };
   }, []);
 
+  // A newer desk, downloaded and waiting for Restart.
+  const [update, setUpdate] = useState<string | null>(null);
+  useEffect(() => {
+    deskUpdate().then(
+      (version) => version !== null && setUpdate(version),
+      (err: unknown) => console.error('desk update failed', err),
+    );
+    const stop = onDeskUpdateReady(setUpdate);
+    return () => void stop.then((unlisten) => unlisten());
+  }, []);
+
   // The tray menu has no words of its own; it takes the host list's, and again on each pick.
   useEffect(() => {
-    setTrayWords({ hosts: t('tray.hosts'), settings: t('tray.settings'), quit: t('tray.quit') }).catch((err: unknown) =>
-      console.error('tray words failed', err),
-    );
-  }, [lang]);
+    setTrayWords({
+      hosts: t('tray.hosts'),
+      settings: t('tray.settings'),
+      quit: t('tray.quit'),
+      update: update === null ? null : t('update.ready', { version: update }),
+    }).catch((err: unknown) => console.error('tray words failed', err));
+  }, [lang, update]);
 
   useEffect(() => {
     if (hosts === null) return;
@@ -128,6 +144,7 @@ export function App() {
             hosts={hosts}
             statuses={statuses}
             latestAhpd={latestAhpd}
+            deskUpdate={update}
             onAdd={add}
             onEdit={(host) => setScreen({ kind: 'form', host })}
           />

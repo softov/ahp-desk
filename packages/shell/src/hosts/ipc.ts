@@ -352,6 +352,8 @@ export interface TrayWords {
   hosts: string;
   settings: string;
   quit: string;
+  /** The desk update's words while one is ready; its item comes first. */
+  update: string | null;
 }
 
 /** Sets the tray menu in the host list's language. */
@@ -378,6 +380,21 @@ export function updates(): Promise<Updates> {
 /** Calls `handler` with the whole view each time it changes. */
 export function onUpdatesChanged(handler: (updates: Updates) => void): Promise<UnlistenFn> {
   return listen<Updates>('updates-changed', (event) => handler(event.payload));
+}
+
+/** The version of a newer desk, downloaded and ready to install, or `null`. */
+export function deskUpdate(): Promise<string | null> {
+  return invoke<string | null>('desk_update');
+}
+
+/** Installs the ready desk and restarts into it; it answers only on a failure. */
+export function installDeskUpdate(): Promise<void> {
+  return invoke('install_desk_update');
+}
+
+/** Calls `handler` with the version once a newer desk is downloaded. */
+export function onDeskUpdateReady(handler: (version: string) => void): Promise<UnlistenFn> {
+  return listen<string>('desk-update-ready', (event) => handler(event.payload));
 }
 
 /** Opens a host in its own window, or focuses the window that shows it. */

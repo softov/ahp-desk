@@ -45,6 +45,8 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         // Change, in Add host "This computer", picks the ahpd to use.
         .plugin(tauri_plugin_dialog::init())
+        // A release build finds a newer desk on GitHub, checked with the public key in tauri.conf.json.
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .register_asynchronous_uri_scheme_protocol(ui_source::UI, |ctx, request, responder| {
             let source = ctx
                 .app_handle()
@@ -66,6 +68,7 @@ pub fn run() {
             )?);
             app.manage(SettingsStore::load(config.join("settings.json"))?);
             app.manage(updates::Updates::load(config.join("updates.json")));
+            app.manage(updates::DeskUpdate::default());
             app.manage(KnownKeys::load(
                 config.join("known_keys.json"),
                 app.path().home_dir()?.join(".ssh").join("known_hosts"),
@@ -111,6 +114,7 @@ pub fn run() {
             local_ahpd::start_on_launch(app.handle());
             updates::watch(app.handle());
             ssh::tunnel::open_on_launch(app.handle());
+            updates::check_on_start(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -145,6 +149,8 @@ pub fn run() {
             ssh_install::uninstall_ssh_ahpd,
             updates::updates,
             updates::update_ssh_ahpd,
+            updates::desk_update,
+            updates::install_desk_update,
             ssh::tunnel::ssh_tunnel_states,
             ssh::tunnel::open_ssh_tunnel,
             ssh::tunnel::ssh_sign_in,
@@ -154,8 +160,13 @@ pub fn run() {
         .expect("ahp-desk failed to start")
         .run(|app, event| {
             if let RunEvent::Exit = event {
-                app.state::<ssh::tunnel::Tunnels>().close_all();
-                local_ahpd::stop_on_quit(app);
+                before_quit(app);
             }
         });
+}
+
+/// What a quit does before the process ends: on exit, and before a desk update's installer.
+pub fn before_quit(app: &tauri::AppHandle) {
+    app.state::<ssh::tunnel::Tunnels>().close_all();
+    local_ahpd::stop_on_quit(app);
 }

@@ -36,5 +36,11 @@
         "installerHooks": "windows/hooks.nsh"
       }
     }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI4N0MyN0IzMTNFQTNBM0EKUldRNk91b1RzeWQ4S0lMdGV6RGZ2NTVUVXlDdXEwTmJnMng2Y2w0c1QvK3J0ZzRmNENMVlByeFgK",
+      "endpoints": ["https://github.com/softov/ahp-desk/releases/latest/download/latest.json"]
+    }
   }
 }

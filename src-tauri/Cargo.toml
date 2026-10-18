@@ -29,6 +29,7 @@ russh = { version = "0.61", default-features = false, features = ["ring", "rsa",
 # npm's latest @ahpd/server; rustls on ring for the same reason, its provider installed in updates.rs.
 reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "json"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+tauri-plugin-updater = "2"
 
 [dev-dependencies]
 rand = { version = "0.10", features = ["thread_rng"] }

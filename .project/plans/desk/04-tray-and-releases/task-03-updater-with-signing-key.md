@@ -1,6 +1,6 @@
 ---
 title: The desk finds a signed release, downloads it, and installs it on a click
-status: todo
+status: done
 depends: [task-01-tray-icon-and-menu.md]
 layer: "src-tauri, packages/shell"
 refs:
@@ -67,3 +67,17 @@ The signing key is the user's, made once, and never in git, in a task file or in
 - The update from one real release to the next is checked in task 06, once task 04 makes releases.
 
 ## Resume
+
+- 2026-10-18: the user made the key pair; `.tauri/updater.key` and `.tauri/updater.key.pub` are both ignored by git, and only the public key was read, into `plugins.updater.pubkey` with the GitHub endpoint.
+- `tauri-plugin-updater` 2.14.0 builds on reqwest 0.13 with `rustls-no-provider` and installs rustls's `ring` provider itself, so `cargo tree` still holds no aws-lc.
+- `updates.rs` already existed from plan 09 task 01; it now also has `DESK_UPDATE_READY`, `DeskUpdate` with its private `Ready`, `check_on_start()`, the shared `install()`, and the commands `desk_update` and `install_desk_update`.
+- Step 5 changed in how, not in what: on Windows the plugin's `install()` starts the installer and calls `std::process::exit(0)`, so `RunEvent::Exit` never runs; the desk's quit (`before_quit()` in `lib.rs`, now shared with `RunEvent::Exit`: the tunnels closed and `stop_on_quit`) runs in the updater's `on_before_exit` hook, set in `check_on_start`'s updater, which the plugin calls only after the download is checked and unpacked, just before the installer starts.
+  Calling it before `install()`, as step 5 said, would leave the desk running with its tunnels closed and its ahpd stopped when the install fails.
+  On Linux `install()` returns, and `app.restart()` from a command's thread goes through `RunEvent::Exit`.
+- A failed install puts the update back, so Restart can be pressed again; the failure shows on the list's error line.
+- The tray's item `tray.update` comes first when `TrayWords.update` is set, and runs the same `install()`; a failure there is a log line.
+- Verified: `cargo test` (136, with `tray_entries_start_with_a_ready_update`), `cargo clippy --all-targets -- -D warnings` through `pnpm lint`, `pnpm typecheck`, `pnpm test` (42; the placeholder test covers `{version}` in the three languages).
+- By hand on a release build from `pnpm tauri build --no-bundle`, with a scratch `AHP_DESK_CONFIG_DIR`, home and app data: with no release on GitHub, each start wrote one line, `ahp-desk: no desk update: Could not fetch a valid release JSON from the remote`, `desk_update` answered `null`, no notice showed, and the desk worked.
+- By hand, with `desk-update-ready` sent from the page with `0.2.0`: the notice and Restart showed above the rows, in English at 640x400 and in Portuguese at 480x300, on one line; Restart with nothing downloaded showed "no desk update is ready" on the error line, and the notice stayed.
+- Not run: a debug desk with the network watched; `check_on_start` returns on `cfg!(debug_assertions)` before any updater is built.
+- Not seen: a real download, install and restart, and whether the hook's quit stops a local ahpd on Windows; both are task 06, once task 04 makes releases.

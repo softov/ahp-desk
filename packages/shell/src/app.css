@@ -255,6 +255,23 @@ button.danger:hover:not(:disabled) {
   padding-bottom: 14px;
 }
 
+/* A newer desk, downloaded: above the rows until Restart. */
+.desk-update {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid var(--oo-color-accent);
+  border-radius: var(--oo-radius-sm);
+  font-size: var(--oo-font-size-sm);
+}
+
+.desk-update button {
+  flex: none;
+}
+
 /* The first run's welcome and opening steps: centred, as an installer's. */
 .first-run {
   display: flex;

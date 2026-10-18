@@ -1,6 +1,6 @@
-//! What can be updated on the desk's hosts: npm's latest `@ahpd/server`,
-//! asked at most every 6 hours and kept in `updates.json`, as ahpd's own
-//! `update.ts` asks and keeps it. Plan 04's desk update joins it here.
+//! What can be updated: the desk itself, from its GitHub releases, and npm's
+//! latest `@ahpd/server` for the desk's hosts, asked at most every 6 hours and
+//! kept in `updates.json`, as ahpd's own `update.ts` asks and keeps it.
 
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard, Once};
@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use tauri::ipc::Channel;
+use tauri_plugin_updater::UpdaterExt;
 
 use crate::hosts::{write_json, HostStore};
 use crate::local_ahpd::InstallEvent;
@@ -24,6 +25,98 @@ pub const AHPD_PACKAGE: &str = "@ahpd/server";
 pub const MAX_AGE: Duration = Duration::from_secs(6 * 60 * 60);
 /// How long npm gets to answer, as ahpd's `askRegistry`.
 const ASK_TIMEOUT: Duration = Duration::from_secs(5);
+/// The event sent with the version once a newer desk is downloaded.
+pub const DESK_UPDATE_READY: &str = "desk-update-ready";
+
+/// A newer desk, downloaded and checked against the public key, waiting for Restart.
+struct Ready {
+    version: String,
+    update: tauri_plugin_updater::Update,
+    bytes: Vec<u8>,
+}
+
+/// The desk's own update, once one is ready.
+#[derive(Default)]
+pub struct DeskUpdate(Mutex<Option<Ready>>);
+
+impl DeskUpdate {
+    fn lock(&self) -> MutexGuard<'_, Option<Ready>> {
+        self.0
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+/// A release build asks GitHub for a newer desk at start and downloads it in
+/// the background; a debug build never asks. A failure (offline, no release
+/// yet, a bad signature) is one log line, and the desk runs on.
+pub fn check_on_start(app: &AppHandle) {
+    if cfg!(debug_assertions) {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        if let Err(err) = download_desk(&app).await {
+            eprintln!("ahp-desk: no desk update: {err}");
+        }
+    });
+}
+
+async fn download_desk(app: &AppHandle) -> Result<(), String> {
+    let quit = app.clone();
+    let updater = app
+        .updater_builder()
+        // On Windows the install ends the process with no RunEvent::Exit, so the
+        // desk's quit runs here, after the download is checked and unpacked and
+        // just before the installer starts; elsewhere the restart runs it.
+        .on_before_exit(move || {
+            crate::before_quit(&quit);
+            quit.cleanup_before_exit();
+        })
+        .build()
+        .map_err(|err| err.to_string())?;
+    let Some(update) = updater.check().await.map_err(|err| err.to_string())? else {
+        return Ok(());
+    };
+    let bytes = update
+        .download(|_, _| {}, || {})
+        .await
+        .map_err(|err| err.to_string())?;
+    let version = update.version.clone();
+    *app.state::<DeskUpdate>().lock() = Some(Ready {
+        version: version.clone(),
+        update,
+        bytes,
+    });
+    app.emit(DESK_UPDATE_READY, version)
+        .map_err(|err| err.to_string())
+}
+
+/// Installs the ready desk and restarts into it; the host list's Restart and
+/// the tray's item both come here. A failed install keeps it ready for another try.
+pub async fn install(app: AppHandle) -> Result<(), String> {
+    let ready = app
+        .state::<DeskUpdate>()
+        .lock()
+        .take()
+        .ok_or("no desk update is ready")?;
+    if let Err(err) = ready.update.install(&ready.bytes) {
+        *app.state::<DeskUpdate>().lock() = Some(ready);
+        return Err(err.to_string());
+    }
+    app.restart()
+}
+
+/// The ready desk's version, for a host list that opens after the event.
+#[tauri::command]
+pub fn desk_update(state: State<'_, DeskUpdate>) -> Option<String> {
+    state.lock().as_ref().map(|ready| ready.version.clone())
+}
+
+#[tauri::command]
+pub async fn install_desk_update(app: AppHandle) -> Result<(), String> {
+    install(app).await
+}
 
 /// What npm said, and when, in seconds since the Unix epoch.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

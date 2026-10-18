@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { t } from '../i18n.js';
 import { useOutsideClose } from '../useOutsideClose.js';
 import {
+  installDeskUpdate,
   openHost,
   openSshTunnel,
   removeHost,
@@ -186,6 +187,7 @@ export function HostList({
   hosts,
   statuses,
   latestAhpd,
+  deskUpdate,
   onAdd,
   onEdit,
 }: {
@@ -193,6 +195,8 @@ export function HostList({
   statuses: HostStatuses;
   /** npm's latest `@ahpd/server`, or `null` until the desk has asked. */
   latestAhpd: string | null;
+  /** The version of a newer desk ready to install, or `null`. */
+  deskUpdate: string | null;
   onAdd: () => void;
   onEdit: (host: ShellHost) => void;
 }) {
@@ -237,6 +241,14 @@ export function HostList({
           {t('hosts.add')}
         </button>
       </header>
+      {deskUpdate !== null && (
+        <div className="desk-update">
+          <span>{t('update.ready', { version: deskUpdate })}</span>
+          <button className="primary" onClick={() => void run(installDeskUpdate())}>
+            {t('update.restart')}
+          </button>
+        </div>
+      )}
       {error !== null && (
         <div onClick={() => setError(null)}>
           <ErrorText text={error} />

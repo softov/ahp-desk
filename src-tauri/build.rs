@@ -87,6 +87,8 @@ fn main() {
             "uninstall_ssh_ahpd",
             "updates",
             "update_ssh_ahpd",
+            "desk_update",
+            "install_desk_update",
             "ssh_tunnel_states",
             "open_ssh_tunnel",
             "ssh_sign_in",
