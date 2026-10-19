@@ -83,6 +83,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | [The Node downloaded on a server is the newest 22, not the version the desk pins](../../../decisions/the-remote-node-download-is-the-newest-22.md) | Softov, 2026-10-14: "latest-v22.x" | 04 |
 | A tunnelled host's local port is picked once, when the host is added, and kept on the host. | Softov, 2026-10-14: "Chosen once, kept" | 06, 07 |
 | [A saved host's refused server key shows on its row and is answered in Edit host](../../../decisions/a-saved-hosts-refused-server-key-is-answered-in-edit-host.md) | Softov, 2026-10-18: "Row says it, Edit shows key" | 11 |
+| [The desk's unit records ahpd as a systemd service, and an update over SSH writes the unit again](../../../decisions/the-desks-unit-records-ahpd-as-a-service-and-an-update-writes-it-again.md) | Softov, 2026-10-19: "Rewrite on update" | 12 |
 | Remove, on a host the desk installed over SSH, offers to stop and uninstall its ahpd on the server: the user unit, the desk's install and its token file. | Softov, 2026-10-14: "Offer to uninstall" | 10 |
 | A found ahpd that is not running is started with its own `ahpd start`, with no unit written, and the form says it will not come back after the server restarts. | Softov, 2026-10-14: "Start it, say it won't survive reboot" | 05, 07 |
 | A found ahpd is reached on its own port, read from its `ahpd status --json`, with its token from its `daemon.json`; the tunnel is always offered, and the open port only when it already listens beyond 127.0.0.1. | Softov, 2026-10-14: "Its own port, via tunnel" | 05, 06, 07 |
@@ -116,6 +117,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | [08 - update over SSH, for plan 09](task-08-update-over-ssh.md) | done | 05 |
 | [10 - Remove offers to uninstall the desk's ahpd on the server](task-10-uninstall-over-ssh.md) | done | 05, 06, 07 |
 | [11 - A saved host's refused server key on its row and in Edit host](task-11-refused-key-on-a-saved-host.md) | done | 02, 06, 07 |
+| [12 - the unit records ahpd as a systemd service, and an update writes it again](task-12-unit-records-itself-as-a-service.md) | done | 05, 08 |
 | [09 - end to end on the test machine](task-09-end-to-end.md) | done | 01 to 08, 10, 11 |
 
 ## Risks and tradeoffs
@@ -128,7 +130,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 ## Resume state
 
 - **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 11, 2026-10-18, with the end to end, with their by-hand checks, task 06's window checks among task 07's.
-- **Next action:** close the plan once a terminal `ahpd status` sees the desk's ahpd, the one pending check, waiting on ahpd.
+- **Next action:** close the plan once a terminal `ahpd status` sees the desk's ahpd, the one pending check: task 12 gave the unit `AHPD_SERVICE=systemd`, and the check waits on an ahpd release with daemon/31.
 - **Open questions:** none.
 - **Watch out for:** doop's `AcceptAllHandler` must not be copied; the Answers row on the server key replaces it.
   The end to end and every real SSH test run against the test machine only.

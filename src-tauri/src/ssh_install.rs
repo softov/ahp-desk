@@ -685,6 +685,7 @@ WorkingDirectory=%h
 ExecStart={node} {script} run --host {host} --port {port} --connection-token-file {token}
 Environment={root}
 Environment={path}
+Environment=AHPD_SERVICE=systemd
 Restart=on-failure
 RestartSec=2
 
@@ -706,6 +707,18 @@ pub fn systemctl_user(runtime_dir: Option<&str>, args: &str) -> String {
         Some(dir) => format!("XDG_RUNTIME_DIR={} systemctl --user {args}", quote(dir)),
         None => format!("systemctl --user {args}"),
     }
+}
+
+/// Writes `unit` as the desk's user unit with a quoted heredoc, then reloads
+/// systemd, so the next start or restart runs it.
+fn write_unit(home: &str, unit: &str, runtime_dir: Option<&str>) -> String {
+    let unit_file = format!("{home}/{UNIT_FILE}");
+    format!(
+        "mkdir -p {dir}\ncat > {file} <<'AHP_DESK_UNIT'\n{unit}AHP_DESK_UNIT\n{reload}",
+        dir = quote(unit_file.rsplit_once('/').map_or(".", |(dir, _)| dir)),
+        file = quote(&unit_file),
+        reload = systemctl_user(runtime_dir, "daemon-reload"),
+    )
 }
 
 /// `journalctl --user` for the desk's unit, with the same runtime folder.
@@ -745,10 +758,15 @@ pub struct SshInstall {
 
 impl SshInstall {
     pub fn bind(&self) -> Bind {
-        match self.reach {
-            Reach::Tunnel => Bind::Loopback,
-            Reach::Port => Bind::All,
-        }
+        bind_of(self.reach)
+    }
+}
+
+/// The tunnel keeps ahpd on the server's 127.0.0.1; an open port puts it on every address.
+pub fn bind_of(reach: Reach) -> Bind {
+    match reach {
+        Reach::Tunnel => Bind::Loopback,
+        Reach::Port => Bind::All,
     }
 }
 
@@ -971,20 +989,10 @@ async fn install_new(
         request.ahpd_port,
     );
     let runtime = probed.runtime_dir.as_deref();
-    let unit_file = format!("{}/{UNIT_FILE}", probed.home);
     steps
         .run(
             "unit",
-            run_short(
-                session,
-                "unit",
-                &format!(
-                    "mkdir -p {dir}\ncat > {file} <<'AHP_DESK_UNIT'\n{unit}AHP_DESK_UNIT\n{reload}",
-                    dir = quote(unit_file.rsplit_once('/').map_or(".", |(dir, _)| dir)),
-                    file = quote(&unit_file),
-                    reload = systemctl_user(runtime, "daemon-reload"),
-                ),
-            ),
+            run_short(session, "unit", &write_unit(&probed.home, &unit, runtime)),
         )
         .await?;
     steps
@@ -1266,15 +1274,18 @@ async fn server_step(
 
 /// Updates the ahpd the desk installed over SSH to `version` (`latest`, or
 /// an npm version): connects, finds the desk's install and the Node its unit
-/// runs, installs the version beside the same backends, restarts the unit and
-/// waits for it on `port`. The unit, the token, the folder and the backends
-/// stay, so the host's address and token still hold. Answers the version now
-/// running.
+/// runs, installs the version beside the same backends, writes the unit an
+/// install writes today on `bind` and `port`, restarts it and waits for it on
+/// `port`. The token, the folder and the backends stay, so the host's address
+/// and token still hold; the unit is written again so an older install takes
+/// what a new one has. Answers the version now running.
+#[allow(clippy::too_many_arguments)]
 pub async fn update(
     target: &SshTarget,
     check: crate::ssh::ServerCheck,
     keys: Keys<'_>,
     version: &str,
+    bind: Bind,
     port: u16,
     send: &(dyn Fn(InstallEvent) + Sync),
     cancel: &AtomicBool,
@@ -1326,6 +1337,17 @@ pub async fn update(
         .run(
             "server",
             server_step(&session, &prefix, &bin_dir, &npm, version, &steps),
+        )
+        .await?;
+    let unit = render_unit(&node, &found.path, &prefix, bind, port);
+    steps
+        .run(
+            "unit",
+            run_short(
+                &session,
+                "unit",
+                &write_unit(&probed.home, &unit, probed.runtime_dir.as_deref()),
+            ),
         )
         .await?;
     steps
@@ -1383,6 +1405,7 @@ pub async fn update_host(
         known.checker(&target.address, target.port),
         keys,
         version,
+        bind_of(ssh.reach),
         ssh.remote_port,
         send,
         cancel,
@@ -2237,6 +2260,9 @@ mod tests {
         assert!(unit.contains(
             "Environment=PATH=/home/ana/.local/share/ahpd/node/bin:/usr/local/bin:/usr/bin:/bin\n"
         ));
+        // ahpd's daemon/31: the daemon records itself as held by systemd, so a
+        // terminal `ahpd status`, `stop` and `restart` reach it.
+        assert!(unit.contains("Environment=AHPD_SERVICE=systemd\n"));
         assert!(
             unit.contains("Restart=on-failure\n") && unit.contains("WantedBy=default.target\n")
         );
@@ -2781,7 +2807,17 @@ mod tests {
             let token = format!("{home}/{INSTALL_DIR}/connection-token");
             let (_, before) = shell(format!("sha256sum {}", quote(&token))).await;
             for version in [OLDER, "latest"] {
-                let now = update(&target, trusted(), keys(), version, 9387, &send, &cancel).await?;
+                let now = update(
+                    &target,
+                    trusted(),
+                    keys(),
+                    version,
+                    request.bind(),
+                    9387,
+                    &send,
+                    &cancel,
+                )
+                .await?;
                 let wanted = if version == "latest" {
                     installed.version.as_str()
                 } else {
@@ -3138,6 +3174,7 @@ mod tests {
             Box::new(|_| KeyCheck::Known),
             keys,
             version,
+            Bind::Loopback,
             9300,
             &send,
             &cancel,
@@ -3158,14 +3195,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn update_installs_the_version_with_the_units_node_restarts_and_waits() {
+    async fn update_installs_the_version_with_the_units_node_writes_the_unit_restarts_and_waits() {
         let server = TestServer::start().await;
         answer_install(&server, &format!("{DEBIAN}{DESK_INSTALL}"));
         let (done, steps, commands) = run_update(&server, "0.12.0").await;
         assert_eq!(done.unwrap(), "0.12.0");
         assert_eq!(
             ids(&steps),
-            ["connect", "probe", "server", "start", "ready"]
+            ["connect", "probe", "server", "unit", "start", "ready"]
         );
         let ran: Vec<&str> = commands
             .iter()
@@ -3174,7 +3211,7 @@ mod tests {
             .collect();
         assert_eq!(
             ran,
-            ["probe", "found", "server", "start", "ready", "token", "version"]
+            ["probe", "found", "server", "unit", "start", "ready", "token", "version"]
         );
         let of = |id: &str| {
             commands
@@ -3187,6 +3224,10 @@ mod tests {
             "/home/ana/.local/share/ahpd/node/bin/npm install --prefix /home/ana/.local/share/ahpd @ahpd/server@0.12.0"
         ));
         assert!(of("server").contains("PATH=/home/ana/.local/share/ahpd/node/bin:"));
+        // The unit an install writes today, so an older install takes the service record.
+        assert!(of("unit").contains("ExecStart=/home/ana/.local/share/ahpd/node/bin/node /home/ana/.local/share/ahpd/node_modules/.bin/ahpd run --host 127.0.0.1 --port 9300 "));
+        assert!(of("unit").contains("\nEnvironment=AHPD_SERVICE=systemd\n"));
+        assert!(of("unit").ends_with("systemctl --user daemon-reload"));
         assert!(of("start").ends_with("systemctl --user restart ahpd.service"));
         assert!(of("ready").contains("/home/ana/.local/share/ahpd/node/bin/node"));
         assert!(of("ready").ends_with(" 9300"));

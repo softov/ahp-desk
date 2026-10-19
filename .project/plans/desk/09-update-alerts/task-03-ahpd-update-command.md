@@ -63,3 +63,6 @@ What the ahpd plan is asked for is below; the files it touches are its own to na
 - Here, once released: `ahpd update --check --json` on a host started with `ahpd start` answers `may: true`; `POST /api/update` with a person's token answers 403; `x-ahpd/update` with `check` over AHP answers as the CLI does; the desk's task 04 runs against that release.
 
 ## Resume
+
+- 2026-10-19: ahpd took the request as its plan daemon/35, with the shape asked for: `{ from, to, restarting: true }` after the install on Linux and macOS, `{ current, latest, may }` for `check`; Windows is in that plan, with the answer sent before the install.
+- Still `todo` here: done when an ahpd release has the command, whose version ahpd sends back.
