@@ -166,8 +166,8 @@ A fix in ahpw reaches people only through these steps, so make a desk release fo
 
 The Windows installer has no code signature, so SmartScreen warns before it runs.
 
-On Linux, `latest.json` points the updater at the AppImage.
-A desk installed from the deb updates itself only when `latest.json` also has `linux-x86_64-deb`; the workflow's last job warns when it does not, and then the next deb is installed by hand.
+On Linux, `latest.json` has an entry for each bundle: a desk installed from the AppImage updates from the next AppImage, and one installed from the deb from the next deb (`linux-x86_64-deb`).
+The workflow's last job warns if the deb entry is ever missing, since a deb install then cannot update itself.
 
 ahpw's own release steps live in the ahpw repository.
 

@@ -1,6 +1,6 @@
 ---
 title: A tag v* builds the Windows and Linux installers in CI and publishes them with latest.json
-status: doing
+status: done
 depends: [task-03-updater-with-signing-key.md]
 layer: ".github/workflows, src-tauri, docs"
 refs:
@@ -78,4 +78,9 @@ Nothing in the workflow prints them, and no task file or log holds them.
   `draft` had found no id: the release list did not show the draft just made.
   `draft` now makes the release with `gh api repos/<repo>/releases -F draft=true --jq .id`, whose answer is the id, and fails when it is empty.
 - The same run warned that `actions/checkout@v4`, `actions/setup-node@v4` and `pnpm/action-setup@v4` run on the deprecated Node 20; they are now `@v5`, the first majors on Node 24, whose notes change nothing else this workflow uses.
-- Left: the empty v0.1.0 draft deleted, the tag moved to the fix and pushed again, and the Validation after it.
+- The empty draft was deleted, and the user moved the tag to the fix and pushed it again.
+- Second run of v0.1.0, 39178886540: the five jobs passed, in under 5 minutes with the Rust cache; the release `ahp-desk 0.1.0` is published and latest, with `ahp-desk_0.1.0_x64-setup.exe`, `ahp-desk_0.1.0_amd64.AppImage` and `ahp-desk_0.1.0_amd64.deb`, each with its `.sig`, and `latest.json`.
+- `releases/latest/download/latest.json` answers `0.1.0` with a URL and a signature for `windows-x86_64`, `windows-x86_64-nsis`, `linux-x86_64`, `linux-x86_64-appimage` and `linux-x86_64-deb`.
+- Step 7: the bundler signs the deb, and tauri-action writes `linux-x86_64-deb`, so a deb install updates from the next deb; DEVELOPER.md says so, and `publish` keeps its warning for a release that loses the entry.
+- The log shows both secrets only as `***`, and no key text; the Node 20 warnings are gone, and the only notices left are GitHub's about `ubuntu-latest` moving to Ubuntu 26, which the three small jobs on it do not depend on.
+- Not run on GitHub: a tag whose version differs from the files; the `version` job's script was run here against `v0.2.0` and failed, and no release is made before it passes.
