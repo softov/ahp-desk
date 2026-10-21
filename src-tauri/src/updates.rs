@@ -234,7 +234,10 @@ pub async fn ask_npm(registry: &str, name: &str) -> Option<String> {
         .build()
         .ok()?;
     let answer = client
-        .get(format!("{registry}/-/package/{}/dist-tags", name.replace('/', "%2f")))
+        .get(format!(
+            "{registry}/-/package/{}/dist-tags",
+            name.replace('/', "%2f")
+        ))
         .header(reqwest::header::ACCEPT, "application/json")
         .send()
         .await

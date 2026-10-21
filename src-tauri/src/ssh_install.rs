@@ -62,6 +62,7 @@ if systemctl --user show-environment >/dev/null 2>&1; then say systemd yes
 elif [ -d "$run" ] && XDG_RUNTIME_DIR="$run" systemctl --user show-environment >/dev/null 2>&1; then say systemd yes; say runtimeDir "$run"
 else say systemd no; fi
 say linger "$(loginctl show-user "$(id -un)" -p Linger --value 2>/dev/null)"
+say listening "$(for h in $(awk 'NR > 1 && $4 == "0A" { split($2, a, ":"); print a[2] }' /proc/net/tcp /proc/net/tcp6 2>/dev/null); do printf '%d ' "0x$h"; done)"
 login() { "${SHELL:-sh}" -lc "$1" 2>/dev/null | tail -n 1; }
 node=$(command -v node 2>/dev/null)
 [ -n "$node" ] || node=$(login 'command -v node')
@@ -86,7 +87,17 @@ fi
 a=$(command -v ahpd 2>/dev/null)
 if [ -n "$a" ]; then v=$("$a" --version 2>/dev/null); if [ -n "$v" ]; then say ahpd "$a"; say ahpdVersion "$v"; exit 0; fi; fi
 a=$(login 'command -v ahpd')
-if [ -n "$a" ]; then v=$(login "$a --version"); if [ -n "$v" ]; then say ahpd "$a"; say ahpdVersion "$v"; say ahpdLogin yes; fi; fi
+if [ -n "$a" ]; then v=$(login "$a --version"); if [ -n "$v" ]; then say ahpd "$a"; say ahpdVersion "$v"; say ahpdLogin yes; exit 0; fi; fi
+pid=$(sed -n 's/.*"pid": *\([0-9][0-9]*\).*/\1/p' "${XDG_CONFIG_HOME:-$HOME/.config}/ahpd/daemon.json" 2>/dev/null | head -n 1)
+if [ -n "$pid" ] && [ -r "/proc/$pid/cmdline" ]; then
+  rnode=$(tr '\0' '\n' < "/proc/$pid/cmdline" | sed -n 1p)
+  rahpd=$(tr '\0' '\n' < "/proc/$pid/cmdline" | sed -n 2p)
+  case "$rahpd" in
+    */ahpd|*/@ahpd/server/*)
+      v=$("$rnode" "$rahpd" --version 2>/dev/null)
+      if [ -n "$v" ]; then say ahpd "$rahpd"; say ahpdNode "$rnode"; say ahpdVersion "$v"; say ahpdRunning yes; fi;;
+  esac
+fi
 exit 0
 "#;
 
@@ -139,10 +150,13 @@ pub enum NodeOnServer {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FoundOnServer {
-    /// Its `ahpd` program, or the desk's install's script.
+    /// Its `ahpd` program, or the script its Node runs.
     pub path: String,
-    /// The Node the desk's install runs with; none for an `ahpd` that runs itself.
+    /// The Node that runs `path`: the desk's install's, or a running ahpd's
+    /// from its process; none for an `ahpd` that runs itself.
     pub node: Option<String>,
+    /// Under the desk's install folder, whose commands take its plugin root.
+    pub desk_install: bool,
     /// Found through the login shell, so it runs there too.
     pub login_shell: bool,
     pub version: String,
@@ -184,6 +198,18 @@ pub struct Probe {
     /// up before: the desk's ahpd uses it, and a plugin there that the newest
     /// ahpd cannot load stops the install.
     pub ahpd_config: Option<String>,
+    /// The TCP ports something listens on, from `/proc/net/tcp` and `tcp6`.
+    pub listening: Vec<u16>,
+    /// The first port from `AHPD_PORT` up that nothing listens on, which the
+    /// form starts "ahpd port" at.
+    pub free_port: u16,
+}
+
+/// The first port from `AHPD_PORT` up that is not in `listening`.
+pub fn first_free_port(listening: &[u16]) -> u16 {
+    (AHPD_PORT..=u16::MAX)
+        .find(|port| !listening.contains(port))
+        .unwrap_or(AHPD_PORT)
 }
 
 /// The probe of a server from what the probe script printed. A found ahpd
@@ -222,7 +248,9 @@ pub fn parse_probe(text: &str) -> Probe {
             let desk = yes("ahpdDesk");
             Some(FoundOnServer {
                 path: path.to_string(),
-                node: desk.then(|| get("ahpdNode").unwrap_or_default().to_string()),
+                node: (desk || yes("ahpdRunning"))
+                    .then(|| get("ahpdNode").unwrap_or_default().to_string()),
+                desk_install: desk,
                 login_shell: yes("ahpdLogin"),
                 version: version.to_string(),
                 supported: version_of_text(version).is_some_and(|v| v >= OLDEST_SUPPORTED),
@@ -262,6 +290,14 @@ pub fn parse_probe(text: &str) -> Probe {
         None => get("ahpdConfig").map(str::to_string),
         Some(_) => None,
     };
+    let mut listening: Vec<u16> = get("listening")
+        .unwrap_or_default()
+        .split_whitespace()
+        .filter_map(|port| port.parse().ok())
+        .collect();
+    listening.sort_unstable();
+    listening.dedup();
+    let free_port = first_free_port(&listening);
 
     Probe {
         os,
@@ -278,6 +314,8 @@ pub fn parse_probe(text: &str) -> Probe {
         refusal,
         sign_in: None,
         ahpd_config,
+        listening,
+        free_port,
     }
 }
 
@@ -366,9 +404,15 @@ pub fn parse_found(text: &str) -> FoundState {
 pub fn ahpd_command(found: &FoundOnServer, home: &str, args: &str) -> String {
     match (&found.node, found.login_shell) {
         // `plugin install` runs npm, which the Node's own folder holds.
-        (Some(node), _) => format!(
+        (Some(node), _) if found.desk_install => format!(
             "AHPD_PLUGIN_ROOT={} PATH={}:\"$PATH\" {} {} {args}",
             quote(&format!("{home}/{INSTALL_DIR}")),
+            quote(node.rsplit_once('/').map_or(".", |(dir, _)| dir)),
+            quote(node),
+            quote(&found.path)
+        ),
+        (Some(node), _) => format!(
+            "PATH={}:\"$PATH\" {} {} {args}",
             quote(node.rsplit_once('/').map_or(".", |(dir, _)| dir)),
             quote(node),
             quote(&found.path)
@@ -895,6 +939,13 @@ pub async fn install(
             let probed = probe(&session).await?;
             match &probed.refusal {
                 Some(refusal) => Err(refusal.clone()),
+                // A new ahpd on a port already taken would stop at once and restart on a loop.
+                None if probed.found.is_none() && probed.listening.contains(&request.ahpd_port) => {
+                    Err(format!(
+                        "port {} is in use on the server; {} is free",
+                        request.ahpd_port, probed.free_port
+                    ))
+                }
                 None => Ok(probed),
             }
         })
@@ -932,6 +983,7 @@ async fn install_new(
     let ahpd = FoundOnServer {
         path: format!("{prefix}/node_modules/.bin/ahpd"),
         node: Some(node.node.clone()),
+        desk_install: true,
         login_shell: false,
         version: String::new(),
         supported: true,
@@ -1804,6 +1856,31 @@ mod tests {
     }
 
     #[test]
+    fn probe_a_running_ahpd_found_through_its_record_runs_with_its_own_node() {
+        let probe = parse_probe(&format!(
+            "{DEBIAN}ahpd=/home/ana/.npm-global/bin/ahpd\nahpdNode=/usr/local/bin/node\nahpdVersion=0.13.0\nahpdRunning=yes\n"
+        ));
+        assert_eq!(probe.refusal, None);
+        let found = probe.found.unwrap();
+        assert!(found.supported && !found.by_desk && !found.desk_install);
+        assert_eq!(found.node.as_deref(), Some("/usr/local/bin/node"));
+        assert_eq!(
+            ahpd_command(&found, "/home/ana", "status --json"),
+            "PATH=/usr/local/bin:\"$PATH\" /usr/local/bin/node /home/ana/.npm-global/bin/ahpd status --json"
+        );
+    }
+
+    #[test]
+    fn probe_the_listening_ports_give_the_first_free_one() {
+        let probe = parse_probe(&format!("{DEBIAN}listening=9188 22 631 9187 22 \n"));
+        assert_eq!(probe.listening, [22, 631, 9187, 9188]);
+        assert_eq!(probe.free_port, 9189);
+        let probe = parse_probe(DEBIAN);
+        assert!(probe.listening.is_empty());
+        assert_eq!(probe.free_port, AHPD_PORT);
+    }
+
+    #[test]
     fn probe_found_reads_a_running_ahpd_with_its_ready_plugins() {
         let state = parse_found("--plugins--\n[{\"name\":\"@ahpd/agent-claude\",\"state\":\"ready\"},{\"name\":\"@ahpd/x\",\"state\":\"failed\"}]\n\n--status--\n{\"pid\":7,\"url\":\"ws://127.0.0.1:9187\"}\n");
         assert_eq!(
@@ -2498,6 +2575,7 @@ mod tests {
         assert!(
             !commands
                 .iter()
+                .filter(|command| !command.starts_with(PROBE_MARK))
                 .any(|command| command.contains("@ahpd/server")),
             "nothing installed"
         );
@@ -2533,6 +2611,27 @@ mod tests {
         assert!(commands
             .iter()
             .all(|command| command.starts_with(PROBE_MARK) || command.starts_with(FOUND_MARK)));
+    }
+
+    #[tokio::test]
+    async fn install_on_a_port_in_use_is_refused_with_the_free_one_and_no_install_command() {
+        let server = TestServer::start().await;
+        // The request asks for 9300.
+        answer_install(&server, &format!("{DEBIAN}listening=22 9187 9300\n"));
+        let cancel = AtomicBool::new(false);
+        let (done, steps, commands) =
+            run_install(&server, &request(&["@ahpd/agent-claude"]), &cancel).await;
+        assert_eq!(
+            done.unwrap_err(),
+            "port 9300 is in use on the server; 9188 is free"
+        );
+        assert_eq!(
+            steps.last().unwrap(),
+            &("probe".to_string(), StepStatus::Failed)
+        );
+        assert!(commands
+            .iter()
+            .all(|command| command.starts_with(PROBE_MARK)));
     }
 
     #[tokio::test]

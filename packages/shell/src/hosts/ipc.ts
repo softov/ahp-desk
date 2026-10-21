@@ -154,6 +154,8 @@ export interface FoundOnServer {
   url: string | null;
   /** The desk's own install, with the desk's unit. */
   byDesk: boolean;
+  /** Under the desk's install folder, whose commands take its plugin root. */
+  deskInstall: boolean;
 }
 
 /** What the probe found on a server, and whether the desk can go on. */
@@ -172,6 +174,10 @@ export interface Probe {
   found: FoundOnServer | null;
   /** Why the desk cannot use or install ahpd there; null when it can. */
   refusal: string | null;
+  /** The TCP ports something listens on there. */
+  listening: number[];
+  /** The first port from 9187 up that nothing listens on, which "ahpd port" starts at. */
+  freePort: number;
   /** How the sign-in went through, which the host keeps. */
   signIn: SshHost['signIn'] | null;
   /** An ahpd config already there with no ahpd found, which the desk's ahpd will use. */
