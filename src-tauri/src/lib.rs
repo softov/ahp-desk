@@ -128,6 +128,7 @@ pub fn run() {
             local_ahpd::serve_local_folder,
             local_ahpd::local_home_folder,
             local_ahpd::local_ahpd_status,
+            local_ahpd::local_starting,
             local_ahpd::start_local_ahpd,
             local_ahpd::stop_local_ahpd,
             app_window::open_app_window,

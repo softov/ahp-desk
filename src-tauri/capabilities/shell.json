@@ -41,6 +41,7 @@
     "allow-desk-update",
     "allow-install-desk-update",
     "allow-ssh-tunnel-states",
+    "allow-local-starting",
     "allow-open-ssh-tunnel",
     "allow-ssh-sign-in",
     "allow-pick-ssh-local-port",

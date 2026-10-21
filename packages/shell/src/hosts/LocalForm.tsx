@@ -227,15 +227,18 @@ export function LocalForm({
           />
           <span>{t('form.stopOnQuit')}</span>
         </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={onDesk.autoUpdate}
-            onChange={(event) => setOnDesk({ ...onDesk, autoUpdate: event.target.checked })}
-            disabled={phase !== 'form'}
-          />
-          <span>{t('form.autoUpdate')}</span>
-        </label>
+        {/* Only an ahpd the desk installs updates itself (plan 03 decision 6), so a found one has no box. */}
+        {install && (
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={onDesk.autoUpdate}
+              onChange={(event) => setOnDesk({ ...onDesk, autoUpdate: event.target.checked })}
+              disabled={phase !== 'form'}
+            />
+            <span>{t('form.autoUpdate')}</span>
+          </label>
+        )}
       </div>
       {phase === 'installing' && <p className="result">{t('local.installing')}</p>}
       {phase === 'adding' && <p className="result">{t('local.adding')}</p>}

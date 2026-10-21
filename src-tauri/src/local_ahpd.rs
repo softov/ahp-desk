@@ -2,6 +2,7 @@
 //! installed, else one on `PATH` (decision
 //! `a-local-ahpd-is-found-or-installed-with-the-bundled-node`).
 
+use std::collections::BTreeSet;
 use std::ffi::OsString;
 use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
@@ -21,6 +22,10 @@ pub(crate) const QUIET_NPM: [(&str, &str); 3] = [
     ("npm_config_fund", "false"),
     ("npm_config_audit", "false"),
 ];
+
+/// The event sent with the ids of the local hosts whose ahpd the desk is
+/// starting, each time one starts or ends.
+pub const LOCAL_STARTING: &str = "local-starting";
 
 /// The oldest ahpd the desk drives: `status --json` came in 0.8.0.
 pub const OLDEST_SUPPORTED: (u64, u64, u64) = (0, 8, 0);
@@ -120,6 +125,8 @@ pub struct LocalAhpd {
     pub node: Option<BundledNode>,
     /// Held while an install runs, so two never write the prefix at once.
     installing: Mutex<()>,
+    /// The local hosts whose ahpd the desk is starting now.
+    starting: Mutex<BTreeSet<String>>,
 }
 
 impl LocalAhpd {
@@ -144,7 +151,31 @@ impl LocalAhpd {
             prefix,
             node,
             installing: Mutex::new(()),
+            starting: Mutex::new(BTreeSet::new()),
         }
+    }
+
+    /// The local hosts whose ahpd the desk is starting now.
+    pub fn starting(&self) -> Vec<String> {
+        self.mark_starting(None)
+    }
+
+    /// Marks `id` as starting or not, and answers every host starting after it.
+    fn mark_starting(&self, change: Option<(&str, bool)>) -> Vec<String> {
+        let mut starting = self
+            .starting
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        match change {
+            Some((id, true)) => {
+                starting.insert(id.to_string());
+            }
+            Some((id, false)) => {
+                starting.remove(id);
+            }
+            None => {}
+        }
+        starting.iter().cloned().collect()
     }
 
     /// The ahpd the desk installed, run by its Node rather than npm's shim,
@@ -767,8 +798,45 @@ pub fn start_host(app: &AppHandle, id: &str) -> Result<LocalState, String> {
         return publish(app, id, Some(&running), started);
     }
     let token_file = local.prefix.join("connection-token");
+    let _starting = Starting::begin(app, id);
     let running = start(&launcher, &config, &home_folder()?, &token_file)?;
     publish(app, id, Some(&running), true)
+}
+
+/// A local host marked as starting while its ahpd starts, so its row says so
+/// rather than down; every window hears both edges, a failed start too.
+struct Starting<'a> {
+    app: &'a AppHandle,
+    id: String,
+}
+
+impl<'a> Starting<'a> {
+    fn begin(app: &'a AppHandle, id: &str) -> Self {
+        tell_starting(app, Some((id, true)));
+        Starting {
+            app,
+            id: id.to_string(),
+        }
+    }
+}
+
+impl Drop for Starting<'_> {
+    fn drop(&mut self) {
+        tell_starting(self.app, Some((&self.id, false)));
+    }
+}
+
+fn tell_starting(app: &AppHandle, change: Option<(&str, bool)>) {
+    let all = app.state::<LocalAhpd>().mark_starting(change);
+    // A window that is gone asks `local_starting` when it opens.
+    let _ = app.emit(LOCAL_STARTING, all);
+}
+
+/// The local hosts whose ahpd the desk is starting, for a window that opens
+/// while one starts.
+#[tauri::command]
+pub fn local_starting(local: State<'_, LocalAhpd>) -> Vec<String> {
+    local.starting()
 }
 
 /// Stops the local host's ahpd, only when the desk started it. Blocks while
@@ -1083,6 +1151,16 @@ mod tests {
         assert_eq!(bundled.node, scratch.0.join(node));
         let first = std::env::split_paths(&bundled.path_var()).next().unwrap();
         assert_eq!(first, bundled.node.parent().unwrap());
+    }
+
+    #[test]
+    fn local_ahpd_starting_keeps_each_host_until_its_start_ends() {
+        let local = LocalAhpd::at(std::env::temp_dir().join("never-made"), None);
+        assert!(local.starting().is_empty());
+        assert_eq!(local.mark_starting(Some(("pc", true))), ["pc"]);
+        assert_eq!(local.mark_starting(Some(("lab", true))), ["lab", "pc"]);
+        assert_eq!(local.mark_starting(Some(("pc", false))), ["lab"]);
+        assert_eq!(local.starting(), ["lab"]);
     }
 
     #[test]

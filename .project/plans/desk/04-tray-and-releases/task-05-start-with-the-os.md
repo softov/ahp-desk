@@ -72,3 +72,10 @@ Removing the desk on Windows removes its login entry too.
 - Verified on the debug desk: the Settings box writes and removes the Run value (checked with `reg query`).
 - Verified: a start with `--autostart` builds the host list hidden.
 - Left: the release-build checks (sign in and out, the uninstall removing the value), and Debian 13.
+
+- Checked by hand on a Windows 10 VM, as a new standard user with no Node and no ahpd, on a release NSIS build of the branch of plan 09 task 04 (PR #1), 2026-10-21:
+  - the first run showed "Start with the OS" ticked; Get started wrote `ahp-desk` = `C:\Users\<user>\AppData\Local\ahp-desk\ahp-desk.exe --autostart` under `HKCU\...\Run`;
+  - after sign out and in, the desk was running with `--autostart`, no window shown and its icon in the tray, and it had started the local ahpd;
+  - unticking in Settings removed the Run value; after removing the last host the first run showed the box unticked;
+  - the uninstaller asked only "Delete the application data", unticked; it removed the Run value, the install folder, the Start menu and desktop shortcuts, and left `%APPDATA%\dev.softov.ahpdesk` and `<app local data>`.
+- Left: Debian 13.

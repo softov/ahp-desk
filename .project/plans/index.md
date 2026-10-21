@@ -17,8 +17,8 @@ What exists today, and the first release that plans 01 to 10 build: [00-desk.md]
 | --- | --- | --- |
 | [01 - The shell, the host list and the app window](desk/01-shell-and-url-hosts/plan.md) | built | - |
 | [02 - ahpw on the desk](desk/02-ahpw-on-the-desk/plan.md) | built | - |
-| [03 - The local ahpd](desk/03-local-ahpd/plan.md) | active | task 08, end to end on a clean Windows user |
-| [04 - The tray, the updater and the releases](desk/04-tray-and-releases/plan.md) | active | v0.1.0 released; task 06 (install, update, remove on Windows) once the next release is tagged; hand checks of tasks 01, 02, 05 |
+| [03 - The local ahpd](desk/03-local-ahpd/plan.md) | built | - |
+| [04 - The tray, the updater and the releases](desk/04-tray-and-releases/plan.md) | active | v0.1.0 released; task 06 (install, update, remove on Windows) once the next release is tagged; Debian 13 checks of tasks 01, 02, 05 |
 | [05 - ahpapp in a private build](desk/05-ahpapp-on-the-desk/plan.md) | draft | name and release channel |
 | [06 - The bot pill](desk/06-bot-pill/plan.md) | draft | write the tasks |
 | [07 - Desk polish before the first release](desk/07-desk-polish/plan.md) | built | - |

@@ -71,6 +71,7 @@ fn main() {
             "serve_local_folder",
             "local_home_folder",
             "local_ahpd_status",
+            "local_starting",
             "start_local_ahpd",
             "stop_local_ahpd",
             "set_tray_words",

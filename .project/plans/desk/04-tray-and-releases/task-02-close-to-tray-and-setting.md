@@ -84,3 +84,6 @@ A second start of the desk shows the running desk's host list instead of startin
   - with "Quit ahp-desk", a close ends the desk;
   - Settings fits in Portuguese.
 - Left: the tray's Settings item by hand, and Debian 13.
+
+- Checked by hand on a Windows 10 VM, as a new standard user with no Node and no ahpd, on a release NSIS build of the branch of plan 09 task 04 (PR #1), 2026-10-21: with "Hide it in the tray", closing the list hid it while the desk and the local ahpd kept running, and a left click on the icon brought it back; the gear and the tray's Settings both open Settings; closing ahpw's window brought the list back; a second start from the desktop shortcut showed the first desk's list, with one desk process.
+- Left: "Quit ahp-desk" in Settings ending the desk on a close, by hand on Windows (checked on the debug desk on 2026-10-16), and Debian 13.

@@ -99,8 +99,9 @@ git tag v* -> GitHub Actions -> tauri-action with --config src-tauri/tauri.relea
 - **Done so far:** tasks 01, 02 and 05 are built and checked on the debug desk, 2026-10-16.
   Each one's Resume lists the checks left by hand.
   Task 03 is built and checked on a release build, and task 04 made the v0.1.0 release, 2026-10-18.
+  Tasks 01, 02 and 05 checked by hand on Windows on a release build, 2026-10-21; each keeps Debian 13, and task 01 the menu's words in Portuguese and Spanish.
 - **Next action:** [task 06](task-06-install-update-remove-on-windows.md), which needs v0.1.0 installed on a clean Windows and a later release to update to.
-  The hand checks of tasks 01, 02 and 05 can run beside it.
+  The Debian 13 checks of tasks 01, 02 and 05 can run beside it.
 - **Open questions:** none.
 - **Watch out for:** the release build needs `--config src-tauri/tauri.release.conf.json`, which turns on `createUpdaterArtifacts` (Answers: the updater artifacts), or no `.sig` file is made; an update must not remove the login entry that the uninstaller hook removes (task 05).
 

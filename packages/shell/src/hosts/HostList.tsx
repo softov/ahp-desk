@@ -18,6 +18,7 @@ import {
 import { InstallSteps, withStep, type StepState } from './InstallSteps.js';
 import type { HostStatus, HostStatuses, UpdateWay } from './status.js';
 import { shortUrl } from './url.js';
+import { useLocalStarting } from './useLocalStarting.js';
 import { useTunnels } from './useTunnels.js';
 import { newer } from './versions.js';
 import { ErrorText } from './LocalForm.js';
@@ -206,6 +207,7 @@ export function HostList({
   const [signingIn, setSigningIn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const tunnels = useTunnels();
+  const starting = useLocalStarting();
   // How each host's ahpd can be updated, asked again when the list or a host's connection changes:
   // ahpd's own command is asked about on each connection.
   const [ways, setWays] = useState<Record<string, UpdateWay | null>>({});
@@ -342,6 +344,8 @@ export function HostList({
             newer(latestAhpd, status.ahpd);
           // An update stops ahpd while it installs: the row says so through the drop, and offers no Retry.
           const updatingHost = updating.has(host.id);
+          // While the desk starts its ahpd, the row says so and offers no Retry.
+          const startingHost = starting.has(host.id) && status.kind !== 'connected';
           if (confirmingUpdate === host.id && latestAhpd !== null) {
             return (
               <li key={host.id} className="host confirm">
@@ -375,10 +379,10 @@ export function HostList({
           return (
             <li key={host.id} className="host">
               <span
-                className={`dot ${status.kind}`}
+                className={`dot ${startingHost ? 'connecting' : status.kind}`}
                 role="img"
-                aria-label={t(`status.${status.kind}`)}
-                title={t(`status.${status.kind}`)}
+                aria-label={t(startingHost ? 'status.starting' : `status.${status.kind}`)}
+                title={t(startingHost ? 'status.starting' : `status.${status.kind}`)}
               />
               <span className="name">
                 <span className="name-text" title={host.name}>
@@ -399,7 +403,7 @@ export function HostList({
                 className="state"
                 title={tunnelDown ? (tunnel.error ?? undefined) : status.kind === 'down' ? (status.error ?? undefined) : undefined}
               >
-                {tunnelDown ? t(tunnelWord(tunnel)) : statusText(status)}
+                {tunnelDown ? t(tunnelWord(tunnel)) : startingHost ? t('status.starting') : statusText(status)}
               </span>
               <span className="address" title={host.url}>
                 {shortUrl(host.url)}
@@ -418,7 +422,7 @@ export function HostList({
                 {tunnelDown && tunnel.needs === null && tunnel.key === null && (
                   <button onClick={() => void run(openSshTunnel(host.id))}>{t('hosts.retry')}</button>
                 )}
-                {status.kind === 'down' && !tunnelDown && !updatingHost && (
+                {status.kind === 'down' && !tunnelDown && !updatingHost && !startingHost && (
                   <button onClick={() => void run(statuses.retry(host.id))}>{t('hosts.retry')}</button>
                 )}
               </span>

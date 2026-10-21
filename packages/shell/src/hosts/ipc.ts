@@ -293,6 +293,16 @@ export function localAhpdStatus(id: string): Promise<LocalState> {
   return invoke<LocalState>('local_ahpd_status', { id });
 }
 
+/** The local hosts whose ahpd the desk is starting now. */
+export function localStarting(): Promise<string[]> {
+  return invoke<string[]>('local_starting');
+}
+
+/** Calls `handler` with the local hosts whose ahpd the desk is starting, each time one starts or ends. */
+export function onLocalStarting(handler: (ids: string[]) => void): Promise<UnlistenFn> {
+  return listen<string[]>('local-starting', (event) => handler(event.payload));
+}
+
 /** Starts the local host's ahpd, or takes the one already on. */
 export function startLocalAhpd(id: string): Promise<LocalState> {
   return invoke<LocalState>('start_local_ahpd', { id });

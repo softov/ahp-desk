@@ -1,7 +1,7 @@
 ---
 title: The local ahpd
 domain: desk
-status: active
+status: built
 priority: high
 created: 2026-10-11
 revalidated: 2026-10-13
@@ -97,7 +97,7 @@ quit -> stop setting on -> ahpd stop
 | [05 - the start and quit settings](task-05-start-quit-settings.md) | done | 04 |
 | [06 - Add host, This computer, with the install steps](task-06-add-this-computer.md) | done | 03, 04 |
 | [07 - automatic update of ahpd, and its checkbox](task-07-auto-update.md) | done | 03, 04, plan 09 task 03 |
-| [08 - end to end on a clean Windows user](task-08-end-to-end.md) | todo | 05, 06, 07 |
+| [08 - end to end on a clean Windows user](task-08-end-to-end.md) | done | 05, 06, 07 |
 
 ## Risks and tradeoffs
 
@@ -108,13 +108,14 @@ quit -> stop setting on -> ahpd stop
 
 - **Done so far:** tasks 01 to 06; tasks 03 and 06 closed on ahpd 0.12.0, which has `ahpd paths add` and the Windows fix for `plugin install`; 2026-10-16.
   Task 07 on ahpd 0.13.0's update command, checked by hand on Windows, 2026-10-20.
-- **Next action:** task 08, end to end on a clean Windows user.
+  Task 08, end to end on a new Windows user, 2026-10-21; the plan is built.
+- **Next action:** none.
 - **Open questions:** none.
 - **Watch out for:** an ahpd that the shell found and did not start is never stopped by the shell.
 
 ## Final verification checklist
 
-- [ ] On a Windows user with no Node, Add host "This computer" installs ahpd and connects.
-- [ ] With ahpd already on `PATH`, the shell uses it and installs nothing.
-- [ ] Quit with "Stop when the desktop app quits" on stops ahpd; with it off, ahpd stays on.
-- [ ] `plans/index.md` updated.
+- [x] On a Windows user with no Node, Add host "This computer" installs ahpd and connects.
+- [x] With ahpd already on `PATH`, the shell uses it and installs nothing.
+- [x] Quit with "Stop when the desktop app quits" on stops ahpd; with it off, ahpd stays on.
+- [x] `plans/index.md` updated.
