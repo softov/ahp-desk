@@ -130,7 +130,11 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 ## Resume state
 
 - **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 11, 2026-10-18, with the end to end, with their by-hand checks, task 06's window checks among task 07's.
-- **Next action:** close the plan once a terminal `ahpd status` sees the desk's ahpd, the one pending check: task 12 gave the unit `AHPD_SERVICE=systemd`, and the check waits on an ahpd release with daemon/31.
+  2026-10-20, running the pending check against ahpd 0.13.0 (which has daemon/31) on a release build of the desk with a scratch config, the install over SSH to the test machine failed, and found two defects:
+  - the probe answered "No ahpd" while an ahpd from a global npm install was running there (`~/.npm-global/bin/ahpd`, with `~/.config/ahpd/daemon.json`): its `PATH` line is in `.bashrc`, which Debian's `.bashrc` skips for a non-interactive shell, so neither `command -v ahpd` nor `login 'command -v ahpd'` (`ssh_install.rs`, `PROBE`) sees it;
+  - the install then wrote a unit on the fixed port 9187 (`AHPD_PORT`) that ahpd already held: the new ahpd stopped on `EADDRINUSE` and restarted on a loop, and the desk failed at "Wait for ahpd" with `token exited with 1: cat: .../connection-token: No such file or directory`, which does not say the port is taken.
+  The failed install was removed by hand (the unit, and `node_modules`, `package.json`, `package-lock.json`, `connection-token` and `.step.pid` under `~/.local/share/ahpd`); the running global ahpd and `~/.config/ahpd` were left as they were.
+- **Next action:** fix the two defects above, then run the pending check with the test machine free of another ahpd: a terminal `ahpd status` sees the desk's ahpd, and `ahpd restart` restarts it through systemd (task 12).
 - **Open questions:** none.
 - **Watch out for:** doop's `AcceptAllHandler` must not be copied; the Answers row on the server key replaces it.
   The end to end and every real SSH test run against the test machine only.

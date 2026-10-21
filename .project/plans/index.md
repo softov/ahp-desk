@@ -24,6 +24,6 @@ What exists today, and the first release that plans 01 to 10 build: [00-desk.md]
 | [07 - Desk polish before the first release](desk/07-desk-polish/plan.md) | built | - |
 | [08 - Each host keeps its own pages on the desk](desk/08-host-scoped-storage/plan.md) | built | - |
 | [09 - The desk says what can be updated, and updates it](desk/09-update-alerts/plan.md) | active | task 06's by-hand check with plan 04 task 06; then task 08 |
-| [10 - Install ahpd on a Linux server over SSH](desk/10-ssh-install/plan.md) | active | pending check: terminal `ahpd status`, once ahpd releases daemon/31 (task 12 is done) |
+| [10 - Install ahpd on a Linux server over SSH](desk/10-ssh-install/plan.md) | active | two defects found by the pending check (a global ahpd not found, port 9187 in use); then the check |
 | [11 - VS Code as a host](desk/11-vscode-hosts/plan.md) | draft | write the task files |
 | [12 - A window with every host](desk/12-a-window-with-every-host/plan.md) | built | - |
