@@ -25,6 +25,9 @@ import { ServerKey } from './ServerKey.js';
 import type { Saved } from './HostForm.js';
 import { ahpdPort, hostId, serverFolder, sshTarget } from './url.js';
 
+/** The port the form offers for a new ahpd, unless the server already listens on it. */
+const AHPD_PORT = 9187;
+
 /** What the form is doing: asking, checking the server, stopped on its key, or one of the steps of a save. */
 type Phase = 'form' | 'connecting' | 'key' | 'probed' | 'installing' | 'saving';
 
@@ -85,7 +88,7 @@ export function SshForm({
   const [keyring, setKeyring] = useState<boolean | null>(null);
   // `~` until another is typed; the server's home stands in for it when the install runs.
   const [folder, setFolder] = useState('~');
-  const [portText, setPortText] = useState('9187');
+  const [portText, setPortText] = useState(String(AHPD_PORT));
   const [backends, setBackends] = useState<Set<string>>(() => new Set(['@ahpd/agent-claude']));
   const [reach, setReach] = useState<'tunnel' | 'port'>('tunnel');
   const [phase, setPhase] = useState<Phase>('form');
@@ -116,6 +119,8 @@ export function SshForm({
   // A found ahpd is reached as it listens: an open port only when it already listens beyond 127.0.0.1.
   const portOffered = found === null || openPort(found.url) !== null;
   const remotePort = found === null ? ahpdPort(portText) : foundPort;
+  // A new ahpd on a port the server already listens on would stop at once.
+  const portInUse = found === null && remotePort !== null && probe !== null && probe.listening.includes(remotePort);
   const served = probe === null ? null : serverFolder(folder, probe.home);
   const ready =
     phase === 'probed' &&
@@ -125,7 +130,7 @@ export function SshForm({
     probe.refusal === null &&
     (found === null || found.supported) &&
     hasBackend(has, backends) &&
-    (found !== null || (remotePort !== null && served !== null));
+    (found !== null || (remotePort !== null && !portInUse && served !== null));
 
   /** Any change to the server asks for a new check. */
   const server = (set: (value: string) => void) => (value: string) => {
@@ -166,6 +171,8 @@ export function SshForm({
       if (probed.found !== null) {
         setBackends(startingBackends(probed.found.plugins));
         if (openPort(probed.found.url) === null) setReach('tunnel');
+      } else if (probed.listening.includes(ahpdPort(portText) ?? 0)) {
+        setPortText(String(probed.freePort));
       }
       setPhase('probed');
     } catch (err) {
@@ -460,6 +467,10 @@ export function SshForm({
                   </div>
                 )}
                 {found === null && remotePort === null && <p className="hint bad">{t('ssh.wrongAhpdPort')}</p>}
+                {portInUse && <p className="hint bad">{t('ssh.portInUse', { port: String(remotePort) })}</p>}
+                {found === null && !portInUse && probe.listening.includes(AHPD_PORT) && remotePort === probe.freePort && (
+                  <p className="hint">{t('ssh.portMoved', { taken: String(AHPD_PORT), port: String(probe.freePort) })}</p>
+                )}
                 <BackendsField has={has} backends={backends} onChange={setBackends} disabled={busy} />
                 <div className="field">
                   <span id="ssh-reach">{t('ssh.reach')}</span>

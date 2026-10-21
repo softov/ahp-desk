@@ -10,6 +10,7 @@ import {
   startLocalAhpd,
   type FoundAhpd,
   type InstallEvent,
+  ON_DESK_DEFAULTS,
   type OnDesk,
 } from './ipc.js';
 import { t } from '../i18n.js';
@@ -67,7 +68,7 @@ export function LocalForm({
   const [ahpdPath, setAhpdPath] = useState<string | null>(null);
   const [search, setSearch] = useState<Search>({ kind: 'looking' });
   const [backends, setBackends] = useState<Set<string>>(() => new Set(['@ahpd/agent-claude']));
-  const [onDesk, setOnDesk] = useState<OnDesk>({ startOnLaunch: true, stopOnQuit: false });
+  const [onDesk, setOnDesk] = useState<OnDesk>(ON_DESK_DEFAULTS);
   // The folder to serve, the home folder until one is picked.
   const [folder, setFolder] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>('form');
@@ -226,6 +227,18 @@ export function LocalForm({
           />
           <span>{t('form.stopOnQuit')}</span>
         </label>
+        {/* Only an ahpd the desk installs updates itself (plan 03 decision 6), so a found one has no box. */}
+        {install && (
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={onDesk.autoUpdate}
+              onChange={(event) => setOnDesk({ ...onDesk, autoUpdate: event.target.checked })}
+              disabled={phase !== 'form'}
+            />
+            <span>{t('form.autoUpdate')}</span>
+          </label>
+        )}
       </div>
       {phase === 'installing' && <p className="result">{t('local.installing')}</p>}
       {phase === 'adding' && <p className="result">{t('local.adding')}</p>}

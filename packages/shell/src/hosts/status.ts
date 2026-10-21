@@ -9,7 +9,8 @@ import { WebSocketTransport } from '@microsoft/agent-host-protocol/ws';
 import { invoke } from '@tauri-apps/api/core';
 
 import { t } from '../i18n.js';
-import { hostToken, updateSshAhpd, type PublishedStatus, type ShellHost } from './ipc.js';
+import { checkUpdate, requestUpdate, type Requester } from './ahpd-update.js';
+import { findLocalAhpd, hostToken, updateSshAhpd, type PublishedStatus, type ShellHost } from './ipc.js';
 import { OFFERED_PROTOCOL_VERSIONS, offering } from './protocol-versions.js';
 import { withToken } from './url.js';
 
@@ -35,8 +36,11 @@ type ServerInfo = { name: string; version?: string };
 const serverName = (info: ServerInfo) =>
   info.version === undefined ? info.name : `${info.name} ${info.version}`;
 
-/** How the desk can update a host's ahpd; tasks 04 and 05 of plan 09 add the ways. */
+/** How the desk can update a host's ahpd: over SSH (plan 09 task 05), or through ahpd's own update command (task 04). */
 export type UpdateWay = { kind: 'ssh' } | { kind: 'ahpd' };
+
+/** How long an update through ahpd may take to come back on the new version: npm's install, and on Windows a helper that runs it after the daemon stops. */
+const UPDATE_RETURN_MS = 3 * 60 * 1000;
 
 /**
  * `SessionStatus.InProgress` of `@microsoft/agent-host-protocol`, written out
@@ -79,8 +83,8 @@ export interface HostStatuses {
   retry(id: string): Promise<void>;
   /** The titles of the host's chats with a turn on, which an update would stop. */
   running(id: string): string[];
-  /** How the desk can update the host's ahpd, or `null` when it cannot. */
-  updateWay(host: ShellHost): Promise<UpdateWay | null>;
+  /** How the desk can update the host's ahpd to `version`, the one its row names, or `null` when it cannot. */
+  updateWay(host: ShellHost, version: string | null): Promise<UpdateWay | null>;
   /** Updates the host's ahpd to `version`, the one its row named; `force` once the person confirmed over running sessions. */
   updateHost(host: ShellHost, version: string, force: boolean): Promise<void>;
 }
@@ -97,6 +101,10 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
   const servers = new Map<string, ServerInfo>();
   // One sync at a time, so two quick changes never add the same host twice.
   let syncing: Promise<void> = Promise.resolve();
+  // Each connection's answer to ahpd's check about a version, kept until the host reconnects, so a redraw asks nothing.
+  const checks = new Map<string, { client: unknown; version: string; may: Promise<boolean> }>();
+  // Where each local host's ahpd came from, by the path set on it; asking spawns ahpd, so once a window.
+  const origins = new Map<string, { path: string | null; installed: Promise<boolean> }>();
 
   void (async () => {
     for await (const _event of multi.hostEvents()) onChange();
@@ -123,6 +131,8 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
       if (!ids.has(known.id)) {
         urls.delete(known.id);
         servers.delete(known.id);
+        checks.delete(known.id);
+        origins.delete(known.id);
         await multi.removeHost(known.id);
       }
     }
@@ -151,6 +161,45 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
     redraw();
     publish();
   }
+
+  /** ahpd's check about `version` on the host's connection, or `null` while it is not a connected ahpd. */
+  const checkOf = (id: string, version: string): Promise<boolean> | null => {
+    const status = statuses.status(id);
+    const handle = multi.client(id);
+    if (status.kind !== 'connected' || status.ahpd === null || handle === undefined) return null;
+    const client = handle.rawClient();
+    const kept = checks.get(id);
+    if (kept !== undefined && kept.client === client && kept.version === version) return kept.may;
+    const may = checkUpdate(handle as unknown as Requester, version);
+    checks.set(id, { client, version, may });
+    return may;
+  };
+
+  /** Whether a local host's ahpd is the one the desk installed: plan 03 updates no other. */
+  const installedByDesk = (host: ShellHost): Promise<boolean> => {
+    const path = host.ahpdPath ?? null;
+    const kept = origins.get(host.id);
+    if (kept !== undefined && kept.path === path) return kept.installed;
+    const installed = findLocalAhpd(path).then(
+      (found) => found?.origin === 'installed',
+      () => false,
+    );
+    origins.set(host.id, { path, installed });
+    return installed;
+  };
+
+  /** Resolves once the host is connected on `version`, or rejects after `UPDATE_RETURN_MS`. */
+  const backOn = (id: string, version: string) =>
+    new Promise<void>((resolve, reject) => {
+      const until = Date.now() + UPDATE_RETURN_MS;
+      const look = () => {
+        const status = statuses.status(id);
+        if (status.kind === 'connected' && status.ahpd === version) resolve();
+        else if (Date.now() > until) reject(new Error(t('hosts.updateFailed', { why: t('status.noAnswer') })));
+        else setTimeout(look, 500);
+      };
+      look();
+    });
 
   const statuses: HostStatuses = {
     sync(list) {
@@ -188,24 +237,44 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
         .filter((chat) => chat.status !== undefined && (chat.status & IN_PROGRESS) !== 0)
         .map((chat) => chat.title);
     },
-    // Over SSH for an ahpd the desk installed there; ahpd's own update command is plan 09's task 04.
-    updateWay: (host) => Promise.resolve(host.ssh?.byDesk === true ? { kind: 'ssh' } : null),
-    async updateHost(host, version) {
-      if (host.ssh?.byDesk !== true) throw new Error(t('hosts.noUpdateWay'));
-      // The last lines npm and systemctl wrote, shown with a failure.
-      const last: string[] = [];
-      try {
-        await updateSshAhpd(host.id, version, (event) => {
-          if (event.kind !== 'line') return;
-          last.push(event.text);
-          if (last.length > 5) last.shift();
-        });
-      } catch (err) {
-        const why = [err instanceof Error ? err.message : String(err), ...last].join('\n');
-        throw new Error(t('hosts.updateFailed', { why }));
+    // Over SSH for an ahpd the desk installed there, else through ahpd's own
+    // update command when its check lets this token update it.
+    async updateWay(host, version) {
+      if (host.ssh?.byDesk === true) return { kind: 'ssh' };
+      if (version === null) return null;
+      if (host.kind === 'local' && !(await installedByDesk(host))) return null;
+      const may = checkOf(host.id, version);
+      return may !== null && (await may) ? { kind: 'ahpd' } : null;
+    },
+    async updateHost(host, version, force) {
+      if (host.ssh?.byDesk === true) {
+        // The last lines npm and systemctl wrote, shown with a failure.
+        const last: string[] = [];
+        try {
+          await updateSshAhpd(host.id, version, (event) => {
+            if (event.kind !== 'line') return;
+            last.push(event.text);
+            if (last.length > 5) last.shift();
+          });
+        } catch (err) {
+          const why = [err instanceof Error ? err.message : String(err), ...last].join('\n');
+          throw new Error(t('hosts.updateFailed', { why }));
+        }
+        // The restart dropped the connection; take the new ahpd now rather than at the next retry.
+        await multi.reconnectHost(host.id);
+        return;
       }
-      // The restart dropped the connection; take the new ahpd now rather than at the next retry.
-      await multi.reconnectHost(host.id);
+      const handle = multi.client(host.id);
+      const may = checkOf(host.id, version);
+      if (handle === undefined || may === null || !(await may)) throw new Error(t('hosts.noUpdateWay'));
+      try {
+        await requestUpdate(handle as unknown as Requester, { version, force });
+      } catch (err) {
+        throw new Error(t('hosts.updateFailed', { why: explain(err) }));
+      }
+      // ahpd answered before its restart; the connection drops and comes back on its own, on the new version.
+      checks.delete(host.id);
+      await backOn(host.id, version);
     },
   };
   return statuses;

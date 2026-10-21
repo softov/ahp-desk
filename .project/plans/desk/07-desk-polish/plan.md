@@ -67,7 +67,7 @@ ahpw HostSwitcher -> embedder.switchHost | (new) embedder.manageHosts({ add }) -
 | The host list follows the OS's light or dark. | (defaulted: ahpw's default theme mode is "system") | 02 |
 | The desk's icon takes ahpw's mark and colours. | Softov: "Bot default icon color ... does not match" | 03 |
 | The footer is ahpio's logo, for now ahpapp's mark at 26 px, and "© ahpio.com", linking to https://ahpio.com in the browser; the title bar keeps ahpw's mark. | Softov: "I'm thinking on the ahpio to use for now the ahpapp logo, give it move visibility. just on the hosts list. on bottom." | 04 |
-| The host list window opens at 640 x 400, at least 480 x 300. | Softov: "Also make it less height." | 07 |
+| The host list window opens at 640 x 400, at least 480 x 300; it opens at 640 x 480 since [the host list window opens at 640 by 480](../../../decisions/the-host-list-window-opens-at-640-by-480.md). | Softov: "Also make it less height." | 07 |
 | ahpw's switcher lists "Manage hosts" and "+ Add host" under the hosts. | Decision 3, decision 6 | 08 |
 
 ## Proposed architecture

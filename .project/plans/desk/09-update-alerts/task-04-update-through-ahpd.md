@@ -1,6 +1,6 @@
 ---
 title: Update on a host's row runs ahpd's own update command
-status: blocked
+status: done
 depends: [task-02-host-row-notice-and-update.md, task-03-ahpd-update-command.md]
 layer: "packages/shell"
 refs:
@@ -57,3 +57,16 @@ Update shows only when ahpd says, with `check`, that this token may update it; a
 ## Resume
 
 - Blocked 2026-10-16: it waits for ahpd's own update command (task 03), which Softov looks at in the ahpd repository: "I will see on ahpd a self update command".
+- 2026-10-20: built on ahpd 0.13.0, whose `x-ahpd/update` has the method and params step 2 names.
+- `ahpd-update.ts` has `UPDATE_METHOD`, `UpdateParams`, `mayUpdate`, `requestUpdate`, and `checkUpdate(client, version)`, which sends `{ version, check: true }` and is false on any error, so a refusal (`-32009`) or an ahpd without the command (`-32601`) hides Update.
+  It takes a `Requester` (`request(method, params)`) instead of `AhpClient`, since `MultiHostClient`'s handle is what `status.ts` holds; the cast to it is in `status.ts`, once.
+- The check names the row's version: ahpd 0.13.0 asks npm for `latest` only when no `version` is given, and that ask sends the scoped name with a bare `/`, which a registry such as verdaccio answers 404 (task 03's Resume).
+- `status.ts`: `updateWay(host, version)` takes the row's version; it keeps each host's answer per connection (keyed on `rawClient()`) and per version, so a redraw asks nothing, and forgets it on removal.
+  Step 4's `updateThroughAhpd` is `updateHost`'s branch for a way of `ahpd`: it sends `{ version, force }`, shows an RPC error before the drop as `hosts.updateFailed` (already there from task 05), and then waits up to 3 minutes for the host to come back connected on that version (`backOn`), so the row's "Updating ahpd…" lasts through the install and the restart.
+- `HostList.tsx`: while an update runs, the row keeps "Updating ahpd…" and shows no Retry through the drop, for this way and task 05's.
+- Plan 03 task 07 uses the same way for the local ahpd, only when the desk installed it.
+- Verified: `pnpm typecheck`, `pnpm test` (53, with `ahpd-update.test.ts`), `cargo test` (137), `cargo clippy --all-targets -- -D warnings` through `pnpm lint`.
+- By hand on a Windows 10 VM, on a release NSIS build of this branch, with a local npm registry holding repacks of 0.13.0 as 0.13.1 to 0.13.3 and `npm_config_registry` set: the local host the desk installed, with automatic update off, showed "ahpd 0.13.3 available" with Update; a click made the row say "Updating ahpd…" with no Retry while ahpd was down, and the row came back green on 0.13.3 with no notice, about 70 seconds later.
+- Not seen by hand: a URL host with the deployment token, a URL host with a person's token, an ahpd before 0.13.0, and the question over a running turn, since no backend was signed in.
+  A URL host goes through the same `checkUpdate` and `requestUpdate` as the local host above; the refusals are in `ahpd-update.test.ts`.
+

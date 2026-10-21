@@ -14,6 +14,8 @@ decisions:
   - decisions/the-installed-ahpd-keeps-the-usual-config-folder.md
   - decisions/the-desk-adds-backends-through-ahpd-plugin-install.md
   - decisions/an-ahpd-config-whose-plugins-the-new-ahpd-cannot-load-stops-the-install.md
+  - decisions/the-probe-finds-a-running-ahpd-through-its-record.md
+  - decisions/an-ssh-install-starts-on-the-first-free-port.md
 refs:
   - file:///github/opendoop/packages/tauri/src-tauri/src/ssh/mod.rs - doop's `russh` session, agent then key-file sign-in, `exec_capture`
   - file:///github/opendoop/packages/tauri/src-tauri/src/ssh/push.rs - doop's file push over SSH
@@ -94,6 +96,8 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | The install streams its steps and can be cancelled, as doop's. | doop's `installer/mod.rs` | 05 |
 | The two plan 03 decisions above hold for the SSH install: the server's ahpd uses `~/.config/ahpd`, the desk's install puts `@ahpd/server` and the backends under `AHPD_PLUGIN_ROOT=~/.local/share/ahpd`, and the backends go in through the installed ahpd's `plugin install`, so a server's own ahpd and the desk's install look the same. | Softov, 2026-10-14, asked "p10 q5: do p3's two rules (~/.config/ahpd, backends with ahpd plugin install) apply to the remote install, so a server's own ahpd and the desk's install look the same?": "Yes, same layout"; rejected: plan 10's own layout under ~/.local/share/ahpd; Softov's reason, asked first: "Think like a remote server with ahpd already installed on it per example... it will also work?" | 05 |
 | [An ahpd config whose plugins the new ahpd cannot load stops the install, and the desk never edits it](../../../decisions/an-ahpd-config-whose-plugins-the-new-ahpd-cannot-load-stops-the-install.md) | Softov, 2026-10-18: "Check plugins, refuse" | 03, 05 |
+| [The SSH probe finds a running ahpd through its daemon.json](../../../decisions/the-probe-finds-a-running-ahpd-through-its-record.md) | Softov, 2026-10-20: "Read the running daemon (Recommended)" | 13 |
+| [An install over SSH starts on the first free port, and refuses one in use](../../../decisions/an-ssh-install-starts-on-the-first-free-port.md) | Softov, 2026-10-20: "Propose a free port (Recommended)" | 13 |
 
 ## Proposed architecture
 
@@ -118,6 +122,7 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 | [10 - Remove offers to uninstall the desk's ahpd on the server](task-10-uninstall-over-ssh.md) | done | 05, 06, 07 |
 | [11 - A saved host's refused server key on its row and in Edit host](task-11-refused-key-on-a-saved-host.md) | done | 02, 06, 07 |
 | [12 - the unit records ahpd as a systemd service, and an update writes it again](task-12-unit-records-itself-as-a-service.md) | done | 05, 08 |
+| [13 - the probe finds a running ahpd through its daemon.json, and an install starts on the first free port](task-13-running-ahpd-and-free-port.md) | doing | 03, 05, 07 |
 | [09 - end to end on the test machine](task-09-end-to-end.md) | done | 01 to 08, 10, 11 |
 
 ## Risks and tradeoffs
@@ -130,7 +135,12 @@ Remove on a host the desk did not install -> nothing on the server, and the ques
 ## Resume state
 
 - **Done so far:** the plan, its decisions and Softov's answers of 2026-10-14; tasks 01 to 11, 2026-10-18, with the end to end, with their by-hand checks, task 06's window checks among task 07's.
-- **Next action:** close the plan once a terminal `ahpd status` sees the desk's ahpd, the one pending check: task 12 gave the unit `AHPD_SERVICE=systemd`, and the check waits on an ahpd release with daemon/31.
+  2026-10-20, running the pending check against ahpd 0.13.0 (which has daemon/31) on a release build of the desk with a scratch config, the install over SSH to the test machine failed, and found two defects:
+  - the probe answered "No ahpd" while an ahpd from a global npm install was running there (`~/.npm-global/bin/ahpd`, with `~/.config/ahpd/daemon.json`): its `PATH` line is in `.bashrc`, which Debian's `.bashrc` skips for a non-interactive shell, so neither `command -v ahpd` nor `login 'command -v ahpd'` (`ssh_install.rs`, `PROBE`) sees it;
+  - the install then wrote a unit on the fixed port 9187 (`AHPD_PORT`) that ahpd already held: the new ahpd stopped on `EADDRINUSE` and restarted on a loop, and the desk failed at "Wait for ahpd" with `token exited with 1: cat: .../connection-token: No such file or directory`, which does not say the port is taken.
+  The failed install was removed by hand (the unit, and `node_modules`, `package.json`, `package-lock.json`, `connection-token` and `.step.pid` under `~/.local/share/ahpd`); the running global ahpd and `~/.config/ahpd` were left as they were.
+  Task 13 fixes both, built 2026-10-20; its by-hand checks in the form are left.
+- **Next action:** task 13's by-hand checks; then the pending check with the test machine free of another ahpd: a terminal `ahpd status` sees the desk's ahpd, and `ahpd restart` restarts it through systemd (task 12).
 - **Open questions:** none.
 - **Watch out for:** doop's `AcceptAllHandler` must not be copied; the Answers row on the server key replaces it.
   The end to end and every real SSH test run against the test machine only.

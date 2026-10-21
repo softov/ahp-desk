@@ -67,3 +67,7 @@ The menu's words are in the language the host list shows, and change with a pick
 - Verified: `tray_entries_are_hosts_settings_then_quit` (task 02's order), clippy, typecheck and the shell tests pass.
 - Verified on the debug desk over CDP: `set_tray_words` answers in English and Portuguese, and nothing logs a failure.
 - Left: the clicks on the tray icon and its menu, by hand on Windows, since a test cannot reach the OS tray; and Debian 13.
+
+- Checked by hand on a Windows 10 VM, as a new standard user with no Node and no ahpd, on a release NSIS build of the branch of plan 09 task 04 (PR #1), 2026-10-21: the icon is in the tray (in its overflow) with the tooltip `ahp-desk`; the right click opens Hosts, Settings and Quit ahp-desk; a left click shows the hidden host list; with ahpw open on a host and the list hidden, Hosts shows the list; Settings opens the Settings screen; Quit ends the desk, and with "Stop when the desktop app quits" on, its ahpd too.
+- The menu in Portuguese and Spanish after a pick in the title bar was opened, but its words were not read in a capture; English was.
+- Left: the menu's words in Portuguese and Spanish, and Debian 13.

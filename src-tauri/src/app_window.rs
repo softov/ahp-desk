@@ -307,6 +307,10 @@ pub const HOST_LIST_EDIT: &str = "host-list-edit";
 /// The event that asks the host list to open Settings, as the tray's Settings item does.
 pub const HOST_LIST_SETTINGS: &str = "host-list-settings";
 
+/// The event that asks the host list to install the ready desk update, as the
+/// tray's item does: the host list asks first over turns running on a local ahpd.
+pub const HOST_LIST_DESK_UPDATE: &str = "host-list-desk-update";
+
 /// Shows and focuses the host list; with `add`, on its Add form, and with
 /// `edit`, on that host's form, as ahpw's Sign in on a host that refuses its token.
 #[tauri::command]

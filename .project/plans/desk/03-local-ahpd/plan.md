@@ -1,7 +1,7 @@
 ---
 title: The local ahpd
 domain: desk
-status: active
+status: built
 priority: high
 created: 2026-10-11
 revalidated: 2026-10-13
@@ -14,6 +14,7 @@ decisions:
   - decisions/the-desk-adds-backends-through-ahpd-plugin-install.md
   - decisions/an-ahpd-too-old-on-path-is-shown-not-replaced.md
   - decisions/the-folder-is-written-by-an-ahpd-command.md
+  - decisions/the-host-list-window-opens-at-640-by-480.md
 refs:
   - file:///github/ahpd/packages/server/src/daemon.ts - `ahpd start`, `stop` and `status`, with daemon.json, at lines 10-37, 189-196 and 436-439
   - file:///github/ahpd/packages/server/src/commands/options.ts - the token from `--connection-token-file`, at lines 1051-1085
@@ -69,12 +70,13 @@ quit -> stop setting on -> ahpd stop
 | 10 | [The local ahpd serves the folder asked in Add host, else the home folder](../../../specs/local-ahpd.md) | Softov, 2026-10-14 |
 | 11 | [The folder Add host asks for is written by an ahpd command](../../../decisions/the-folder-is-written-by-an-ahpd-command.md) | Softov, 2026-10-14 |
 | 12 | [A found ahpd with no backend is offered the backends in Add host](../../../specs/local-ahpd.md) | Softov, 2026-10-14 |
+| 13 | [The host list window opens at 640 by 480](../../../decisions/the-host-list-window-opens-at-640-by-480.md) | Softov, 2026-10-20 |
 
 | What | Source | Task |
 | --- | --- | --- |
 | The install folder is `<app local data>/ahpd`, an npm prefix. | Decision 1 | 03 |
 | "Start when the desktop app starts" is on by default; "Stop when the desktop app quits" is off. | (defaulted) | 05 |
-| Task 07 updates the installed ahpd through ahpd's own update command (plan 09 task 03), once released, not with npm run by the desk over the running files. | Softov, 2026-10-16: "I will see on ahpd a self update command" | 07 |
+| Task 07 updates the installed ahpd through ahpd's own update command (plan 09 task 03), not with npm run by the desk over the running files. | Softov, 2026-10-16: "I will see on ahpd a self update command" | 07 |
 
 ## Proposed architecture
 
@@ -94,8 +96,8 @@ quit -> stop setting on -> ahpd stop
 | [04 - start, find and stop through ahpd's own commands](task-04-start-find-stop.md) | done | 02 |
 | [05 - the start and quit settings](task-05-start-quit-settings.md) | done | 04 |
 | [06 - Add host, This computer, with the install steps](task-06-add-this-computer.md) | done | 03, 04 |
-| [07 - automatic update of ahpd, and its checkbox](task-07-auto-update.md) | blocked | 03, 04, plan 09 task 03 |
-| [08 - end to end on a clean Windows user](task-08-end-to-end.md) | todo | 05, 06, 07 |
+| [07 - automatic update of ahpd, and its checkbox](task-07-auto-update.md) | done | 03, 04, plan 09 task 03 |
+| [08 - end to end on a clean Windows user](task-08-end-to-end.md) | done | 05, 06, 07 |
 
 ## Risks and tradeoffs
 
@@ -105,13 +107,15 @@ quit -> stop setting on -> ahpd stop
 ## Resume state
 
 - **Done so far:** tasks 01 to 06; tasks 03 and 06 closed on ahpd 0.12.0, which has `ahpd paths add` and the Windows fix for `plugin install`; 2026-10-16.
-- **Next action:** task 07, once ahpd has its update command (plan 09 task 03); then task 08.
+  Task 07 on ahpd 0.13.0's update command, checked by hand on Windows, 2026-10-20.
+  Task 08, end to end on a new Windows user, 2026-10-21; the plan is built.
+- **Next action:** none.
 - **Open questions:** none.
 - **Watch out for:** an ahpd that the shell found and did not start is never stopped by the shell.
 
 ## Final verification checklist
 
-- [ ] On a Windows user with no Node, Add host "This computer" installs ahpd and connects.
-- [ ] With ahpd already on `PATH`, the shell uses it and installs nothing.
-- [ ] Quit with "Stop when the desktop app quits" on stops ahpd; with it off, ahpd stays on.
-- [ ] `plans/index.md` updated.
+- [x] On a Windows user with no Node, Add host "This computer" installs ahpd and connects.
+- [x] With ahpd already on `PATH`, the shell uses it and installs nothing.
+- [x] Quit with "Stop when the desktop app quits" on stops ahpd; with it off, ahpd stays on.
+- [x] `plans/index.md` updated.

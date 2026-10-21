@@ -85,7 +85,7 @@ pub fn run() {
                 .decorations(false)
                 .transparent(true)
                 .shadow(false)
-                .inner_size(640.0, 400.0)
+                .inner_size(640.0, 480.0)
                 .min_inner_size(480.0, 300.0)
                 // A start at login shows only the tray icon; a start by hand shows the list.
                 .visible(!std::env::args().any(|arg| arg == AT_LOGIN))
@@ -128,6 +128,7 @@ pub fn run() {
             local_ahpd::serve_local_folder,
             local_ahpd::local_home_folder,
             local_ahpd::local_ahpd_status,
+            local_ahpd::local_starting,
             local_ahpd::start_local_ahpd,
             local_ahpd::stop_local_ahpd,
             app_window::open_app_window,
@@ -165,8 +166,15 @@ pub fn run() {
         });
 }
 
-/// What a quit does before the process ends: on exit, and before a desk update's installer.
+/// What a quit does before the process ends, on exit.
 pub fn before_quit(app: &tauri::AppHandle) {
     app.state::<ssh::tunnel::Tunnels>().close_all();
     local_ahpd::stop_on_quit(app);
+}
+
+/// What a quit does before a desk update's installer: as `before_quit`, but
+/// every local ahpd the desk started stops, as its files are in use.
+pub fn before_desk_install(app: &tauri::AppHandle) {
+    app.state::<ssh::tunnel::Tunnels>().close_all();
+    local_ahpd::stop_for_desk_install(app);
 }
