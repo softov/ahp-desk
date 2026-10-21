@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@ahpd/web':
-        specifier: 0.5.0
-        version: 0.5.0
+        specifier: 0.6.0
+        version: 0.6.0
       '@tauri-apps/cli':
         specifier: ^2.11.2
         version: 2.12.1
@@ -22,8 +22,8 @@ importers:
         version: 2.12.3
     devDependencies:
       '@ahpd/web':
-        specifier: 0.5.0
-        version: 0.5.0
+        specifier: 0.6.0
+        version: 0.6.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -76,8 +76,8 @@ importers:
 
 packages:
 
-  '@ahpd/web@0.5.0':
-    resolution: {integrity: sha512-D9RSu/jLysMFMk39iIoJiOvgMJ9hCVOQX3By2SXt1csLnN6BYgeiBye4kXcowTNVIlocQ+D6s7pPSbfqoptSzQ==}
+  '@ahpd/web@0.6.0':
+    resolution: {integrity: sha512-abD47LImQRrXH4Iv57SlqfR4Ivq8DgAoL6M5rXB12VPfj4pj4IHGQlRXmG+8CW3Iv7yu3Knb3GnDXimxorVLzQ==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
@@ -651,7 +651,7 @@ packages:
 
 snapshots:
 
-  '@ahpd/web@0.5.0':
+  '@ahpd/web@0.6.0':
     dependencies:
       '@cofold/bood': 0.2.0
       '@cofold/commands': 0.3.0
