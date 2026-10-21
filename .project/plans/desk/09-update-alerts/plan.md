@@ -76,16 +76,16 @@ host connected -> initialize serverInfo (ahpd version) -> npm latest @ahpd/serve
 | --- | --- | --- |
 | [01 - npm's latest @ahpd/server, checked and kept](task-01-npm-latest-ahpd.md) | done | - |
 | [02 - the host row's notice and Update](task-02-host-row-notice-and-update.md) | done | 01 |
-| [03 - ahpd: an update command for an administrator, over HTTP and AHP (in the ahpd repository)](task-03-ahpd-update-command.md) | todo | - |
-| [04 - Update through ahpd's command](task-04-update-through-ahpd.md) | blocked | 02, 03 |
+| [03 - ahpd: an update command for an administrator, over HTTP and AHP (in the ahpd repository)](task-03-ahpd-update-command.md) | done | - |
+| [04 - Update through ahpd's command](task-04-update-through-ahpd.md) | done | 02, 03 |
 | [05 - Update over SSH for an SSH-installed host](task-05-update-over-ssh.md) | done | 02, plan 10 task 08 |
-| [06 - the desk's own update, checked again every 6 hours](task-06-desk-update-notice.md) | todo | 01, plan 04 task 03 |
+| [06 - the desk's own update, checked again every 6 hours](task-06-desk-update-notice.md) | doing | 01, plan 04 task 03 |
 | [07 - the release steps: an ahpw release is followed by a desk release](task-07-release-steps.md) | done | - |
 | [08 - end to end](task-08-end-to-end.md) | todo | 01 to 07 |
 
 ## Risks and tradeoffs
 
-- Task 03 is ahpd work, done in the ahpd repository by its own plan; tasks 04 and 08 wait for its release.
+- Task 03 is ahpd work, released in ahpd 0.13.0.
 - An update restarts a host; a person on another client loses its connection for the restart.
 
 ## Resume state
@@ -93,8 +93,9 @@ host connected -> initialize serverInfo (ahpd version) -> npm latest @ahpd/serve
 - **Done so far:** the plan, its decisions and its task files, 2026-10-14.
   The open questions are answered in *Answers*, and task 06 is narrowed to the check every 6 hours, 2026-10-14.
   Tasks 01, 02, 05 and 07, 2026-10-18.
-- **Next action:** task 06, open since plan 04 task 03 was built on 2026-10-18; task 04 waits on ahpd's update command (task 03), and task 08 on both.
-  Task 04 is `blocked` until ahpd has its update command (task 03), which Softov looks at in the ahpd repository, 2026-10-16.
+  Task 03 released in ahpd 0.13.0, and task 04 on it, checked by hand on Windows, 2026-10-20.
+  Task 06 is built; its by-hand check waits for a newer signed desk release than v0.1.0.
+- **Next action:** task 06's by-hand check with plan 04 task 06, once Softov tags the next release; then task 08.
 - **Open questions:** none.
 - **Watch out for:** the local ahpd follows plan 03's update answer (task 07), not the host-row Update.
 

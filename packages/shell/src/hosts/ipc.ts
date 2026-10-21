@@ -13,7 +13,7 @@ export interface Host {
   url: string;
   /** The ahpd a `local` host uses, when one is set instead of the one found. */
   ahpdPath?: string;
-  /** A `local` host's two settings; a `url` host has none. */
+  /** A `local` host's settings; a `url` host has none. */
   onDesk?: OnDesk;
   /** The host's server over SSH, on a host reached through one. */
   ssh?: SshHost;
@@ -71,11 +71,15 @@ export function pickSshLocalPort(): Promise<number> {
   return invoke<number>('pick_ssh_local_port');
 }
 
-/** What a `local` host's ahpd does when the desk starts and quits. */
+/** What a `local` host's ahpd does when the desk starts and quits, and whether it updates on its own. */
 export interface OnDesk {
   startOnLaunch: boolean;
   stopOnQuit: boolean;
+  autoUpdate: boolean;
 }
+
+/** A `local` host's settings before the person changed any. */
+export const ON_DESK_DEFAULTS: OnDesk = { startOnLaunch: true, stopOnQuit: false, autoUpdate: true };
 
 /** A host as the host list sees it: with the flags for a token or an SSH password kept in the plain file. */
 export interface ShellHost extends Host {
@@ -390,6 +394,11 @@ export function deskUpdate(): Promise<string | null> {
 /** Installs the ready desk and restarts into it; it answers only on a failure. */
 export function installDeskUpdate(): Promise<void> {
   return invoke('install_desk_update');
+}
+
+/** Calls `handler` when the tray's item asks for the ready desk update, as Restart does. */
+export function onDeskUpdateAsked(handler: () => void): Promise<UnlistenFn> {
+  return listen('host-list-desk-update', () => handler());
 }
 
 /** Calls `handler` with the version once a newer desk is downloaded. */

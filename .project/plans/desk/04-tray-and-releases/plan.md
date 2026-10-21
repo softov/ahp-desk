@@ -11,6 +11,7 @@ decisions:
   - decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md
   - decisions/updater-artifacts-are-made-only-in-the-release-build.md
   - decisions/the-linux-release-builds-on-ubuntu-22-04.md
+  - decisions/a-desk-update-stops-the-local-ahpd-the-desk-started.md
 refs:
   - file:///github/opendoop/packages/tauri/src-tauri/src/tray.rs - the tray menu and the left click, at lines 8-62
   - file:///github/opendoop/packages/tauri/src-tauri/src/shell_settings.rs - closeBehavior, minimize to tray or quit
@@ -55,6 +56,7 @@ git tag v* -> GitHub Actions -> tauri-action with --config src-tauri/tauri.relea
 | [ahp-desk is MIT, and ahpapp stays private](../../../decisions/ahp-desk-is-mit-and-ahpapp-stays-private.md) | Softov, 2026-10-11 | 03, 04 |
 | The desk downloads its own update in the background, then says "ahp-desk X is ready. Restart to update." in the host list and the tray, and restarts only on that click. | Softov, 2026-10-13, asked "When the desk itself has an update, what happens?": "Ask, then install (Recommended)" | 03 |
 | This plan builds the desk's update notice in the host list, its Restart click that installs the update, and its tray item; plan 09 task 06 keeps only the check every 6 hours. | Softov, 2026-10-14: "p4 task 03" | 03 |
+| [A desk update stops the local ahpd the desk started, and the new desk starts it again](../../../decisions/a-desk-update-stops-the-local-ahpd-the-desk-started.md) | Softov, 2026-10-20: "Stop ahpd for the install (Recommended)" | 03, 06 |
 | On Windows a left click on the tray icon shows and focuses the host list, and the right click opens the menu; on Linux the menu is the only way in. | Softov, 2026-10-14: "Show the host list" | 01 |
 | The tray menu is Hosts, Settings and Quit, with no "Show pill"; plan 06 adds "Show pill" when it builds the pill. | Softov, 2026-10-14: "No, p6 adds it" | 01 |
 | A gear in the host list's title bar, before the language picker, opens Settings. | Softov, 2026-10-14: "Gear in the title bar" | 02 |

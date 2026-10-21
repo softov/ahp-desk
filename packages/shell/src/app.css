@@ -278,8 +278,10 @@ button.danger:hover:not(:disabled) {
   font-size: var(--oo-font-size-sm);
 }
 
-.desk-update button {
+.desk-update .actions {
+  display: flex;
   flex: none;
+  gap: 8px;
 }
 
 /* The first run's welcome and opening steps: centred, as an installer's. */

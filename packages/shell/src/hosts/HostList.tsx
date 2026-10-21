@@ -3,6 +3,8 @@ import { t } from '../i18n.js';
 import { useOutsideClose } from '../useOutsideClose.js';
 import {
   installDeskUpdate,
+  localAhpdStatus,
+  onDeskUpdateAsked,
   openHost,
   openSshTunnel,
   removeHost,
@@ -204,17 +206,26 @@ export function HostList({
   const [signingIn, setSigningIn] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const tunnels = useTunnels();
-  // How each host's ahpd can be updated, asked again when the list changes.
+  // How each host's ahpd can be updated, asked again when the list or a host's connection changes:
+  // ahpd's own command is asked about on each connection.
   const [ways, setWays] = useState<Record<string, UpdateWay | null>>({});
+  const connections = hosts
+    .map((host) => {
+      const status = statuses.status(host.id);
+      return `${host.id}:${status.kind === 'connected' ? (status.ahpd ?? '-') : status.kind}`;
+    })
+    .join(' ');
   useEffect(() => {
     let live = true;
-    void Promise.all(hosts.map(async (host) => [host.id, await statuses.updateWay(host)] as const)).then((all) => {
-      if (live) setWays(Object.fromEntries(all));
-    });
+    void Promise.all(hosts.map(async (host) => [host.id, await statuses.updateWay(host, latestAhpd)] as const)).then(
+      (all) => {
+        if (live) setWays(Object.fromEntries(all));
+      },
+    );
     return () => {
       live = false;
     };
-  }, [hosts, statuses]);
+  }, [hosts, statuses, connections, latestAhpd]);
   // The host whose update waits on a click over running sessions, and the ones updating.
   const [confirmingUpdate, setConfirmingUpdate] = useState<string | null>(null);
   const [updating, setUpdating] = useState<ReadonlySet<string>>(new Set());
@@ -233,6 +244,54 @@ export function HostList({
   const run = (work: Promise<void>) =>
     work.catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
 
+  // The desk update's Restart stops each local ahpd the desk started, as its
+  // installer replaces the Node it runs on: the turns running there are named
+  // first, and a second Restart installs.
+  const [deskQuestion, setDeskQuestion] = useState<string | null>(null);
+  const restartDesk = async () => {
+    const busy: string[] = [];
+    for (const host of hosts) {
+      const running = statuses.running(host.id);
+      if (host.kind !== 'local' || running.length === 0) continue;
+      if ((await localAhpdStatus(host.id)).startedByDesk) busy.push(`${host.name}: ${running.join(', ')}`);
+    }
+    if (busy.length === 0) return installDeskUpdate();
+    setDeskQuestion(busy.join('; '));
+  };
+  // The tray's item comes here, so it asks the same question.
+  const askedRestart = useRef(restartDesk);
+  askedRestart.current = restartDesk;
+  useEffect(() => {
+    const stop = onDeskUpdateAsked(() => void run(askedRestart.current()));
+    return () => void stop.then((unlisten) => unlisten());
+  }, []);
+
+  // Plan 03 decision 6: a local ahpd the desk installed, with "Update ahpd
+  // automatically" on, updates while no turn runs. Once per version while this
+  // window lives: a failure is shown, and the row keeps its Update for a retry.
+  const tried = useRef(new Set<string>());
+  useEffect(() => {
+    if (latestAhpd === null) return;
+    for (const host of hosts) {
+      const status = statuses.status(host.id);
+      const key = `${host.id}@${latestAhpd}`;
+      if (
+        host.kind !== 'local' ||
+        host.onDesk?.autoUpdate !== true ||
+        ways[host.id]?.kind !== 'ahpd' ||
+        status.kind !== 'connected' ||
+        status.ahpd === null ||
+        !newer(latestAhpd, status.ahpd) ||
+        statuses.running(host.id).length > 0 ||
+        updating.has(host.id) ||
+        tried.current.has(key)
+      )
+        continue;
+      tried.current.add(key);
+      update(host, latestAhpd, false);
+    }
+  });
+
   return (
     <section className="panel wide">
       <header className="panel-head">
@@ -243,10 +302,20 @@ export function HostList({
       </header>
       {deskUpdate !== null && (
         <div className="desk-update">
-          <span>{t('update.ready', { version: deskUpdate })}</span>
-          <button className="primary" onClick={() => void run(installDeskUpdate())}>
-            {t('update.restart')}
-          </button>
+          <span>
+            {deskQuestion === null
+              ? t('update.ready', { version: deskUpdate })
+              : t('update.restartQuestion', { sessions: deskQuestion })}
+          </span>
+          <span className="actions">
+            {deskQuestion !== null && <button onClick={() => setDeskQuestion(null)}>{t('form.cancel')}</button>}
+            <button
+              className="primary"
+              onClick={() => void run(deskQuestion === null ? restartDesk() : installDeskUpdate())}
+            >
+              {t('update.restart')}
+            </button>
+          </span>
         </div>
       )}
       {error !== null && (
@@ -266,13 +335,13 @@ export function HostList({
           if (removing === host.id && host.ssh !== undefined) {
             return <RemoveSshRow key={host.id} host={host} ssh={host.ssh} onDone={() => setRemoving(null)} />;
           }
-          // The local host updates by its own rule (plan 03), never from this notice.
           const behind =
-            host.kind !== 'local' &&
             status.kind === 'connected' &&
             status.ahpd !== null &&
             latestAhpd !== null &&
             newer(latestAhpd, status.ahpd);
+          // An update stops ahpd while it installs: the row says so through the drop, and offers no Retry.
+          const updatingHost = updating.has(host.id);
           if (confirmingUpdate === host.id && latestAhpd !== null) {
             return (
               <li key={host.id} className="host confirm">
@@ -349,21 +418,23 @@ export function HostList({
                 {tunnelDown && tunnel.needs === null && tunnel.key === null && (
                   <button onClick={() => void run(openSshTunnel(host.id))}>{t('hosts.retry')}</button>
                 )}
-                {status.kind === 'down' && !tunnelDown && (
+                {status.kind === 'down' && !tunnelDown && !updatingHost && (
                   <button onClick={() => void run(statuses.retry(host.id))}>{t('hosts.retry')}</button>
                 )}
               </span>
               <RowMenu onEdit={() => onEdit(host)} onRemove={() => setRemoving(host.id)} />
               {/* Under the whole row, from the name on, so the words and Update both fit. */}
-              {behind && (
+              {updatingHost && (
                 <span className="row-note">
-                  <span
-                    className="note-text"
-                    title={updating.has(host.id) ? undefined : t('hosts.ahpdAvailable', { version: latestAhpd })}
-                  >
-                    {updating.has(host.id) ? t('hosts.updating') : t('hosts.ahpdAvailable', { version: latestAhpd })}
+                  <span className="note-text">{t('hosts.updating')}</span>
+                </span>
+              )}
+              {behind && !updatingHost && (
+                <span className="row-note">
+                  <span className="note-text" title={t('hosts.ahpdAvailable', { version: latestAhpd })}>
+                    {t('hosts.ahpdAvailable', { version: latestAhpd })}
                   </span>
-                  {!updating.has(host.id) && (ways[host.id] ?? null) !== null && (
+                  {(ways[host.id] ?? null) !== null && (
                     <button
                       className="link"
                       onClick={() =>

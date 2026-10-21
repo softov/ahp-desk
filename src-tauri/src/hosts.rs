@@ -154,6 +154,10 @@ pub struct OnDesk {
     /// "Stop when the desktop app quits", off by default.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub stop_on_quit: bool,
+    /// "Update ahpd automatically", on by default: an ahpd the desk installed
+    /// updates through its own update command while no turn runs (plan 03 decision 6).
+    #[serde(default = "on", skip_serializing_if = "is_on")]
+    pub auto_update: bool,
 }
 
 impl Default for OnDesk {
@@ -161,6 +165,7 @@ impl Default for OnDesk {
         OnDesk {
             start_on_launch: true,
             stop_on_quit: false,
+            auto_update: true,
         }
     }
 }
@@ -184,7 +189,7 @@ pub struct HostInput {
     /// The ahpd a `local` host uses, when one is set instead of the one found.
     #[serde(default)]
     pub ahpd_path: Option<String>,
-    /// A `local` host's two settings; absent keeps what the host has.
+    /// A `local` host's settings; absent keeps what the host has.
     #[serde(default)]
     pub on_desk: Option<OnDeskView>,
     /// The host's server over SSH; its kept password comes apart.
@@ -192,12 +197,13 @@ pub struct HostInput {
     pub ssh: Option<SshHostView>,
 }
 
-/// `OnDesk` as the shell reads and sends it: both settings, always.
+/// `OnDesk` as the shell reads and sends it: every setting, always.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OnDeskView {
     pub start_on_launch: bool,
     pub stop_on_quit: bool,
+    pub auto_update: bool,
 }
 
 impl From<OnDeskView> for OnDesk {
@@ -205,6 +211,7 @@ impl From<OnDeskView> for OnDesk {
         OnDesk {
             start_on_launch: view.start_on_launch,
             stop_on_quit: view.stop_on_quit,
+            auto_update: view.auto_update,
         }
     }
 }
@@ -222,7 +229,7 @@ pub struct HostView {
     pub ahpd_path: Option<String>,
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub token_in_file: bool,
-    /// A `local` host's two settings; none on a `url` host.
+    /// A `local` host's settings; none on a `url` host.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub on_desk: Option<OnDeskView>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -244,6 +251,7 @@ impl From<&Host> for HostView {
             on_desk: (host.kind == HostKind::Local).then_some(OnDeskView {
                 start_on_launch: host.on_desk.start_on_launch,
                 stop_on_quit: host.on_desk.stop_on_quit,
+                auto_update: host.on_desk.auto_update,
             }),
             ssh: host.ssh.as_ref().map(SshHostView::from),
             ssh_password_in_file: host.ssh.as_ref().is_some_and(|ssh| ssh.password.is_some()),
@@ -466,6 +474,17 @@ impl HostStore {
             .filter(|host| {
                 host.kind == HostKind::Local && host.on_desk.stop_on_quit && host.started_by_desk
             })
+            .map(|host| host.id.clone())
+            .collect()
+    }
+
+    /// The `local` hosts whose ahpd a desk update stops before its installer
+    /// runs: every one the desk started, whatever its quit setting, since it
+    /// runs on the desk's own Node, which the installer replaces.
+    pub fn to_stop_for_desk_install(&self) -> Vec<String> {
+        self.lock()
+            .iter()
+            .filter(|host| host.kind == HostKind::Local && host.started_by_desk)
             .map(|host| host.id.clone())
             .collect()
     }
@@ -773,6 +792,7 @@ mod tests {
             host.on_desk = Some(OnDeskView {
                 start_on_launch,
                 stop_on_quit,
+                auto_update: id != "off",
             });
             host
         };
@@ -782,6 +802,7 @@ mod tests {
         store.save(local("ours", true, true), None).unwrap();
         assert_eq!(store.to_start_on_launch(), ["plain", "ours"]);
         assert!(store.to_stop_on_quit().is_empty(), "the desk started none");
+        assert!(store.to_stop_for_desk_install().is_empty());
         store
             .set_local("off", Some(("ws://h", None)), true)
             .unwrap();
@@ -792,10 +813,13 @@ mod tests {
             .set_local("plain", Some(("ws://h", None)), true)
             .unwrap();
         assert_eq!(store.to_stop_on_quit(), ["off", "ours"]);
+        assert_eq!(store.to_stop_for_desk_install(), ["plain", "off", "ours"]);
 
         // The defaults are not written, and a host read with none gets them.
         assert!(!scratch.text().contains("startOnLaunch\": true"));
         assert!(scratch.text().contains("\"startOnLaunch\": false"));
+        assert!(!scratch.text().contains("autoUpdate\": true"));
+        assert!(scratch.text().contains("\"autoUpdate\": false"));
         let view = store
             .list()
             .into_iter()
@@ -805,7 +829,8 @@ mod tests {
             view.on_desk,
             Some(OnDeskView {
                 start_on_launch: true,
-                stop_on_quit: false
+                stop_on_quit: false,
+                auto_update: true
             })
         );
         assert_eq!(store.list()[0].on_desk, None, "a url host has none");

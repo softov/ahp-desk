@@ -7,6 +7,7 @@ import {
   saveHost,
   sshKeyringWorks,
   sshSignIn,
+  ON_DESK_DEFAULTS,
   type OnDesk,
   type ShellHost,
 } from './ipc.js';
@@ -81,7 +82,7 @@ export function HostForm({
   useEffect(() => {
     if (ssh !== undefined) sshKeyringWorks().then(setKeyring, (err: unknown) => setError(String(err)));
   }, [ssh]);
-  const [onDesk, setOnDesk] = useState<OnDesk>(host?.onDesk ?? { startOnLaunch: true, stopOnQuit: false });
+  const [onDesk, setOnDesk] = useState<OnDesk>(host?.onDesk ?? ON_DESK_DEFAULTS);
 
   // A tunnel's address is its kept local port, never typed.
   const url = local || tunnel ? (host?.url ?? '') : normalizeUrl(address);
@@ -160,6 +161,15 @@ export function HostForm({
               <span>{t('form.stopOnQuit')}</span>
             </label>
             <p className="hint">{t('form.stopOnQuitHint')}</p>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={onDesk.autoUpdate}
+                onChange={(event) => setOnDesk({ ...onDesk, autoUpdate: event.target.checked })}
+              />
+              <span>{t('form.autoUpdate')}</span>
+            </label>
+            <p className="hint">{t('form.autoUpdateHint')}</p>
           </>
         ) : (
           <>

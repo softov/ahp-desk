@@ -824,6 +824,17 @@ pub fn stop_on_quit(app: &AppHandle) {
     }
 }
 
+/// Before a desk update's installer: stops every local host's ahpd the desk
+/// started, since it runs on the bundled Node the installer replaces; the new
+/// desk starts it again by its start setting.
+pub fn stop_for_desk_install(app: &AppHandle) {
+    for id in app.state::<HostStore>().to_stop_for_desk_install() {
+        if let Err(err) = stop_host(app, &id) {
+            eprintln!("ahp-desk: could not stop the ahpd of {id}: {err}");
+        }
+    }
+}
+
 /// One step of an install, as the shell shows it.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]

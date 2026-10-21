@@ -1,6 +1,6 @@
 ---
 title: ahpd has an update command for an administrator, over CLI, HTTP and AHP
-status: todo
+status: done
 depends: []
 layer: "ahpd (the ahpd repository)"
 refs:
@@ -65,4 +65,8 @@ What the ahpd plan is asked for is below; the files it touches are its own to na
 ## Resume
 
 - 2026-10-19: ahpd took the request as its plan daemon/35, with the shape asked for: `{ from, to, restarting: true }` after the install on Linux and macOS, `{ current, latest, may }` for `check`; Windows is in that plan, with the answer sent before the install.
-- Still `todo` here: done when an ahpd release has the command, whose version ahpd sends back.
+- 2026-10-20: released in ahpd 0.13.0 (daemon/35), with the method `x-ahpd/update` and the params `{ version?, check?, force? }` asked for; a check answers `{ current, latest, may, why? }`, an update `{ from, to, restarting }`.
+  A token other than the deployment's is refused with `-32009`, and an ahpd before 0.13.0 answers `-32601`.
+  On Windows a helper installs after the daemon stops, moves the plugins to `@ahpd/sdk@<version>`, and starts the daemon again.
+- Found while building task 04: a check with no `version` asks npm for `/@ahpd/server/dist-tags` with the `/` unencoded, which a registry such as verdaccio answers 404; the desk always sends the row's version, so it never hits this; still to report to the ahpd repository.
+- Found while checking plan 03 task 07: the plugin move pins `@ahpd/sdk@<version>`, so a release of `@ahpd/server` without the same `@ahpd/sdk` version leaves the daemon down after the update; ahpd's releases publish both, so only a hand-made registry hits it.

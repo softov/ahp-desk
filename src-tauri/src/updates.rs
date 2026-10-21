@@ -51,15 +51,25 @@ impl DeskUpdate {
 /// the background; a debug build never asks. A failure (offline, no release
 /// yet, a bad signature) is one log line, and the desk runs on.
 pub fn check_on_start(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move { check_desk(&app).await });
+}
+
+/// The start check, and the one `watch` makes every 6 hours after it, so a
+/// desk left running for days still finds a new release. A debug build never asks.
+async fn check_desk(app: &AppHandle) {
     if cfg!(debug_assertions) {
         return;
     }
-    let app = app.clone();
-    tauri::async_runtime::spawn(async move {
-        if let Err(err) = download_desk(&app).await {
-            eprintln!("ahp-desk: no desk update: {err}");
-        }
-    });
+    if let Err(err) = download_desk(app).await {
+        eprintln!("ahp-desk: no desk update: {err}");
+    }
+}
+
+/// Whether a release found is new to the desk: one already downloaded and
+/// waiting for Restart is not fetched or announced again.
+fn new_release(ready: Option<&str>, found: &str) -> bool {
+    ready != Some(found)
 }
 
 async fn download_desk(app: &AppHandle) -> Result<(), String> {
@@ -69,8 +79,9 @@ async fn download_desk(app: &AppHandle) -> Result<(), String> {
         // On Windows the install ends the process with no RunEvent::Exit, so the
         // desk's quit runs here, after the download is checked and unpacked and
         // just before the installer starts; elsewhere the restart runs it.
+        // The installer replaces the bundled Node, so the local ahpd stops too.
         .on_before_exit(move || {
-            crate::before_quit(&quit);
+            crate::before_desk_install(&quit);
             quit.cleanup_before_exit();
         })
         .build()
@@ -78,6 +89,14 @@ async fn download_desk(app: &AppHandle) -> Result<(), String> {
     let Some(update) = updater.check().await.map_err(|err| err.to_string())? else {
         return Ok(());
     };
+    let ready = app
+        .state::<DeskUpdate>()
+        .lock()
+        .as_ref()
+        .map(|ready| ready.version.clone());
+    if !new_release(ready.as_deref(), &update.version) {
+        return Ok(());
+    }
     let bytes = update
         .download(|_, _| {}, || {})
         .await
@@ -92,8 +111,8 @@ async fn download_desk(app: &AppHandle) -> Result<(), String> {
         .map_err(|err| err.to_string())
 }
 
-/// Installs the ready desk and restarts into it; the host list's Restart and
-/// the tray's item both come here. A failed install keeps it ready for another try.
+/// Installs the ready desk and restarts into it; the host list's Restart comes
+/// here, and the tray's item through it. A failed install keeps it ready for another try.
 pub async fn install(app: AppHandle) -> Result<(), String> {
     let ready = app
         .state::<DeskUpdate>()
@@ -205,6 +224,9 @@ fn tls_provider() {
 /// npm's `latest` for `name`, from `<registry>/-/package/<name>/dist-tags`.
 /// Every failure is `None`: offline, a timeout, an answer that is not `ok`,
 /// a body that is not JSON, as ahpd's `askRegistry()`.
+///
+/// A scoped name's `/` is sent as `%2f`, as npm sends it: npmjs.org takes
+/// either, and a registry such as verdaccio answers the bare `/` with 404.
 pub async fn ask_npm(registry: &str, name: &str) -> Option<String> {
     tls_provider();
     let client = reqwest::Client::builder()
@@ -212,7 +234,7 @@ pub async fn ask_npm(registry: &str, name: &str) -> Option<String> {
         .build()
         .ok()?;
     let answer = client
-        .get(format!("{registry}/-/package/{name}/dist-tags"))
+        .get(format!("{registry}/-/package/{}/dist-tags", name.replace('/', "%2f")))
         .header(reqwest::header::ACCEPT, "application/json")
         .send()
         .await
@@ -231,7 +253,9 @@ fn now() -> u64 {
 }
 
 /// Asks npm when the kept answer is stale, at start and then every 6 hours;
-/// a failed ask leaves the file as it was until the next round.
+/// a failed ask leaves the file as it was until the next round. After each
+/// 6 hours it checks for a newer desk too; the first round leaves that to
+/// `check_on_start`, which has just asked.
 pub fn watch(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
@@ -257,6 +281,7 @@ pub fn watch(app: &AppHandle) {
                 }
             }
             tokio::time::sleep(MAX_AGE).await;
+            check_desk(&app).await;
         }
     });
 }
@@ -303,6 +328,13 @@ mod tests {
             registry(Some("https://mirror.example/npm//".into())),
             "https://mirror.example/npm"
         );
+    }
+
+    #[test]
+    fn updates_a_desk_release_already_ready_is_not_new() {
+        assert!(new_release(None, "0.2.0"));
+        assert!(new_release(Some("0.2.0"), "0.3.0"));
+        assert!(!new_release(Some("0.2.0"), "0.2.0"));
     }
 
     #[test]
@@ -381,7 +413,7 @@ mod tests {
         );
         let request = served.join().unwrap();
         assert!(
-            request.starts_with("GET /-/package/@ahpd/server/dist-tags "),
+            request.starts_with("GET /-/package/@ahpd%2fserver/dist-tags "),
             "{request}"
         );
         assert!(

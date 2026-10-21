@@ -1,6 +1,6 @@
 ---
 title: The desk checks for its own update again every 6 hours, into plan 04 task 03's notice
-status: todo
+status: doing
 depends: [task-01-npm-latest-ahpd.md]
 layer: "src-tauri"
 refs:
@@ -39,3 +39,11 @@ It waits for plan 04 task 03 and for task 01's `watch` loop.
 - With the host list window closed when the re-check finds the release, the tray's first item still appears; plan 04 task 03 has the host list send the tray its words, so if the item waits for the host list to open, that is plan 04 task 03's to fix, written in its Resume.
 
 ## Resume
+
+- 2026-10-20: `updates.rs` has `async fn check_desk(app)`, the body of `check_on_start`, which now spawns it; it returns at once on `cfg!(debug_assertions)`, and a failure is the same `eprintln!` line as at start.
+- `download_desk` asks `new_release(ready, found)` before downloading: a release already in `DeskUpdate`'s `Ready` is not downloaded or sent again, so the notice and the tray item stay as they are.
+- `watch` calls `check_desk(&app)` after each `MAX_AGE` sleep, never on its first round, which `check_on_start` has just covered.
+- Verified: `cargo test` (137, with `updates_a_desk_release_already_ready_is_not_new`), `cargo clippy --all-targets -- -D warnings` through `pnpm lint`, `pnpm typecheck`, `pnpm test`.
+- Still `doing`: the by-hand check needs an installed older signed release and a newer one published on GitHub while the desk runs, which is plan 04 task 06's pair; v0.1.0 is the older one, and the next release Softov tags is the newer one.
+  The check with the host list window closed is run in the same pass.
+- Not run: a debug desk with the network watched; `check_desk` returns on `cfg!(debug_assertions)` before any updater is built, as the start check does.
