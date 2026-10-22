@@ -47,3 +47,5 @@ It waits for plan 04 task 03 and for task 01's `watch` loop.
 - Still `doing`: the by-hand check needs an installed older signed release and a newer one published on GitHub while the desk runs, which is plan 04 task 06's pair; v0.1.0 is the older one, and the next release Softov tags is the newer one.
   The check with the host list window closed is run in the same pass.
 - Not run: a debug desk with the network watched; `check_desk` returns on `cfg!(debug_assertions)` before any updater is built, as the start check does.
+
+- 2026-10-22: v0.1.0 has the check at start only, so its update to 0.2.0 (plan 04 task 06) showed the notice after a start, as plan 04 task 03 built it; the check every 6 hours is in 0.2.0 and later, so it is seen by hand on a 0.2.0 desk left running while 0.2.1 is published.

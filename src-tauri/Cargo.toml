@@ -1,6 +1,6 @@
 [package]
 name = "ahp-desk"
-version = "0.2.0"
+version = "0.2.1"
 description = "A desktop app for Agent Host Protocol hosts"
 authors = ["Luiz Fernando Softov <lfs@softov.dev>"]
 license = "MIT"
