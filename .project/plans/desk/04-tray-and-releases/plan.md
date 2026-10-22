@@ -107,7 +107,8 @@ git tag v* -> GitHub Actions -> tauri-action with --config src-tauri/tauri.relea
   Task 03 is built and checked on a release build, and task 04 made the v0.1.0 release, 2026-10-18.
   Tasks 01, 02 and 05 checked by hand on Windows on a release build, 2026-10-21; each keeps Debian 13, and task 01 the menu's words in Portuguese and Spanish.
   Task 06 ran on v0.1.0 and v0.2.0, 2026-10-22, and found three installer defects, now in `hooks.nsh` for 0.2.1.
-- **Next action:** task 06's run of the 0.2.1 hooks by hand on Windows (the update from 0.1.0 with a local ahpd on, and the uninstall with it on), then the release of 0.2.1 and its update from 0.2.0; step 11 on Debian 13.
+  The 0.2.1 hooks checked by hand and v0.2.1 released, 2026-10-22.
+- **Next action:** task 06's update to 0.2.1 from the desk's own Restart, on 0.1.0 and on 0.2.0; step 11 on Debian 13.
   The Debian 13 checks of tasks 01, 02 and 05 can run beside it.
 - **Open questions:** none.
 - **Watch out for:** the release build needs `--config src-tauri/tauri.release.conf.json`, which turns on `createUpdaterArtifacts` (Answers: the updater artifacts), or no `.sig` file is made; an update must not remove the login entry that the uninstaller hook removes (task 05).
