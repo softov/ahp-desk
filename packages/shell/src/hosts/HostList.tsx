@@ -309,7 +309,7 @@ export function HostList({
               ? t('update.ready', { version: deskUpdate })
               : t('update.restartQuestion', { sessions: deskQuestion })}
           </span>
-          <span className="actions">
+          <span className="desk-update-buttons">
             {deskQuestion !== null && <button onClick={() => setDeskQuestion(null)}>{t('form.cancel')}</button>}
             <button
               className="primary"
