@@ -278,7 +278,7 @@ button.danger:hover:not(:disabled) {
   font-size: var(--oo-font-size-sm);
 }
 
-.desk-update .actions {
+.desk-update .desk-update-buttons {
   display: flex;
   flex: none;
   gap: 8px;
