@@ -18,12 +18,12 @@ What exists today, and the first release that plans 01 to 10 build: [00-desk.md]
 | [01 - The shell, the host list and the app window](desk/01-shell-and-url-hosts/plan.md) | built | - |
 | [02 - ahpw on the desk](desk/02-ahpw-on-the-desk/plan.md) | built | - |
 | [03 - The local ahpd](desk/03-local-ahpd/plan.md) | built | - |
-| [04 - The tray, the updater and the releases](desk/04-tray-and-releases/plan.md) | active | v0.2.1 released with the installer hooks; task 06's step 11 on Debian 13; Debian 13 checks of tasks 01, 02, 05 |
+| [04 - The tray, the updater and the releases](desk/04-tray-and-releases/plan.md) | built | a release with the Linux fixes waits (deferred.md) |
 | [05 - ahpapp in a private build](desk/05-ahpapp-on-the-desk/plan.md) | draft | name and release channel |
 | [06 - The bot pill](desk/06-bot-pill/plan.md) | draft | write the tasks |
 | [07 - Desk polish before the first release](desk/07-desk-polish/plan.md) | built | - |
 | [08 - Each host keeps its own pages on the desk](desk/08-host-scoped-storage/plan.md) | built | - |
-| [09 - The desk says what can be updated, and updates it](desk/09-update-alerts/plan.md) | active | task 06's by-hand check on a 0.2.0 desk left running while 0.2.1 is published; then task 08 |
+| [09 - The desk says what can be updated, and updates it](desk/09-update-alerts/plan.md) | active | task 06's by-hand check on a 0.2.0 or 0.2.1 desk left running while the next release is published; then task 08 |
 | [10 - Install ahpd on a Linux server over SSH](desk/10-ssh-install/plan.md) | active | task 13 (a running ahpd found, a free port) by hand; then the pending check |
 | [11 - VS Code as a host](desk/11-vscode-hosts/plan.md) | draft | write the task files |
 | [12 - A window with every host](desk/12-a-window-with-every-host/plan.md) | built | - |

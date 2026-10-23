@@ -1,6 +1,6 @@
 ---
 title: A released desk installs, updates and is removed cleanly on a clean Windows user
-status: todo
+status: done
 depends: [task-04-release-workflow.md, task-05-start-with-the-os.md]
 layer: "ahp-desk"
 refs:
@@ -61,3 +61,10 @@ Every item of the plan's checklist holds on the released installers, the way a u
   The notice's Restart sat 16 px below its words, since its button group used the class `actions`, which the forms' `.actions` pads at the top; it is `desk-update-buttons` now (`HostList.tsx`, `app.css`), checked in a headless render of the notice with the old and new CSS.
 - Not run: the Restart from v0.1.0 to 0.2.1; 0.1.0's own Restart stopped nothing before its installer, and the 0.2.1 installer now does that itself, as the run above with the updater's flags showed.
 - Left: step 11 on Debian 13.
+
+- 2026-10-22 and 23, step 11 on Debian 13 with GNOME 48 on Wayland, with the v0.2.1 release bundles (their hashes matched the release):
+  - the AppImage starts with no `libfuse2` on the machine, and carries `libayatana-appindicator3`; `sudo apt install ./ahp-desk_0.2.1_amd64.deb` installed it and pulled in the three ayatana packages;
+  - stock GNOME shows no tray: no icon from either bundle; closing the list hid it with no way back but a second start, and no way to quit; fixed by two decisions, [with no tray, closing the host list quits](../../../decisions/with-no-tray-closing-the-host-list-quits.md) and [with no tray, a start at login shows the host list](../../../decisions/with-no-tray-a-start-at-login-shows-the-host-list.md), with `tray::shown`, and the README names GNOME's AppIndicator extension;
+  - opening a host showed no window, on the release AppImage and the deb: the app window's navigation guard compared `Url::origin`, which is opaque for Linux's `ahpw://localhost`, so it refused the window's first page and the transparent window stayed empty; `is_ui` now compares the scheme, host and port, with three tests;
+  - after the host list hid under the pointer and came back from the tray, its close button showed red with its tooltip: WebKitGTK keeps the hover of a window that hid, and sends a move at the old position as it shows; the shell now sets `pointer-away` on blur and on hide, holds every `:hover` and title until a move elsewhere, and was checked on the VM.
+- On a deb built from the branch with those fixes: with no tray, a close quits and `--autostart` shows the list; with GNOME's AppIndicator extension, the icon, its menu, the hide on close, Hosts and Quit work, and ahpw opens and connects to a local ahpd 0.13.0.

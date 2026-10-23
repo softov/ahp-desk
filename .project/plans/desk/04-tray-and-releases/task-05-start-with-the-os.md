@@ -1,6 +1,6 @@
 ---
 title: The first run and Settings have "Start with the OS", on by default
-status: doing
+status: done
 depends: [task-01-tray-icon-and-menu.md, task-02-close-to-tray-and-setting.md]
 layer: "src-tauri, packages/shell"
 refs:
@@ -79,3 +79,9 @@ Removing the desk on Windows removes its login entry too.
   - unticking in Settings removed the Run value; after removing the last host the first run showed the box unticked;
   - the uninstaller asked only "Delete the application data", unticked; it removed the Run value, the install folder, the Start menu and desktop shortcuts, and left `%APPDATA%\dev.softov.ahpdesk` and `<app local data>`.
 - Left: Debian 13.
+
+- Checked on Debian 13 with GNOME 48 on Wayland, 2026-10-23, with a deb built from the branch `desk/no-tray-quits` (0.2.1 and the fixes below) and GNOME's AppIndicator extension on:
+  - the deb's box on wrote `~/.config/autostart/ahp-desk.desktop` with `Exec=/usr/bin/ahp-desk --autostart`; after sign out and in, the desk was running with `--autostart`, no window shown and its icon in the top bar;
+  - the release AppImage's box off removed the file, and on wrote `Exec=<home>/desk-check/ahp-desk_0.2.1_amd64.AppImage --autostart`, the AppImage's own path, not its mount;
+  - with no tray, `--autostart` shows the host list ([with no tray, a start at login shows the host list](../../../decisions/with-no-tray-a-start-at-login-shows-the-host-list.md)).
+- The AppImage's own start at a new login was not run; the login start was run with the deb.

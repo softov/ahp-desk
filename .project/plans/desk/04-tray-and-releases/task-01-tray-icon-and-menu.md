@@ -1,6 +1,6 @@
 ---
 title: The desk has a tray icon whose menu shows the host list and quits
-status: doing
+status: done
 depends: []
 layer: "src-tauri, packages/shell"
 refs:
@@ -71,3 +71,6 @@ The menu's words are in the language the host list shows, and change with a pick
 - Checked by hand on a Windows 10 VM, as a new standard user with no Node and no ahpd, on a release NSIS build of the branch of plan 09 task 04 (PR #1), 2026-10-21: the icon is in the tray (in its overflow) with the tooltip `ahp-desk`; the right click opens Hosts, Settings and Quit ahp-desk; a left click shows the hidden host list; with ahpw open on a host and the list hidden, Hosts shows the list; Settings opens the Settings screen; Quit ends the desk, and with "Stop when the desktop app quits" on, its ahpd too.
 - The menu in Portuguese and Spanish after a pick in the title bar was opened, but its words were not read in a capture; English was.
 - Left: the menu's words in Portuguese and Spanish, and Debian 13.
+
+- Checked on Debian 13 with GNOME 48 on Wayland, 2026-10-23, with a deb built from the branch `desk/no-tray-quits` (0.2.1 and the fixes below) and GNOME's AppIndicator extension on: the icon is in the top bar; its menu reads Hosts, Settings, Quit ahp-desk, then Hosts, Configurações, Sair do ahp-desk after Português (Brasil), and Hosts, Configuración, Salir de ahp-desk after Español, as the dictionaries say; Hosts shows the hidden host list, Settings opens Settings, and Quit ends the desk.
+- Stock GNOME, without the extension, shows no tray at all; the desk then quits on a close and shows the host list at a start at login ([with no tray, closing the host list quits](../../../decisions/with-no-tray-closing-the-host-list-quits.md)).

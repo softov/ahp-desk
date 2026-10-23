@@ -52,6 +52,30 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
+/// Whether the desktop shows the tray icon now.
+/// On Linux the icon is a StatusNotifierItem, shown only while a host such as
+/// GNOME's AppIndicator extension is registered with the watcher; stock GNOME
+/// has none, so no watcher answers, which is a "no", as is a session bus that
+/// cannot be reached, since the icon needs it too.
+pub fn shown() -> bool {
+    #[cfg(target_os = "linux")]
+    return status_notifier_host_registered().unwrap_or(false);
+    #[cfg(not(target_os = "linux"))]
+    true
+}
+
+#[cfg(target_os = "linux")]
+fn status_notifier_host_registered() -> zbus::Result<bool> {
+    let bus = zbus::blocking::Connection::session()?;
+    let watcher = zbus::blocking::Proxy::new(
+        &bus,
+        "org.kde.StatusNotifierWatcher",
+        "/StatusNotifierWatcher",
+        "org.kde.StatusNotifierWatcher",
+    )?;
+    watcher.get_property("IsStatusNotifierHostRegistered")
+}
+
 /// Sets the menu in the host list's language. Only the host list may call it.
 #[tauri::command]
 pub fn set_tray_words(app: AppHandle, words: TrayWords) -> Result<(), String> {

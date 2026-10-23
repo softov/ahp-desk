@@ -1,7 +1,7 @@
 ---
 title: The tray, the updater and the releases
 domain: desk
-status: active
+status: built
 priority: medium
 created: 2026-10-11
 revalidated: 2026-10-14
@@ -15,6 +15,8 @@ decisions:
   - decisions/the-installer-stops-the-local-ahpd-before-it-writes.md
   - decisions/the-uninstaller-asks-then-stops-the-local-ahpd.md
   - decisions/each-install-carries-only-its-own-ui.md
+  - decisions/with-no-tray-closing-the-host-list-quits.md
+  - decisions/with-no-tray-a-start-at-login-shows-the-host-list.md
 refs:
   - file:///github/opendoop/packages/tauri/src-tauri/src/tray.rs - the tray menu and the left click, at lines 8-62
   - file:///github/opendoop/packages/tauri/src-tauri/src/shell_settings.rs - closeBehavior, minimize to tray or quit
@@ -67,6 +69,8 @@ git tag v* -> GitHub Actions -> tauri-action with --config src-tauri/tauri.relea
 | The tray menu is Hosts, Settings and Quit, with no "Show pill"; plan 06 adds "Show pill" when it builds the pill. | Softov, 2026-10-14: "No, p6 adds it" | 01 |
 | A gear in the host list's title bar, before the language picker, opens Settings. | Softov, 2026-10-14: "Gear in the title bar" | 02 |
 | A start at login (`--autostart`) builds the host list hidden and shows only the tray icon; a start by hand, or a second start, shows the host list. | Softov, 2026-10-14: "No, tray only" | 05 |
+| [With no tray to come back from, closing the host list quits](../../../decisions/with-no-tray-closing-the-host-list-quits.md) | Softov, 2026-10-22: "Close quits without a tray" | 06 |
+| [With no tray, a start at login shows the host list](../../../decisions/with-no-tray-a-start-at-login-shows-the-host-list.md) | Softov, 2026-10-22: "Show the list" | 06 |
 | Each build job of the release workflow runs `tauri-apps/tauri-action`, which uploads the bundles with their `.sig` files and merges its platform into `latest.json`. | Softov, 2026-10-14: "tauri-apps/tauri-action" | 04 |
 | [The Linux release builds on ubuntu-22.04](../../../decisions/the-linux-release-builds-on-ubuntu-22-04.md) | Softov, 2026-10-14: "ubuntu-22.04" | 04 |
 | [The updater artifacts are made only in the release build](../../../decisions/updater-artifacts-are-made-only-in-the-release-build.md) | Softov, 2026-10-14: "Release config only" | 03, 04 |
@@ -87,12 +91,12 @@ git tag v* -> GitHub Actions -> tauri-action with --config src-tauri/tauri.relea
 
 | Task | Status | Depends on |
 | --- | --- | --- |
-| [01 - tray icon and menu](task-01-tray-icon-and-menu.md) | doing | - |
-| [02 - close to the tray, and the setting](task-02-close-to-tray-and-setting.md) | doing | 01 |
+| [01 - tray icon and menu](task-01-tray-icon-and-menu.md) | done | - |
+| [02 - close to the tray, and the setting](task-02-close-to-tray-and-setting.md) | done | 01 |
 | [03 - updater with the signing key](task-03-updater-with-signing-key.md) | done | 01 |
 | [04 - release workflow for Windows and Linux](task-04-release-workflow.md) | done | 03 |
-| [05 - start with the OS, on the first run and in Settings](task-05-start-with-the-os.md) | doing | 01, 02 |
-| [06 - install, update and remove on a clean Windows](task-06-install-update-remove-on-windows.md) | todo | 04, 05 |
+| [05 - start with the OS, on the first run and in Settings](task-05-start-with-the-os.md) | done | 01, 02 |
+| [06 - install, update and remove on a clean Windows](task-06-install-update-remove-on-windows.md) | done | 04, 05 |
 
 ## Risks and tradeoffs
 
@@ -109,13 +113,13 @@ git tag v* -> GitHub Actions -> tauri-action with --config src-tauri/tauri.relea
   Task 06 ran on v0.1.0 and v0.2.0, 2026-10-22, and found three installer defects, now in `hooks.nsh` for 0.2.1.
   The 0.2.1 hooks checked by hand and v0.2.1 released, 2026-10-22.
   The update from 0.2.0 to 0.2.1 by the desk's own Restart, 2026-10-22.
-- **Next action:** task 06's step 11 on Debian 13; then the plan's close.
-  The Debian 13 checks of tasks 01, 02 and 05 can run beside it.
+  Task 06's step 11 and the Debian 13 checks of tasks 01, 02 and 05 on GNOME 48, 2026-10-23, with three Linux fixes on the branch `desk/no-tray-quits`; the plan is built ([implemented.md](implemented.md)).
+- **Next action:** none in this plan; the release that carries the Linux fixes is in [deferred.md](deferred.md).
 - **Open questions:** none.
 - **Watch out for:** the release build needs `--config src-tauri/tauri.release.conf.json`, which turns on `createUpdaterArtifacts` (Answers: the updater artifacts), or no `.sig` file is made; an update must not remove the login entry that the uninstaller hook removes (task 05).
 
 ## Final verification checklist
 
 - [x] A tag builds both installers in CI, and the release has `latest.json`.
-- [ ] An older install finds the new release and updates.
-- [ ] `plans/index.md` updated.
+- [x] An older install finds the new release and updates.
+- [x] `plans/index.md` updated.

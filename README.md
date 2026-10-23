@@ -36,7 +36,9 @@ Download the latest release from the [releases page](https://github.com/softov/a
 
 > **Note:** The Windows installer has no code signature yet, so SmartScreen warns before it runs. Click **More info**, then **Run anyway**.
 
-On Linux the tray needs `libayatana-appindicator3`, which most desktops already have.
+On Linux the tray needs `libayatana-appindicator3`, which the AppImage carries and the deb installs.
+GNOME shows the tray only with its AppIndicator extension (`gnome-shell-extension-appindicator` on Debian and Ubuntu).
+With no tray, closing the host list quits the desk.
 
 The first start welcomes you and asks where your first host is:
 

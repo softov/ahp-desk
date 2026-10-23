@@ -20,7 +20,9 @@ refs:
   - "[code://packages/shell/src/hosts/status.ts#L122](../../packages/shell/src/hosts/status.ts#L122) - `publish`, the host list's side of it"
   - "[code://packages/shell/src/FirstRun.tsx#L21](../../packages/shell/src/FirstRun.tsx#L21) - `FirstRun`"
   - "[code://packages/shell/src/i18n.ts#L296](../../packages/shell/src/i18n.ts#L296) - `fromOs`, the language before one is picked"
-  - "[code://src-tauri/src/app_window.rs#L218](../../src-tauri/src/app_window.rs#L218) - `hide_if_host_list`"
+  - "[code://src-tauri/src/app_window.rs#L291](../../src-tauri/src/app_window.rs#L291) - `hide_if_host_list`"
+  - "[code://packages/shell/src/window.ts#L38](../../packages/shell/src/window.ts#L38) - `pointer-away`: no hover until the pointer moves in"
+  - "[code://packages/shell/src/app.css#L123](../../packages/shell/src/app.css#L123) - every `:hover` waits for `pointer-away` to go"
   - git://4c89294 - the deleted decisions this spec was written from: a-ui-takes-its-hosts-from-a-command-and-an-event, open-hides-the-host-list, the-desk-speaks-english-portuguese-and-spanish, the-first-run-adds-a-url-host, tokens-are-kept-in-the-os-keyring
 ---
 
@@ -80,6 +82,12 @@ AND the shell keeps the last map, so a window that opens later reads it with `ho
 WHEN the desk shows a word
 THEN it is in English, Portuguese (Brasil) or Spanish
 AND the language follows the OS until one is picked in the title bar, and the pick is kept.
+
+### A window that comes back shows no old hover
+
+WHEN the host list hides under the pointer, by a close or an open, and is shown again
+THEN nothing in it shows a hover or a tooltip until the pointer moves in it
+AND the move WebKitGTK sends at the old position as the window shows does not count.
 
 ## Known gaps
 

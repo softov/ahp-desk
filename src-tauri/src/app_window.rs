@@ -236,7 +236,7 @@ fn build_app_window(
             NewWindowResponse::Deny
         })
         .on_navigation(move |url| {
-            if url.origin() == ui.origin() {
+            if is_ui(url, &ui) {
                 return true;
             }
             open_outside(&for_nav, url);
@@ -265,6 +265,16 @@ fn build_app_window(
         }
     });
     Ok(())
+}
+
+/// Whether `url` is a page of the UI: its scheme, host and port.
+/// Not `Url::origin`, which is opaque for a custom scheme such as Linux's
+/// `ahpw://localhost/`, and two opaque origins are never equal, so the
+/// window refused even its first page and stayed empty.
+fn is_ui(url: &Url, ui: &Url) -> bool {
+    url.scheme() == ui.scheme()
+        && url.host_str() == ui.host_str()
+        && url.port_or_known_default() == ui.port_or_known_default()
 }
 
 /// Opens a web or mail link in the OS's own app for it; any other scheme is dropped.
@@ -336,6 +346,40 @@ pub fn show_host_list(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn url(text: &str) -> Url {
+        Url::parse(text).unwrap()
+    }
+
+    #[test]
+    fn is_ui_takes_a_page_of_the_linux_scheme() {
+        let ui = url("ahpw://localhost/");
+        assert!(is_ui(
+            &url("ahpw://localhost/?host=ws%3A%2F%2F127.0.0.1%3A9187"),
+            &ui
+        ));
+        assert!(is_ui(&url("ahpw://localhost/assets/index.js"), &ui));
+    }
+
+    #[test]
+    fn is_ui_takes_a_page_of_the_webview2_address() {
+        let ui = url("http://ahpw.localhost/");
+        assert!(is_ui(
+            &url("http://ahpw.localhost/?hosts=every&focus=a"),
+            &ui
+        ));
+    }
+
+    #[test]
+    fn is_ui_refuses_any_other_site() {
+        let ui = url("ahpw://localhost/");
+        assert!(!is_ui(&url("https://localhost/"), &ui));
+        assert!(!is_ui(&url("ahpw://other/"), &ui));
+        let ui = url("http://ahpw.localhost/");
+        assert!(!is_ui(&url("http://ahpw.localhost.example.com/"), &ui));
+        assert!(!is_ui(&url("http://ahpw.localhost:8080/"), &ui));
+        assert!(!is_ui(&url("https://ahpw.localhost/"), &ui));
+    }
 
     fn windows(open: &[(&str, &str)]) -> AppWindows {
         let windows = AppWindows::default();
