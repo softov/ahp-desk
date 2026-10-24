@@ -14,10 +14,11 @@ decisions:
   - decisions/each-desk-build-ships-one-ui.md
   - decisions/ahpw-reaches-the-desk-with-a-desk-release.md
 refs:
-  - "[code://src-tauri/src/app_window.rs#L118](../../src-tauri/src/app_window.rs#L118) - `open_app_window`: a new window, the open one focused, or a switch"
-  - "[code://src-tauri/src/app_window.rs#L26](../../src-tauri/src/app_window.rs#L26) - `page_url`, the UI with `?host=<address>`"
-  - "[code://src-tauri/src/app_window.rs#L191](../../src-tauri/src/app_window.rs#L191) - the last app window closed shows the host list"
-  - "[code://src-tauri/src/app_window.rs#L208](../../src-tauri/src/app_window.rs#L208) - `open_outside`, links in the OS's own app"
+  - "[code://src-tauri/src/app_window.rs#L151](../../src-tauri/src/app_window.rs#L151) - `open_app_window`: a new window, the open one focused, or a switch"
+  - "[code://src-tauri/src/app_window.rs#L28](../../src-tauri/src/app_window.rs#L28) - `page_url`, the UI with `?host=<address>`"
+  - "[code://src-tauri/src/app_window.rs#L257](../../src-tauri/src/app_window.rs#L257) - the last app window closed shows the host list"
+  - "[code://src-tauri/src/app_window.rs#L274](../../src-tauri/src/app_window.rs#L274) - `is_ui`, the pages the window may load"
+  - "[code://src-tauri/src/app_window.rs#L281](../../src-tauri/src/app_window.rs#L281) - `open_outside`, links in the OS's own app"
   - "[code://src-tauri/src/ui_source.rs#L29](../../src-tauri/src/ui_source.rs#L29) - `resolve`, where the UI's files come from"
   - "[code://src-tauri/src/ui_source.rs#L102](../../src-tauri/src/ui_source.rs#L102) - `file_for`, the scheme's fallback to `index.html`"
   - "[code://packages/ahpw-embedder/src/embedder.ts#L34](../../packages/ahpw-embedder/src/embedder.ts#L34) - `createEmbedder`, ahpw's contract over the desk's commands"
@@ -96,7 +97,8 @@ AND ahpw rounds its own root while the window is not maximized, and draws minimi
 
 WHEN a page opens a link to another site, or a new window
 THEN an `http`, `https` or `mailto` link opens in the OS's own app, and anything else is dropped
-AND the window never leaves the UI's origin.
+AND the window never leaves the UI: a page of another scheme, host or port opens outside
+AND the UI's own pages load, `ahpw://localhost` on Linux, whose origin is opaque, as `http://ahpw.localhost` on Windows.
 
 ### The last window closes
 

@@ -120,11 +120,12 @@ html.is-maximized #root {
   cursor: default;
 }
 
-.control:hover:not(:disabled) {
+/* Every :hover in this file waits for the pointer to be back in the window (`pointer-away`, window.ts). */
+:where(html:not(.pointer-away)) .control:hover:not(:disabled) {
   background: var(--oo-color-hover);
 }
 
-.control--close:hover:not(:disabled) {
+:where(html:not(.pointer-away)) .control--close:hover:not(:disabled) {
   background: #e81123;
   color: #ffffff;
 }
@@ -142,7 +143,7 @@ html.is-maximized #root {
   color: var(--oo-color-muted);
 }
 
-.control--language:hover:not(:disabled),
+:where(html:not(.pointer-away)) .control--language:hover:not(:disabled),
 .control--language[aria-expanded='true'] {
   color: var(--oo-color-text);
   background: var(--oo-color-hover);
@@ -185,7 +186,7 @@ html.is-maximized #root {
   text-decoration: none;
 }
 
-.footer a:hover {
+:where(html:not(.pointer-away)) .footer a:hover {
   color: var(--oo-color-text);
   text-decoration: underline;
 }
@@ -213,7 +214,7 @@ button {
     border-color 120ms ease;
 }
 
-button:hover:not(:disabled) {
+:where(html:not(.pointer-away)) button:hover:not(:disabled) {
   background: var(--oo-color-hover);
 }
 
@@ -233,7 +234,7 @@ button.primary {
   color: var(--oo-color-primary);
 }
 
-button.primary:hover:not(:disabled) {
+:where(html:not(.pointer-away)) button.primary:hover:not(:disabled) {
   background: rgb(var(--oo-rgb-primary) / 0.88);
   color: var(--oo-color-canvas);
 }
@@ -243,7 +244,7 @@ button.danger {
   color: var(--oo-color-danger);
 }
 
-button.danger:hover:not(:disabled) {
+:where(html:not(.pointer-away)) button.danger:hover:not(:disabled) {
   background: rgb(var(--oo-rgb-danger) / 0.88);
   color: #ffffff;
 }
@@ -341,7 +342,7 @@ button.choice {
   color: var(--oo-color-muted);
 }
 
-button.choice:hover:not(:disabled) {
+:where(html:not(.pointer-away)) button.choice:hover:not(:disabled) {
   border-color: var(--oo-color-primary);
 }
 
@@ -373,7 +374,7 @@ button.choice:hover:not(:disabled) {
   border-radius: var(--oo-radius-md);
 }
 
-.host:hover {
+:where(html:not(.pointer-away)) .host:hover {
   background: color-mix(in srgb, var(--oo-color-accent) 6%, transparent);
 }
 
@@ -541,7 +542,7 @@ button.choice:hover:not(:disabled) {
   color: var(--oo-color-muted);
 }
 
-.more:hover:not(:disabled) {
+:where(html:not(.pointer-away)) .more:hover:not(:disabled) {
   color: var(--oo-color-text);
 }
 

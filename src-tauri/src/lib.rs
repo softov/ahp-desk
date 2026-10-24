@@ -87,8 +87,9 @@ pub fn run() {
                 .shadow(false)
                 .inner_size(640.0, 480.0)
                 .min_inner_size(480.0, 300.0)
-                // A start at login shows only the tray icon; a start by hand shows the list.
-                .visible(!std::env::args().any(|arg| arg == AT_LOGIN))
+                // A start at login shows only the tray icon; a start by hand shows the list,
+                // as does one at login on a desktop that shows no tray.
+                .visible(!std::env::args().any(|arg| arg == AT_LOGIN) || !tray::shown())
                 .build()?;
             frame::round_corners(&shell);
             tray::install(app.handle())?;
@@ -96,11 +97,13 @@ pub fn run() {
             shell.on_window_event(move |event| {
                 // The host list holds every host's status, so while an app window
                 // shows a host it hides instead of closing.
-                // With none, it hides to the tray unless Settings says quit.
+                // With none, it hides to the tray unless Settings says quit, or
+                // the desktop shows no tray to come back from, where it quits.
                 if let WindowEvent::CloseRequested { api, .. } = event {
                     let hide = handle.state::<AppWindows>().any_open()
-                        || handle.state::<SettingsStore>().get().close_behavior
-                            == CloseBehavior::MinimizeToTray;
+                        || (handle.state::<SettingsStore>().get().close_behavior
+                            == CloseBehavior::MinimizeToTray
+                            && tray::shown());
                     if hide {
                         api.prevent_close();
                         if let Some(shell) = handle.get_webview_window(SHELL_WINDOW) {

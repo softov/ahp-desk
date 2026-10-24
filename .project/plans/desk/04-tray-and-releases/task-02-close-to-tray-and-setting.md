@@ -1,6 +1,6 @@
 ---
 title: Closing the host list hides the desk to the tray, unless Settings says quit
-status: doing
+status: done
 depends: [task-01-tray-icon-and-menu.md]
 layer: "src-tauri, packages/shell"
 refs:
@@ -87,3 +87,10 @@ A second start of the desk shows the running desk's host list instead of startin
 
 - Checked by hand on a Windows 10 VM, as a new standard user with no Node and no ahpd, on a release NSIS build of the branch of plan 09 task 04 (PR #1), 2026-10-21: with "Hide it in the tray", closing the list hid it while the desk and the local ahpd kept running, and a left click on the icon brought it back; the gear and the tray's Settings both open Settings; closing ahpw's window brought the list back; a second start from the desktop shortcut showed the first desk's list, with one desk process.
 - Left: "Quit ahp-desk" in Settings ending the desk on a close, by hand on Windows (checked on the debug desk on 2026-10-16), and Debian 13.
+
+- Checked on Debian 13 with GNOME 48 on Wayland, 2026-10-23, with a deb built from the branch `desk/no-tray-quits` (0.2.1 and the fixes below) and GNOME's AppIndicator extension on:
+  - with "Hide it in the tray", closing the list hid it while the desk and its icon stayed, and Hosts brought it back;
+  - Settings from the tray; "Quit ahp-desk" wrote `"closeBehavior": "quit"` to `settings.json`, and closing the list ended the desk;
+  - opening the host hid the list, and closing ahpw's window brought it back;
+  - with the desk hidden, a second start showed the first desk's list, with one desk process.
+- "Quit ahp-desk" on a close is checked on a release build on Debian, and on Windows on the debug desk (2026-10-16).
