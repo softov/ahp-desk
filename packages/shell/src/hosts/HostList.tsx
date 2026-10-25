@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { t } from '../i18n.js';
 import { useOutsideClose } from '../useOutsideClose.js';
+import { DeskUpdateBar } from './DeskUpdateBar.js';
 import {
-  installDeskUpdate,
-  localAhpdStatus,
-  onDeskUpdateAsked,
   openHost,
   openSshTunnel,
   removeHost,
@@ -253,28 +251,6 @@ export function HostList({
   const run = (work: Promise<void>) =>
     work.catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
 
-  // The desk update's Restart stops each local ahpd the desk started, as its
-  // installer replaces the Node it runs on: the turns running there are named
-  // first, and a second Restart installs.
-  const [deskQuestion, setDeskQuestion] = useState<string | null>(null);
-  const restartDesk = async () => {
-    const busy: string[] = [];
-    for (const host of hosts) {
-      const running = statuses.running(host.id);
-      if (host.kind !== 'local' || running.length === 0) continue;
-      if ((await localAhpdStatus(host.id)).startedByDesk) busy.push(`${host.name}: ${running.join(', ')}`);
-    }
-    if (busy.length === 0) return installDeskUpdate();
-    setDeskQuestion(busy.join('; '));
-  };
-  // The tray's item comes here, so it asks the same question.
-  const askedRestart = useRef(restartDesk);
-  askedRestart.current = restartDesk;
-  useEffect(() => {
-    const stop = onDeskUpdateAsked(() => void run(askedRestart.current()));
-    return () => void stop.then((unlisten) => unlisten());
-  }, []);
-
   // Plan 03 decision 6: a local ahpd the desk installed, with "Update ahpd
   // automatically" on, updates while no turn runs. Once per version while this
   // window lives: a failure is shown, and the row keeps its Update for a retry.
@@ -312,22 +288,7 @@ export function HostList({
         </button>
       </header>
       {deskUpdate !== null && (
-        <div className="desk-update">
-          <span>
-            {deskQuestion === null
-              ? t('update.ready', { version: deskUpdate })
-              : t('update.restartQuestion', { sessions: deskQuestion })}
-          </span>
-          <span className="desk-update-buttons">
-            {deskQuestion !== null && <button onClick={() => setDeskQuestion(null)}>{t('form.cancel')}</button>}
-            <button
-              className="primary"
-              onClick={() => void run(deskQuestion === null ? restartDesk() : installDeskUpdate())}
-            >
-              {t('update.restart')}
-            </button>
-          </span>
-        </div>
+        <DeskUpdateBar version={deskUpdate} hosts={hosts} statuses={statuses} onError={setError} />
       )}
       {error !== null && (
         <div onClick={() => setError(null)}>

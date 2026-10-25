@@ -1,6 +1,6 @@
 ---
 title: An About screen shows the versions and the desk's update state, from the tray and Settings
-status: todo
+status: done
 depends: [task-01-the-trays-hosts-shows-the-list.md]
 layer: "src-tauri, packages/shell"
 refs:
@@ -47,3 +47,16 @@ An About screen shows ahp-desk's, ahpw's and Node's versions, the desk's update 
 - By hand on a Windows release build: About from the tray and from Settings shows 0.2.x, ahpw 0.6.0 and Node 22.23.3; Check now says up to date, or ready with Restart after a newer release.
 
 ## Resume
+
+Done on 2026-10-25: `about()`, `check_desk_update()`, the tray item, the screen and the Settings link are in.
+The host list's update notice and its Restart moved into `DeskUpdateBar`, which the host list and About both show.
+The tray's update item is heard by that notice, so it now works on About as on the list.
+The capability `shell` lets the opener open the releases page beside ahpio.com.
+`build.rs` reads the ahpw version with `serde_json`, now a build dependency.
+"Checking…" uses the ellipsis character, as the other words do.
+Typecheck, tests and clippy pass.
+By hand on 2026-10-25, on a Windows release build: About from the tray and from Settings showed 0.2.1, ahpw 0.6.0 and Node 22.23.3.
+Check now said "ahp-desk is up to date", and Releases opened the browser.
+The first build showed an empty frame around Check now before a check.
+Check now now sits under the versions, and the frame is only for a ready update.
+Restart from About after a newer release is not checked by hand: 0.2.1 is the latest release.

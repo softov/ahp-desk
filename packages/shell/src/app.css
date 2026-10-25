@@ -285,6 +285,69 @@ button.danger {
   gap: 8px;
 }
 
+/* Settings' link to About: words, at the start of the actions, away from Back. */
+.actions button.about-link {
+  margin-right: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--oo-color-muted);
+  text-decoration: underline;
+}
+
+:where(html:not(.pointer-away)) .actions button.about-link:hover:not(:disabled) {
+  background: none;
+  color: var(--oo-color-text);
+}
+
+/* About's versions, a name and its version per row, as a form's label and field. */
+.about-versions {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 8px 12px;
+  margin: 4px 0 16px;
+  font-size: var(--oo-font-size-sm);
+}
+
+.about-versions dt {
+  color: var(--oo-color-muted);
+}
+
+.about-versions dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Check now and what it found, under the versions. */
+.about-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px;
+  font-size: var(--oo-font-size-sm);
+}
+
+.about-check .bad {
+  color: var(--oo-color-danger);
+}
+
+.about-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 0;
+  color: var(--oo-color-muted);
+  font-size: var(--oo-font-size-sm);
+}
+
+.about-links a {
+  color: inherit;
+}
+
+:where(html:not(.pointer-away)) .about-links a:hover {
+  color: var(--oo-color-text);
+}
+
 /* The first run's welcome and opening steps: centred, as an installer's. */
 .first-run {
   display: flex;

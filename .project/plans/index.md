@@ -27,4 +27,4 @@ What exists today, and the first release that plans 01 to 10 build: [00-desk.md]
 | [10 - Install ahpd on a Linux server over SSH](desk/10-ssh-install/plan.md) | active | task 13 (a running ahpd found, a free port) by hand; then the pending check |
 | [11 - VS Code as a host](desk/11-vscode-hosts/plan.md) | draft | write the task files |
 | [12 - A window with every host](desk/12-a-window-with-every-host/plan.md) | built | - |
-| [13 - The About screen, the tray's Hosts, and the update of a local ahpd the desk did not install](desk/13-about-and-update-gaps/plan.md) | active | task 01, then task 03 |
+| [13 - The About screen, the tray's Hosts, and the update of a local ahpd the desk did not install](desk/13-about-and-update-gaps/plan.md) | active | the 0.13.0 Update check once a newer ahpd is on npm |

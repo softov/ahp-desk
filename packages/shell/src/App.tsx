@@ -1,4 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
+import { AboutScreen } from './about/AboutScreen.js';
+import { onAboutAsked } from './about/ipc.js';
 import { FirstRun } from './FirstRun.js';
 import { HostForm } from './hosts/HostForm.js';
 import { HostList } from './hosts/HostList.js';
@@ -9,6 +11,7 @@ import {
   listHosts,
   onAddAsked,
   onEditAsked,
+  onHostsAsked,
   deskUpdate,
   onDeskUpdateReady,
   onHostsChanged,
@@ -26,7 +29,7 @@ import { TitleBar } from './TitleBar.js';
 import { onSettingsAsked } from './settings/ipc.js';
 import { SettingsScreen } from './settings/SettingsScreen.js';
 
-type Screen = { kind: 'list' } | { kind: 'form'; host: ShellHost | null } | { kind: 'settings' };
+type Screen = { kind: 'list' } | { kind: 'form'; host: ShellHost | null } | { kind: 'settings' } | { kind: 'about' };
 
 export function App() {
   // Every word below is read in this language; a pick redraws the whole window.
@@ -66,6 +69,9 @@ export function App() {
         });
       }),
       onSettingsAsked(() => setScreen({ kind: 'settings' })),
+      onAboutAsked(() => setScreen({ kind: 'about' })),
+      // From a form too: its typed fields are dropped, as its own Back drops them.
+      onHostsAsked(() => setScreen({ kind: 'list' })),
     ];
     return () => {
       live = false;
@@ -89,6 +95,7 @@ export function App() {
     setTrayWords({
       hosts: t('tray.hosts'),
       settings: t('tray.settings'),
+      about: t('tray.about'),
       quit: t('tray.quit'),
       update: update === null ? null : t('update.ready', { version: update }),
     }).catch((err: unknown) => console.error('tray words failed', err));
@@ -138,7 +145,9 @@ export function App() {
             }}
           />
         ) : screen.kind === 'settings' ? (
-          <SettingsScreen onDone={() => setScreen({ kind: 'list' })} />
+          <SettingsScreen onAbout={() => setScreen({ kind: 'about' })} onDone={() => setScreen({ kind: 'list' })} />
+        ) : screen.kind === 'about' ? (
+          <AboutScreen deskUpdate={update} hosts={hosts} statuses={statuses} onDone={() => setScreen({ kind: 'list' })} />
         ) : screen.kind === 'list' ? (
           <HostList
             hosts={hosts}

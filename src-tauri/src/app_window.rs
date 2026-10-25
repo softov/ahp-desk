@@ -317,6 +317,13 @@ pub const HOST_LIST_EDIT: &str = "host-list-edit";
 /// The event that asks the host list to open Settings, as the tray's Settings item does.
 pub const HOST_LIST_SETTINGS: &str = "host-list-settings";
 
+/// The event that asks the host list to show its list from any screen, as the
+/// tray's Hosts item does. A second start does not send it: it keeps the screen.
+pub const HOST_LIST_HOSTS: &str = "host-list-hosts";
+
+/// The event that asks the host list to open its About screen, as the tray's About item does.
+pub const HOST_LIST_ABOUT: &str = "host-list-about";
+
 /// The event that asks the host list to install the ready desk update, as the
 /// tray's item does: the host list asks first over turns running on a local ahpd.
 pub const HOST_LIST_DESK_UPDATE: &str = "host-list-desk-update";
