@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { checkUpdate, mayUpdate, requestUpdate, UPDATE_METHOD, type Requester } from './ahpd-update.js';
+import type { ShellHost } from './ipc.js';
+import { wayFor } from './status.js';
 
 /** A connection that answers each request with `answer`, or throws it, and keeps what it was sent. */
 function fake(answer: unknown, fails = false): Requester & { sent: [string, unknown][] } {
@@ -44,5 +46,31 @@ describe('checkUpdate', () => {
     expect(await checkUpdate(fake({ code: -32009, message: 'only the deployment token' }, true), '0.13.0')).toBe(false);
     expect(await checkUpdate(fake({ code: -32601, message: 'Method not found' }, true), '0.13.0')).toBe(false);
     expect(await checkUpdate(fake({ current: '0.12.0', latest: '0.13.0', may: false, why: 'a link' }), '0.13.0')).toBe(false);
+  });
+});
+
+describe('wayFor', () => {
+  const local: ShellHost = { id: 'l', name: 'This computer', kind: 'local', url: 'ws://127.0.0.1:9187' };
+  const sshByDesk: ShellHost = {
+    id: 's',
+    name: 'Server',
+    kind: 'ssh',
+    url: 'ws://127.0.0.1:40000',
+    ssh: { address: 'server.example', port: 22, user: 'person', reach: 'tunnel', remotePort: 9187, byDesk: true },
+  };
+
+  it('is over SSH for an ahpd the desk installed there, with or without a check', () => {
+    expect(wayFor(sshByDesk, '0.13.0', null)).toEqual({ kind: 'ssh' });
+    expect(wayFor(sshByDesk, null, null)).toEqual({ kind: 'ssh' });
+  });
+
+  it("is ahpd's own command for a local host whose check answers true, the desk's install or not", () => {
+    expect(wayFor(local, '0.13.0', true)).toEqual({ kind: 'ahpd' });
+  });
+
+  it('is none for a check that answers false or none, and with no version', () => {
+    expect(wayFor(local, '0.13.0', false)).toBeNull();
+    expect(wayFor(local, '0.13.0', null)).toBeNull();
+    expect(wayFor(local, null, true)).toBeNull();
   });
 });

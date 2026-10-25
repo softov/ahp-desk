@@ -77,6 +77,16 @@ WHEN a host's connection changes
 THEN the host list window sends every host's status, `connected`, `connecting` or `down`, as the event `hosts-status`
 AND the shell keeps the last map, so a window that opens later reads it with `host_statuses`.
 
+### A host's row offers its ahpd's update
+
+WHEN a connected host's ahpd is older than npm's latest `@ahpd/server`
+THEN its row says "ahpd X available"
+AND it offers Update over SSH for an ahpd the desk installed there
+AND it offers Update through ahpd's own update command when ahpd's check lets the host's token update it
+AND a local ahpd the desk did not install goes through that check too
+AND a local ahpd the desk did not install, with no such Update, adds "Update it where it was installed: npm i -g @ahpd/server"
+AND only the local ahpd the desk installed updates on its own, with "Update ahpd automatically" on.
+
 ### The desk speaks three languages
 
 WHEN the desk shows a word

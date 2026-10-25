@@ -1,6 +1,6 @@
 ---
 title: A local ahpd the desk did not install can be updated from its row, or its row says how
-status: todo
+status: done
 depends: []
 layer: "packages/shell"
 refs:
@@ -35,3 +35,13 @@ A local host on an ahpd the desk did not install shows Update when ahpd's check 
 - By hand: a "This computer" on an ahpd 0.12.0 installed with npm shows the words; after `npm i -g @ahpd/server@0.13.0` and a newer ahpd on npm, it shows Update.
 
 ## Resume
+
+Done on 2026-10-25: `wayFor` chooses the way, and `updateWay` sends a local ahpd the desk did not install through ahpd's check.
+`selfUpdate` is read with the ways, and such a row adds the words when it has no Update.
+Found: a local host on a found ahpd keeps `autoUpdate: true` from `ON_DESK_DEFAULTS`, because `LocalForm` only hides the box.
+With an Update way, the auto-update effect would then update that ahpd with no click.
+The effect now also requires `selfUpdate` to be false, as decision 2 says.
+Typecheck, tests and clippy pass.
+By hand on 2026-10-25, on a Windows release build: ahpd 0.12.0 installed with `npm i -g` and found on PATH showed the words.
+It showed no Update, and it was not updated on its own.
+The 0.13.0 case waits until npm has an ahpd newer than 0.13.0.

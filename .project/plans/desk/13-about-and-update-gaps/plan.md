@@ -86,7 +86,7 @@ tray About / Settings link -> (new) screen about -> about() + desk_update() -> C
 | Task | Status | Depends on |
 | --- | --- | --- |
 | [01 - the tray's Hosts shows the list](task-01-the-trays-hosts-shows-the-list.md) | done | - |
-| [02 - a local ahpd the desk did not install can be updated](task-02-a-local-ahpd-the-desk-did-not-install-can-be-updated.md) | todo | - |
+| [02 - a local ahpd the desk did not install can be updated](task-02-a-local-ahpd-the-desk-did-not-install-can-be-updated.md) | done | - |
 | [03 - the About screen](task-03-the-about-screen.md) | done | 01 |
 
 ## Risks and tradeoffs

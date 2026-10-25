@@ -209,6 +209,8 @@ export function HostList({
   // How each host's ahpd can be updated, asked again when the list or a host's connection changes:
   // ahpd's own command is asked about on each connection.
   const [ways, setWays] = useState<Record<string, UpdateWay | null>>({});
+  // The local hosts on an ahpd the desk did not install, read with the ways so a redraw asks nothing.
+  const [selfUpdates, setSelfUpdates] = useState<Record<string, boolean>>({});
   const connections = hosts
     .map((host) => {
       const status = statuses.status(host.id);
@@ -217,11 +219,16 @@ export function HostList({
     .join(' ');
   useEffect(() => {
     let live = true;
-    void Promise.all(hosts.map(async (host) => [host.id, await statuses.updateWay(host, latestAhpd)] as const)).then(
-      (all) => {
-        if (live) setWays(Object.fromEntries(all));
-      },
-    );
+    void Promise.all(
+      hosts.map(
+        async (host) =>
+          [host.id, await statuses.updateWay(host, latestAhpd), await statuses.selfUpdate(host)] as const,
+      ),
+    ).then((all) => {
+      if (!live) return;
+      setWays(Object.fromEntries(all.map(([id, way]) => [id, way])));
+      setSelfUpdates(Object.fromEntries(all.map(([id, , self]) => [id, self])));
+    });
     return () => {
       live = false;
     };
@@ -256,6 +263,8 @@ export function HostList({
       if (
         host.kind !== 'local' ||
         host.onDesk?.autoUpdate !== true ||
+        // A found ahpd keeps autoUpdate from the defaults; it updates only on a click (plan 13 decision 2).
+        selfUpdates[host.id] !== false ||
         ways[host.id]?.kind !== 'ahpd' ||
         status.kind !== 'connected' ||
         status.ahpd === null ||
@@ -303,6 +312,12 @@ export function HostList({
             status.ahpd !== null &&
             latestAhpd !== null &&
             newer(latestAhpd, status.ahpd);
+          // With no Update on an ahpd the desk did not install, the row says how to update it.
+          const available = t('hosts.ahpdAvailable', { version: latestAhpd ?? '' });
+          const note =
+            ways[host.id] === null && selfUpdates[host.id] === true
+              ? `${available}. ${t('hosts.ahpdSelfUpdate')}`
+              : available;
           // An update stops ahpd while it installs: the row says so through the drop, and offers no Retry.
           const updatingHost = updating.has(host.id);
           // While the desk starts its ahpd, the row says so and offers no Retry.
@@ -396,8 +411,8 @@ export function HostList({
               )}
               {behind && !updatingHost && (
                 <span className="row-note">
-                  <span className="note-text" title={t('hosts.ahpdAvailable', { version: latestAhpd })}>
-                    {t('hosts.ahpdAvailable', { version: latestAhpd })}
+                  <span className="note-text" title={note}>
+                    {note}
                   </span>
                   {(ways[host.id] ?? null) !== null && (
                     <button
