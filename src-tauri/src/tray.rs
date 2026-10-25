@@ -6,7 +6,7 @@ use tauri::menu::{Menu, MenuEvent, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter};
 
-use crate::app_window::{HOST_LIST_DESK_UPDATE, HOST_LIST_SETTINGS};
+use crate::app_window::{HOST_LIST_DESK_UPDATE, HOST_LIST_HOSTS, HOST_LIST_SETTINGS};
 use crate::SHELL_WINDOW;
 
 pub const TRAY_ID: &str = "ahp-desk";
@@ -102,7 +102,12 @@ fn on_menu_event(app: &AppHandle, event: MenuEvent) {
                 eprintln!("ahp-desk: the tray could not ask for the desk update: {err}");
             }
         }
-        MENU_HOSTS => show_host_list(app),
+        MENU_HOSTS => {
+            show_host_list(app);
+            if let Err(err) = app.emit_to(SHELL_WINDOW, HOST_LIST_HOSTS, ()) {
+                eprintln!("ahp-desk: the tray could not show the host list: {err}");
+            }
+        }
         MENU_SETTINGS => {
             show_host_list(app);
             if let Err(err) = app.emit_to(SHELL_WINDOW, HOST_LIST_SETTINGS, ()) {
