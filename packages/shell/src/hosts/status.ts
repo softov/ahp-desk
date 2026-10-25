@@ -39,6 +39,18 @@ const serverName = (info: ServerInfo) =>
 /** How the desk can update a host's ahpd: over SSH (plan 09 task 05), or through ahpd's own update command (task 04). */
 export type UpdateWay = { kind: 'ssh' } | { kind: 'ahpd' };
 
+/**
+ * How the desk can update a host's ahpd to `version`: over SSH for an ahpd the
+ * desk installed there, else through ahpd's own update command when `may`,
+ * its check, lets this token update it. A local ahpd the desk did not install
+ * goes through that check too, as a remote one does.
+ */
+export function wayFor(host: ShellHost, version: string | null, may: boolean | null): UpdateWay | null {
+  if (host.ssh?.byDesk === true) return { kind: 'ssh' };
+  if (version === null) return null;
+  return may === true ? { kind: 'ahpd' } : null;
+}
+
 /** How long an update through ahpd may take to come back on the new version: npm's install, and on Windows a helper that runs it after the daemon stops. */
 const UPDATE_RETURN_MS = 3 * 60 * 1000;
 
@@ -85,6 +97,8 @@ export interface HostStatuses {
   running(id: string): string[];
   /** How the desk can update the host's ahpd to `version`, the one its row names, or `null` when it cannot. */
   updateWay(host: ShellHost, version: string | null): Promise<UpdateWay | null>;
+  /** Whether the host is a local one on an ahpd the desk did not install, which the person updates where it was installed. */
+  selfUpdate(host: ShellHost): Promise<boolean>;
   /** Updates the host's ahpd to `version`, the one its row named; `force` once the person confirmed over running sessions. */
   updateHost(host: ShellHost, version: string, force: boolean): Promise<void>;
 }
@@ -175,7 +189,7 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
     return may;
   };
 
-  /** Whether a local host's ahpd is the one the desk installed: plan 03 updates no other. */
+  /** Whether a local host's ahpd is the one the desk installed: only that one updates on its own. */
   const installedByDesk = (host: ShellHost): Promise<boolean> => {
     const path = host.ahpdPath ?? null;
     const kept = origins.get(host.id);
@@ -237,14 +251,12 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
         .filter((chat) => chat.status !== undefined && (chat.status & IN_PROGRESS) !== 0)
         .map((chat) => chat.title);
     },
-    // Over SSH for an ahpd the desk installed there, else through ahpd's own
-    // update command when its check lets this token update it.
     async updateWay(host, version) {
-      if (host.ssh?.byDesk === true) return { kind: 'ssh' };
-      if (version === null) return null;
-      if (host.kind === 'local' && !(await installedByDesk(host))) return null;
-      const may = checkOf(host.id, version);
-      return may !== null && (await may) ? { kind: 'ahpd' } : null;
+      const may = host.ssh?.byDesk === true || version === null ? null : checkOf(host.id, version);
+      return wayFor(host, version, may === null ? null : await may);
+    },
+    async selfUpdate(host) {
+      return host.kind === 'local' && !(await installedByDesk(host));
     },
     async updateHost(host, version, force) {
       if (host.ssh?.byDesk === true) {

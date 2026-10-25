@@ -1,7 +1,7 @@
 ---
 title: The About screen, the tray's Hosts, and the update of a local ahpd the desk did not install
 domain: desk
-status: planned
+status: active
 priority: medium
 created: 2026-10-23
 revalidated: 2026-10-23
@@ -86,7 +86,7 @@ tray About / Settings link -> (new) screen about -> about() + desk_update() -> C
 | Task | Status | Depends on |
 | --- | --- | --- |
 | [01 - the tray's Hosts shows the list](task-01-the-trays-hosts-shows-the-list.md) | todo | - |
-| [02 - a local ahpd the desk did not install can be updated](task-02-a-local-ahpd-the-desk-did-not-install-can-be-updated.md) | todo | - |
+| [02 - a local ahpd the desk did not install can be updated](task-02-a-local-ahpd-the-desk-did-not-install-can-be-updated.md) | done | - |
 | [03 - the About screen](task-03-the-about-screen.md) | todo | 01 |
 
 ## Risks and tradeoffs
@@ -96,8 +96,8 @@ tray About / Settings link -> (new) screen about -> about() + desk_update() -> C
 
 ## Resume state
 
-- **Done so far:** nothing.
-- **Next action:** [task-01-the-trays-hosts-shows-the-list.md](task-01-the-trays-hosts-shows-the-list.md); task 02 can run beside it.
+- **Done so far:** task 02; its by-hand check waits for the final checklist.
+- **Next action:** [task-01-the-trays-hosts-shows-the-list.md](task-01-the-trays-hosts-shows-the-list.md), then task 03.
 - **Open questions:** none.
 - **Watch out for:** a second start and the tray's Hosts share `show_host_list`; the new event goes in `on_menu_event`, not in `show_host_list`, so a second start keeps the screen it was on.
 
