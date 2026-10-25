@@ -96,14 +96,16 @@ tray About / Settings link -> (new) screen about -> about() + desk_update() -> C
 
 ## Resume state
 
-- **Done so far:** tasks 01 and 03 here, task 02 in its own change; the by-hand checks wait for the final checklist.
-- **Next action:** the by-hand checks of the final checklist on a Windows release build with all three tasks; then `implemented.md`.
+- **Done so far:** tasks 01, 02 and 03, and the by-hand checks on a Windows release build except the one below.
+- **Next action:** once npm has an ahpd newer than 0.13.0, check by hand that a local ahpd 0.13.0 shows Update.
+  Then write `implemented.md`.
 - **Open questions:** none.
 - **Watch out for:** a second start and the tray's Hosts share `show_host_list`; the new event goes in `on_menu_event`, not in `show_host_list`, so a second start keeps the screen it was on.
 
 ## Final verification checklist
 
-- [ ] `pnpm typecheck`, `pnpm test` and `pnpm lint` pass.
-- [ ] By hand on Windows on a release build: the tray's Hosts from Settings, About and Add host lands on the list; About shows the three versions and Check now; a local ahpd 0.12.0 the desk did not install shows the how-to words, and one at 0.13.0 shows Update.
-- [ ] The specs in `changes` corrected.
-- [ ] `plans/index.md` updated.
+- [x] `pnpm typecheck`, `pnpm test` and `pnpm lint` pass.
+- [x] By hand on Windows on a release build: the tray's Hosts from Settings, About and Add host lands on the list; About shows the three versions and Check now; a local ahpd 0.12.0 the desk did not install shows the how-to words.
+- [ ] By hand: a local ahpd 0.13.0 the desk did not install shows Update, once a newer ahpd is on npm.
+- [x] The specs in `changes` corrected.
+- [x] `plans/index.md` updated.
