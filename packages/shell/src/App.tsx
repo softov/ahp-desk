@@ -9,6 +9,7 @@ import {
   listHosts,
   onAddAsked,
   onEditAsked,
+  onHostsAsked,
   deskUpdate,
   onDeskUpdateReady,
   onHostsChanged,
@@ -66,6 +67,8 @@ export function App() {
         });
       }),
       onSettingsAsked(() => setScreen({ kind: 'settings' })),
+      // From a form too: its typed fields are dropped, as its own Back drops them.
+      onHostsAsked(() => setScreen({ kind: 'list' })),
     ];
     return () => {
       live = false;

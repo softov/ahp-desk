@@ -345,6 +345,11 @@ export function onAddAsked(handler: () => void): Promise<UnlistenFn> {
   return listen('host-list-add', () => handler());
 }
 
+/** Calls `handler` when the tray's Hosts asks for the list, from any screen. */
+export function onHostsAsked(handler: () => void): Promise<UnlistenFn> {
+  return listen('host-list-hosts', () => handler());
+}
+
 /** Calls `handler` with a host's id when an app window asks for that host's form, as ahpw's Sign in does. */
 export function onEditAsked(handler: (id: string) => void): Promise<UnlistenFn> {
   return listen<string>('host-list-edit', (event) => handler(event.payload));

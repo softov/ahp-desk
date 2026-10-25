@@ -35,6 +35,8 @@ WHEN the desk runs
 THEN a tray icon with the tooltip `ahp-desk` is there
 AND its menu is Hosts, Settings and Quit, in the host list's language, and changes with a pick
 AND on Windows a left click shows the host list; on Linux the menu is the only way in
+AND Hosts shows the host list window on its list, from any screen, and drops a half-filled form
+AND Settings shows the host list window on its Settings screen
 AND Quit exits as a close does, so the local ahpd's stop on quit runs.
 
 ### Closing the host list

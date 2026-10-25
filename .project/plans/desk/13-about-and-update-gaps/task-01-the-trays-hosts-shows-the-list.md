@@ -1,6 +1,6 @@
 ---
 title: The tray's Hosts shows the host list window on its list
-status: todo
+status: done
 depends: []
 layer: "src-tauri, packages/shell"
 refs:
@@ -34,3 +34,8 @@ The tray's Hosts shows the host list window and switches it to the list from Set
 - By hand on a release build: tray Settings, then tray Hosts, shows the list; the same from Add host with a typed name.
 
 ## Resume
+
+Done on 2026-10-25: the tray's Hosts emits `host-list-hosts`, and `App.tsx` switches to the list on it.
+`show_host_list` and the single-instance callback are as they were.
+Typecheck, tests and clippy pass.
+The by-hand check on a release build is left to the plan's final checklist, with tasks 02 and 03.
