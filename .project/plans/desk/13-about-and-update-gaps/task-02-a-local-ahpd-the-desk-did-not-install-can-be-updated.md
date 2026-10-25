@@ -42,4 +42,6 @@ Found: a local host on a found ahpd keeps `autoUpdate: true` from `ON_DESK_DEFAU
 With an Update way, the auto-update effect would then update that ahpd with no click.
 The effect now also requires `selfUpdate` to be false, as decision 2 says.
 Typecheck, tests and clippy pass.
-The by-hand check with ahpd 0.12.0 and 0.13.0 is left to the plan's final checklist.
+By hand on 2026-10-25, on a Windows release build: ahpd 0.12.0 installed with `npm i -g` and found on PATH showed the words.
+It showed no Update, and it was not updated on its own.
+The 0.13.0 case waits until npm has an ahpd newer than 0.13.0.
