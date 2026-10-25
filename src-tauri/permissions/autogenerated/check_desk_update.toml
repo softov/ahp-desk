@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-check-desk-update"
+description = "Enables the check_desk_update command without any pre-configured scope."
+commands.allow = ["check_desk_update"]
+
+[[permission]]
+identifier = "deny-check-desk-update"
+description = "Denies the check_desk_update command without any pre-configured scope."
+commands.deny = ["check_desk_update"]

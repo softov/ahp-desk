@@ -376,6 +376,7 @@ export function removeHost(id: string): Promise<void> {
 export interface TrayWords {
   hosts: string;
   settings: string;
+  about: string;
   quit: string;
   /** The desk update's words while one is ready; its item comes first. */
   update: string | null;

@@ -40,6 +40,8 @@
     "allow-update-ssh-ahpd",
     "allow-desk-update",
     "allow-install-desk-update",
+    "allow-check-desk-update",
+    "allow-about",
     "allow-ssh-tunnel-states",
     "allow-local-starting",
     "allow-open-ssh-tunnel",
@@ -48,7 +50,7 @@
     "dialog:allow-open",
     {
       "identifier": "opener:allow-open-url",
-      "allow": [{ "url": "https://ahpio.com" }]
+      "allow": [{ "url": "https://ahpio.com" }, { "url": "https://github.com/softov/ahp-desk/releases" }]
     }
   ]
 }

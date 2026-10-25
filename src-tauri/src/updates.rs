@@ -137,6 +137,24 @@ pub async fn install_desk_update(app: AppHandle) -> Result<(), String> {
     install(app).await
 }
 
+/// About's Check now: asks GitHub for a newer desk at once, downloads it as the
+/// start check does, and answers the ready version, or none when up to date.
+#[tauri::command]
+pub async fn check_desk_update(app: AppHandle) -> Result<Option<String>, String> {
+    may_check(cfg!(debug_assertions))?;
+    download_desk(&app).await?;
+    Ok(desk_update(app.state::<DeskUpdate>()))
+}
+
+/// A debug build has no release to compare with, so a check says so rather
+/// than "up to date".
+fn may_check(debug: bool) -> Result<(), String> {
+    if debug {
+        return Err("a debug build does not check for updates".into());
+    }
+    Ok(())
+}
+
 /// What npm said, and when, in seconds since the Unix epoch.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -322,6 +340,15 @@ mod tests {
     use crate::ssh::known_keys::tests::Scratch;
     use std::io::{Read, Write};
     use std::net::TcpListener;
+
+    #[test]
+    fn updates_check_desk_update_in_a_debug_build_answers_its_error() {
+        assert_eq!(
+            may_check(cfg!(debug_assertions)),
+            Err("a debug build does not check for updates".to_string())
+        );
+        assert_eq!(may_check(false), Ok(()));
+    }
 
     #[test]
     fn updates_registry_reads_npm_config_registry_without_trailing_slashes() {

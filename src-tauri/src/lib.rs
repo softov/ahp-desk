@@ -1,3 +1,4 @@
+mod about;
 mod app_window;
 mod frame;
 mod hosts;
@@ -155,6 +156,8 @@ pub fn run() {
             updates::update_ssh_ahpd,
             updates::desk_update,
             updates::install_desk_update,
+            updates::check_desk_update,
+            about::about,
             ssh::tunnel::ssh_tunnel_states,
             ssh::tunnel::open_ssh_tunnel,
             ssh::tunnel::ssh_sign_in,
