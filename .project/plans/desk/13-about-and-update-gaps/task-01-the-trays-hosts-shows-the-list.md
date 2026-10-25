@@ -38,4 +38,5 @@ The tray's Hosts shows the host list window and switches it to the list from Set
 Done on 2026-10-25: the tray's Hosts emits `host-list-hosts`, and `App.tsx` switches to the list on it.
 `show_host_list` and the single-instance callback are as they were.
 Typecheck, tests and clippy pass.
-The by-hand check on a release build is left to the plan's final checklist, with tasks 02 and 03.
+By hand on 2026-10-25, on a Windows release build of tasks 01 to 03, the tray's Hosts showed the list.
+It did so from About, from Settings, and from Add host with a typed name.

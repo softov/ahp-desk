@@ -33,10 +33,11 @@ The code is in [`code://src-tauri/src/tray.rs`](../../src-tauri/src/tray.rs) and
 
 WHEN the desk runs
 THEN a tray icon with the tooltip `ahp-desk` is there
-AND its menu is Hosts, Settings and Quit, in the host list's language, and changes with a pick
+AND its menu is Hosts, Settings, About ahp-desk and Quit, in the host list's language, and changes with a pick
+AND while a desk update is ready, its item comes first
 AND on Windows a left click shows the host list; on Linux the menu is the only way in
 AND Hosts shows the host list window on its list, from any screen, and drops a half-filled form
-AND Settings shows the host list window on its Settings screen
+AND Settings shows the host list window on its Settings screen, and About ahp-desk on its About screen
 AND Quit exits as a close does, so the local ahpd's stop on quit runs.
 
 ### Closing the host list
@@ -65,7 +66,19 @@ WHEN Settings opens, from the gear in the title bar or the tray
 THEN it shows "When I close the host list", with "Hide it in the tray" and "Quit ahp-desk", and "Start with the OS"
 AND "Hosts open in", with "A window for each host", the default, and "One window with every host"
 AND each change is saved at once
+AND a link "About ahp-desk" before Back opens the About screen
 AND the gear is not there during the first run.
+
+### About
+
+WHEN About opens, from the tray or from Settings
+THEN it shows the versions of ahp-desk, of the ahpw it carries and of its bundled Node
+AND the ahpw version is baked in at build from the staged `@ahpd/web`, and the Node version is `node --version` of the bundled Node
+AND with a desk update ready, it shows the host list's update notice and its Restart
+AND otherwise Check now asks for a newer desk at once, and shows "Checking…"
+AND then it shows "ahp-desk is up to date", the ready notice, or the error
+AND a debug build answers Check now with "a debug build does not check for updates"
+AND it shows "MIT license" and the links ahpio.com and Releases, opened in the browser.
 
 ### A second start
 

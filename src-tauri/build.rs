@@ -41,6 +41,23 @@ fn main() {
         npm_dir.display()
     );
 
+    // The ahpw version About shows, from the same package `scripts/stage-ui.mjs`
+    // stages: npm's `@ahpd/web`, or the local checkout. Empty when none is there.
+    println!("cargo:rerun-if-env-changed=AHP_DESK_AHPW_DIR");
+    let ahpw_package = if source == "local" {
+        let dir = env::var("AHP_DESK_AHPW_DIR").unwrap_or_else(|_| "../ahpw".to_string());
+        workspace.join(dir).join("package.json")
+    } else {
+        workspace.join("node_modules/@ahpd/web/package.json")
+    };
+    println!("cargo:rerun-if-changed={}", ahpw_package.display());
+    let ahpw_version = std::fs::read_to_string(&ahpw_package)
+        .ok()
+        .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
+        .and_then(|package| package["version"].as_str().map(str::to_string))
+        .unwrap_or_default();
+    println!("cargo:rustc-env=AHP_DESK_AHPW_VERSION={ahpw_version}");
+
     // The embedder script each app window gets; `pnpm build:client` makes it.
     let embedder = workspace.join("packages/ahpw-embedder/dist/ahpw-embedder.js");
     println!("cargo:rerun-if-changed={}", embedder.display());
@@ -90,6 +107,8 @@ fn main() {
             "update_ssh_ahpd",
             "desk_update",
             "install_desk_update",
+            "check_desk_update",
+            "about",
             "ssh_tunnel_states",
             "open_ssh_tunnel",
             "ssh_sign_in",
