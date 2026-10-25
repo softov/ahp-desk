@@ -47,25 +47,8 @@ export function AboutScreen({
       <header className="panel-head">
         <h1>{t('about.title')}</h1>
       </header>
-      {deskUpdate !== null ? (
+      {deskUpdate !== null && (
         <DeskUpdateBar version={deskUpdate} hosts={hosts} statuses={statuses} onError={setError} />
-      ) : (
-        <div className="desk-update">
-          <span className={check.kind === 'failed' ? 'bad' : undefined}>
-            {check.kind === 'checking'
-              ? t('about.checking')
-              : check.kind === 'upToDate'
-                ? t('about.upToDate')
-                : check.kind === 'failed'
-                  ? check.why
-                  : ''}
-          </span>
-          <span className="desk-update-buttons">
-            <button className="primary" onClick={checkNow} disabled={check.kind === 'checking'}>
-              {t('about.check')}
-            </button>
-          </span>
-        </div>
       )}
       {versions !== null && (
         <dl className="about-versions">
@@ -76,6 +59,17 @@ export function AboutScreen({
           <dt>Node</dt>
           <dd>{versions.node ?? '-'}</dd>
         </dl>
+      )}
+      {/* With an update ready, the bar above is the state; Check now has nothing to add. */}
+      {deskUpdate === null && (
+        <p className="about-check">
+          <button onClick={checkNow} disabled={check.kind === 'checking'}>
+            {t('about.check')}
+          </button>
+          {check.kind === 'checking' && <span>{t('about.checking')}</span>}
+          {check.kind === 'upToDate' && <span>{t('about.upToDate')}</span>}
+          {check.kind === 'failed' && <span className="bad">{check.why}</span>}
+        </p>
       )}
       <p className="about-links">
         <span>{t('about.license')}</span>

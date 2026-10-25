@@ -285,11 +285,6 @@ button.danger {
   gap: 8px;
 }
 
-/* About: a failed Check now in the update bar's words. */
-.desk-update .bad {
-  color: var(--oo-color-danger);
-}
-
 /* Settings' link to About: words, at the start of the actions, away from Back. */
 .actions button.about-link {
   margin-right: auto;
@@ -321,6 +316,19 @@ button.danger {
 .about-versions dd {
   margin: 0;
   font-variant-numeric: tabular-nums;
+}
+
+/* Check now and what it found, under the versions. */
+.about-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px;
+  font-size: var(--oo-font-size-sm);
+}
+
+.about-check .bad {
+  color: var(--oo-color-danger);
 }
 
 .about-links {
