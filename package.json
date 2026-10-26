@@ -1,6 +1,6 @@
 {
   "name": "ahp-desk",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "description": "A desktop app for Agent Host Protocol hosts: the host list, ahpw or ahpapp in a window, and a bot on the desktop",
