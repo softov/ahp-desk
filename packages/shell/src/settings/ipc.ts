@@ -28,7 +28,7 @@ export function onSettingsAsked(handler: () => void): Promise<UnlistenFn> {
   return listen('host-list-settings', () => handler());
 }
 
-/** "Start with the OS": the OS's login entry, and whether the first run applied its box. */
+/** "Launch at startup": the OS's login entry, and whether the first run applied its box. */
 export interface StartWithOs {
   on: boolean;
   asked: boolean;

@@ -181,7 +181,7 @@ html.is-maximized #root {
   scrollbar-color: var(--oo-color-border) transparent;
 }
 
-/* ahpio's logo and the site, centred at the bottom. */
+/* The site, centred at the bottom. */
 .footer {
   display: flex;
   align-items: center;
@@ -381,7 +381,7 @@ button.danger {
   line-height: 1.5;
 }
 
-/* The welcome's "Start with the OS", over Get started. */
+/* The welcome's "Launch at startup", over Get started. */
 .first-run label.check {
   display: flex;
   align-items: center;

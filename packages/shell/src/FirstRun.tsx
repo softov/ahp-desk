@@ -4,7 +4,7 @@ import { LocalForm } from './hosts/LocalForm.js';
 import { SshForm } from './hosts/SshForm.js';
 import { openHost } from './hosts/ipc.js';
 import { t } from './i18n.js';
-import { Mark } from './Mark.js';
+import { AhpioLogo } from './AhpioLogo.js';
 import { setStartWithOs, startWithOs } from './settings/ipc.js';
 
 type Step =
@@ -23,7 +23,7 @@ type Step =
  */
 export function FirstRun({ onFinished }: { onFinished: () => void }) {
   const [step, setStep] = useState<Step>({ kind: 'welcome' });
-  // "Start with the OS", checked the first time; a first run that comes back
+  // "Launch at startup", checked the first time; a first run that comes back
   // after the last host is removed shows the login entry as it is.
   const [atLogin, setAtLogin] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +54,7 @@ export function FirstRun({ onFinished }: { onFinished: () => void }) {
     case 'welcome':
       return (
         <section className="first-run">
-          <Mark size={56} />
+          <AhpioLogo size={56} />
           <h1>{t('firstRun.welcomeTitle')}</h1>
           <p>{t('firstRun.welcomeText')}</p>
           <label className="check">
@@ -127,7 +127,7 @@ export function FirstRun({ onFinished }: { onFinished: () => void }) {
     case 'opening':
       return (
         <section className="first-run">
-          <Mark size={56} />
+          <AhpioLogo size={56} />
           {step.error === null ? (
             <p>{t('firstRun.opening', { name: step.name })}</p>
           ) : (
