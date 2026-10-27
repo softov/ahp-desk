@@ -141,6 +141,7 @@ pub fn run() {
             statuses::publish_host_statuses,
             statuses::host_statuses,
             tray::set_tray_words,
+            tray::quit_desk,
             settings::settings,
             settings::save_settings,
             settings::start_with_os,

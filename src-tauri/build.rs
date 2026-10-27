@@ -92,6 +92,7 @@ fn main() {
             "start_local_ahpd",
             "stop_local_ahpd",
             "set_tray_words",
+            "quit_desk",
             "settings",
             "save_settings",
             "start_with_os",

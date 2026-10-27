@@ -96,6 +96,12 @@ pub fn set_tray_words(app: AppHandle, words: TrayWords) -> Result<(), String> {
     tray.set_menu(Some(menu)).map_err(|err| err.to_string())
 }
 
+/// Quits the desk, as the tray's Quit does: the title bar's logo menu asks for it.
+#[tauri::command]
+pub fn quit_desk(app: AppHandle) {
+    app.exit(0);
+}
+
 fn on_menu_event(app: &AppHandle, event: MenuEvent) {
     match event.id().as_ref() {
         // Through the host list, which names the turns a local ahpd's stop would end.
