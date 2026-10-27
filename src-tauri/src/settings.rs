@@ -44,7 +44,7 @@ pub struct Settings {
     /// Read on each Open, so a change leaves the windows already open as they are.
     #[serde(default)]
     pub windows: Windows,
-    /// Whether the first run's "Start with the OS" was applied. The OS's own
+    /// Whether the first run's "Launch at startup" was applied. The OS's own
     /// login entry is the setting; this only keeps a first run that comes back
     /// from turning on again what the user turned off.
     #[serde(default)]
@@ -113,7 +113,7 @@ pub fn save_settings(
     Ok(settings)
 }
 
-/// "Start with the OS": the login entry as the OS has it, and whether the first run applied its box.
+/// "Launch at startup": the login entry as the OS has it, and whether the first run applied its box.
 #[derive(Debug, Serialize)]
 pub struct StartWithOs {
     pub on: bool,

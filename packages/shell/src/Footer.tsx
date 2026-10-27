@@ -1,13 +1,11 @@
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { AhpioLogo } from './AhpioLogo.js';
 
 const SITE = 'https://ahpio.com';
 
-/** ahpio's logo and the site, centred at the bottom of the host list; the site opens in the browser. */
+/** The site, centred at the bottom of the host list, opening in the browser; ahpio's logo is the title bar's. */
 export function Footer() {
   return (
     <footer className="footer">
-      <AhpioLogo size={14} />
       <a
         href={SITE}
         onClick={(event) => {
