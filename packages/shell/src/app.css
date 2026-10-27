@@ -84,22 +84,33 @@ html.is-maximized #root {
   border-radius: 0;
 }
 
-/* The title bar, as ahpw's: the name, then the window's own buttons flush right. */
+/* The title bar: the logo's menu flush left, then the window's own buttons flush right. */
 .titlebar {
   display: flex;
   align-items: center;
   flex: none;
   height: 25px;
-  padding-inline-start: 8px;
   user-select: none;
 }
 
-.titlebar__name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+/* The logo's box takes the bar's free space, so a drag beside the logo still moves the window. */
+.titlebar__logo {
   flex: 1;
-  font-weight: 600;
+  height: 100%;
+}
+
+.control--logo {
+  width: 36px;
+  cursor: pointer;
+}
+
+.control--logo[aria-expanded='true'] {
+  background: var(--oo-color-hover);
+}
+
+.titlebar__logo .menu-items {
+  right: auto;
+  left: 4px;
 }
 
 .titlebar__controls {
@@ -629,6 +640,12 @@ button.choice {
   border: none;
   text-align: left;
   padding: 7px 8px;
+}
+
+.menu-line {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--oo-color-border);
 }
 
 .menu-items button[aria-checked='true'] {

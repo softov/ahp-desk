@@ -25,6 +25,7 @@
     "allow-start-local-ahpd",
     "allow-stop-local-ahpd",
     "allow-set-tray-words",
+    "allow-quit-desk",
     "allow-settings",
     "allow-save-settings",
     "allow-start-with-os",

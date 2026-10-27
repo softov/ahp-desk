@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { LANG_NAMES, LANGS, setLanguage, t, useLanguage, type Lang } from './i18n.js';
-import { Mark } from './Mark.js';
+import { AhpioLogo } from './AhpioLogo.js';
+import { quitDesk } from './hosts/ipc.js';
 import { useOutsideClose } from './useOutsideClose.js';
 import { controls } from './window.js';
 
@@ -49,8 +50,65 @@ function LanguagePicker() {
   );
 }
 
-/** The host list's title bar: the name at the start; Settings, the language, minimize, maximize or restore, and close at the end. */
-export function TitleBar({ onSettings }: { onSettings?: () => void }) {
+/** Where the logo's menu goes; with none, as on the first run, it has only Quit. */
+export interface MenuWays {
+  onHosts: () => void;
+  onAdd: () => void;
+  onSettings: () => void;
+  onAbout: () => void;
+}
+
+/** ahpio's logo, a button: its menu has the host list, Add host, Settings, About and Quit. */
+function LogoMenu({ ways }: { ways?: MenuWays }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useOutsideClose(ref, open, () => setOpen(false));
+  const item = (label: string, go: () => void) => (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={() => {
+        setOpen(false);
+        go();
+      }}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div className="menu titlebar__logo" ref={ref}>
+      <button
+        type="button"
+        className="control control--logo"
+        title={t('window.menu')}
+        aria-label={t('window.menu')}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <AhpioLogo size={14} />
+      </button>
+      {open && (
+        <div className="menu-items" role="menu">
+          {ways !== undefined && (
+            <>
+              {item(t('tray.hosts'), ways.onHosts)}
+              {item(t('form.addTitle'), ways.onAdd)}
+              {item(t('tray.settings'), ways.onSettings)}
+              <div className="menu-line" role="separator" />
+              {item(t('tray.about'), ways.onAbout)}
+              <div className="menu-line" role="separator" />
+            </>
+          )}
+          {item(t('tray.quit'), () => void quitDesk().catch((err: unknown) => console.error('quit failed', err)))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The host list's title bar: the logo's menu at the start; the language, minimize, maximize or restore, and close at the end. */
+export function TitleBar({ ways }: { ways?: MenuWays }) {
   const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
@@ -69,25 +127,8 @@ export function TitleBar({ onSettings }: { onSettings?: () => void }) {
 
   return (
     <header className="titlebar">
-      <span className="titlebar__name">
-        <Mark size={14} />
-        ahp-desk
-      </span>
+      <LogoMenu ways={ways} />
       <div className="titlebar__controls">
-        {onSettings !== undefined && (
-          <button type="button" className="control" title={t('window.settings')} aria-label={t('window.settings')} onClick={onSettings}>
-            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-              <path
-                d="M8.18 3.80 L9.51 4.09 L9.51 5.91 L8.18 6.20 L8.10 6.40 L8.83 7.54 L7.54 8.83 L6.40 8.10 L6.20 8.18 L5.91 9.51 L4.09 9.51 L3.80 8.18 L3.60 8.10 L2.46 8.83 L1.17 7.54 L1.90 6.40 L1.82 6.20 L0.49 5.91 L0.49 4.09 L1.82 3.80 L1.90 3.60 L1.17 2.46 L2.46 1.17 L3.60 1.90 L3.80 1.82 L4.09 0.49 L5.91 0.49 L6.20 1.82 L6.40 1.90 L7.54 1.17 L8.83 2.46 L8.10 3.60 Z"
-                fill="none"
-                stroke="currentColor"
-                strokeLinejoin="round"
-                strokeWidth="0.9"
-              />
-              <circle cx="5" cy="5" r="1.4" fill="none" stroke="currentColor" strokeWidth="0.9" />
-            </svg>
-          </button>
-        )}
         <LanguagePicker />
         <button type="button" className="control" title={t('window.minimize')} aria-label={t('window.minimize')} onClick={() => void controls.minimize()}>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">

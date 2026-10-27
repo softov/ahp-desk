@@ -134,8 +134,19 @@ export function App() {
 
   return (
     <>
-      {/* Settings opens from the host list; the first run has no way back to it. */}
-      <TitleBar onSettings={firstRun ? undefined : () => setScreen({ kind: 'settings' })} />
+      {/* The first run has no host list, Settings or About to go to; its logo menu only quits. */}
+      <TitleBar
+        ways={
+          firstRun
+            ? undefined
+            : {
+                onHosts: () => setScreen({ kind: 'list' }),
+                onAdd: add,
+                onSettings: () => setScreen({ kind: 'settings' }),
+                onAbout: () => setScreen({ kind: 'about' }),
+              }
+        }
+      />
       <main className="shell">
         {hosts === null ? null : firstRun ? (
           <FirstRun

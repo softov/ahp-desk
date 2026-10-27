@@ -387,6 +387,11 @@ export function setTrayWords(words: TrayWords): Promise<void> {
   return invoke('set_tray_words', { words });
 }
 
+/** Quits the desk, as the tray's Quit does. */
+export function quitDesk(): Promise<void> {
+  return invoke('quit_desk');
+}
+
 /** npm's latest of a package, and when it was asked, in seconds since the Unix epoch. */
 export interface NpmLatest {
   name: string;
