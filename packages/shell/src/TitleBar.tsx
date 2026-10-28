@@ -50,17 +50,23 @@ function LanguagePicker() {
   );
 }
 
-/** Where the logo's menu goes; with none, as on the first run, it has only Quit. */
+/**
+ * Where the logo's menu goes. Check for updates and About open windows of
+ * their own, so they are always there; the host list's screens are not, as
+ * on the first run, which has none to go to.
+ */
 export interface MenuWays {
-  onHosts: () => void;
-  onAdd: () => void;
-  onSettings: () => void;
   onCheck: () => void;
   onAbout: () => void;
+  screens?: {
+    onHosts: () => void;
+    onAdd: () => void;
+    onSettings: () => void;
+  };
 }
 
 /** ahpio's logo, a button: its menu has the host list, Add host, Settings, Check for updates, About and Quit. */
-function LogoMenu({ ways }: { ways?: MenuWays }) {
+function LogoMenu({ ways }: { ways: MenuWays }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useOutsideClose(ref, open, () => setOpen(false));
@@ -91,17 +97,17 @@ function LogoMenu({ ways }: { ways?: MenuWays }) {
       </button>
       {open && (
         <div className="menu-items" role="menu">
-          {ways !== undefined && (
+          {ways.screens !== undefined && (
             <>
-              {item(t('tray.hosts'), ways.onHosts)}
-              {item(t('form.addTitle'), ways.onAdd)}
-              {item(t('tray.settings'), ways.onSettings)}
-              <div className="menu-line" role="separator" />
-              {item(t('tray.check'), ways.onCheck)}
-              {item(t('tray.about'), ways.onAbout)}
+              {item(t('tray.hosts'), ways.screens.onHosts)}
+              {item(t('form.addTitle'), ways.screens.onAdd)}
+              {item(t('tray.settings'), ways.screens.onSettings)}
               <div className="menu-line" role="separator" />
             </>
           )}
+          {item(t('tray.check'), ways.onCheck)}
+          {item(t('tray.about'), ways.onAbout)}
+          <div className="menu-line" role="separator" />
           {item(t('tray.quit'), () => void quitDesk().catch((err: unknown) => console.error('quit failed', err)))}
         </div>
       )}
@@ -110,7 +116,7 @@ function LogoMenu({ ways }: { ways?: MenuWays }) {
 }
 
 /** The host list's title bar: the logo's menu at the start; the language, minimize, maximize or restore, and close at the end. */
-export function TitleBar({ ways }: { ways?: MenuWays }) {
+export function TitleBar({ ways }: { ways: MenuWays }) {
   const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
