@@ -1,5 +1,5 @@
 packages:
   - packages/*
 minimumReleaseAgeExclude:
-  - '@ahpd/web@0.7.1'
+  - '@ahpd/web@0.7.1 || 0.8.0'
   - '@cofold/bood@0.2.0 || 0.2.1'

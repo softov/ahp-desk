@@ -21,7 +21,7 @@
     "lint": "pnpm stage:all && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings"
   },
   "devDependencies": {
-    "@ahpd/web": "0.7.1",
+    "@ahpd/web": "0.8.0",
     "@tauri-apps/cli": "^2.11.2"
   }
 }

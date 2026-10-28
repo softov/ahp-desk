@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@ahpd/web':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.0
+        version: 0.8.0
       '@tauri-apps/cli':
         specifier: ^2.11.2
         version: 2.12.1
@@ -22,17 +22,17 @@ importers:
         version: 2.12.3
     devDependencies:
       '@ahpd/web':
-        specifier: 0.7.1
-        version: 0.7.1
+        specifier: 0.8.0
+        version: 0.8.0
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.4
+        version: 8.3.4(yaml@2.9.1)
       vitest:
         specifier: ^4.1.0
-        version: 4.1.11(vite@8.3.4)
+        version: 4.1.11(vite@8.3.4(yaml@2.9.1))
 
   packages/shell:
     dependencies:
@@ -63,21 +63,21 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^6.0.5
-        version: 6.1.2(vite@8.3.4)
+        version: 6.1.2(vite@8.3.4(yaml@2.9.1))
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
       vite:
         specifier: ^8.2.1
-        version: 8.3.4
+        version: 8.3.4(yaml@2.9.1)
       vitest:
         specifier: ^4.1.0
-        version: 4.1.11(vite@8.3.4)
+        version: 4.1.11(vite@8.3.4(yaml@2.9.1))
 
 packages:
 
-  '@ahpd/web@0.7.1':
-    resolution: {integrity: sha512-Ln0SqdG7ek+Z+UrJrNij8Ojc14ZNv12A7n+DyvTDzXiS+MhkipsFaeDo+zgeMgsQUAfGFpXQ/G3XKo0U4vSKUw==}
+  '@ahpd/web@0.8.0':
+    resolution: {integrity: sha512-wUHWhOxYWVngscYLSTw9OGM3jlPu9yz62ZRE7SqUzejYS0ZvW3RcotavP462Fo+j5Ggxt/5prm7uhopf9tMf/w==}
     engines: {node: '>=22'}
     hasBin: true
     peerDependencies:
@@ -649,15 +649,21 @@ packages:
     engines: {node: '>=8'}
     hasBin: true
 
+  yaml@2.9.1:
+    resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
 snapshots:
 
-  '@ahpd/web@0.7.1':
+  '@ahpd/web@0.8.0':
     dependencies:
       '@cofold/bood': 0.2.1
       '@cofold/commands': 0.3.0
       '@cofold/config': 0.3.1
       '@cofold/remote': 0.5.0
       '@cofold/terminal': 0.3.0
+      yaml: 2.9.1
 
   '@cofold/bood@0.2.1': {}
 
@@ -808,10 +814,10 @@ snapshots:
     dependencies:
       csstype: 3.2.3
 
-  '@vitejs/plugin-react@6.1.2(vite@8.3.4)':
+  '@vitejs/plugin-react@6.1.2(vite@8.3.4(yaml@2.9.1))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
-      vite: 8.3.4
+      vite: 8.3.4(yaml@2.9.1)
 
   '@vitest/expect@4.1.11':
     dependencies:
@@ -822,13 +828,13 @@ snapshots:
       chai: 6.3.0
       tinyrainbow: 3.2.0
 
-  '@vitest/mocker@4.1.11(vite@8.3.4)':
+  '@vitest/mocker@4.1.11(vite@8.3.4(yaml@2.9.1))':
     dependencies:
       '@vitest/spy': 4.1.11
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 8.3.4
+      vite: 8.3.4(yaml@2.9.1)
 
   '@vitest/pretty-format@4.1.11':
     dependencies:
@@ -999,7 +1005,7 @@ snapshots:
 
   typescript@5.9.3: {}
 
-  vite@8.3.4:
+  vite@8.3.4(yaml@2.9.1):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -1008,11 +1014,12 @@ snapshots:
       tinyglobby: 0.2.17
     optionalDependencies:
       fsevents: 2.3.3
+      yaml: 2.9.1
 
-  vitest@4.1.11(vite@8.3.4):
+  vitest@4.1.11(vite@8.3.4(yaml@2.9.1)):
     dependencies:
       '@vitest/expect': 4.1.11
-      '@vitest/mocker': 4.1.11(vite@8.3.4)
+      '@vitest/mocker': 4.1.11(vite@8.3.4(yaml@2.9.1))
       '@vitest/pretty-format': 4.1.11
       '@vitest/runner': 4.1.11
       '@vitest/snapshot': 4.1.11
@@ -1029,7 +1036,7 @@ snapshots:
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
       tinyrainbow: 3.2.0
-      vite: 8.3.4
+      vite: 8.3.4(yaml@2.9.1)
       why-is-node-running: 2.3.0
     transitivePeerDependencies:
       - msw
@@ -1038,3 +1045,5 @@ snapshots:
     dependencies:
       siginfo: 2.0.0
       stackback: 0.0.2
+
+  yaml@2.9.1: {}
