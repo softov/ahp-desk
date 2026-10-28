@@ -17,8 +17,8 @@ Keep a list of your hosts, see which ones are up, and open each one in a window 
 - **🖥️ Manage multiple hosts**: Keep all your AHP hosts in one place, with live connection status, server names, and versions.
 - **➕ Connect your way**: Use a local host, connect to a Linux server over SSH, or add any existing AHP host by address.
   See [Add your first host](#add-your-first-host).
-- **⚙️ Install and configure ahpd**: Set up local or remote hosts, choose agent backends, and manage their lifecycle.
-- **🪟 Work across hosts**: Open each host in a dedicated window, or access them all from a single window using ahpw.
+- **⚙️ Install and configure [ahpd](https://softov.github.io/ahpd/)**: Set up local or remote hosts, choose agent backends, and manage their lifecycle.
+- **🗂️ Work across hosts**: Open each host in a dedicated window, or access them all from a single window using ahpw.
 - **🔄 Stay up to date**: Update `ahp-desk` and managed ahpd installations, with control over when restarts happen.
 - **📌 Always accessible**: Keep `ahp-desk` in the system tray and optionally launch it when you sign in.
 - **🌍 Multilingual**: Available in English, Portuguese, and Spanish.
@@ -138,7 +138,7 @@ See [DEVELOPER.md](DEVELOPER.md): the tools, building on Windows and Debian, tes
 
 ## Related
 
-- [ahpd](https://github.com/softov/ahpd), an AHP server and daemon.
+- [ahpd](https://github.com/softov/ahpd), an AHP server and daemon, with its [documentation](https://softov.github.io/ahpd/).
 - [ahpw](https://github.com/softov/ahpw), the web UI the desk shows in each host's window.
 
 ## Open source. Built for your hosts.
