@@ -653,6 +653,17 @@ export function language(): Lang {
   return current;
 }
 
+// A pick in another window of the desk: each window reads the same storage, and
+// the browser tells every other one when it changes.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== STORAGE_KEY) return;
+    current = picked() ?? fromOs(navigator.languages);
+    document.documentElement.lang = current;
+    for (const listener of listeners) listener();
+  });
+}
+
 /** Picks `lang`, keeps the pick, and redraws whoever reads the language. */
 export function setLanguage(lang: Lang): void {
   localStorage.setItem(STORAGE_KEY, lang);

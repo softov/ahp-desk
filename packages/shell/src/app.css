@@ -113,6 +113,18 @@ html.is-maximized #root {
   left: 4px;
 }
 
+/* A side window's logo and title, where the host list has its menu; the free space drags the window. */
+.titlebar__title {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding-left: 11px;
+  font-size: var(--oo-font-size-xs);
+  color: var(--oo-color-muted);
+}
+
 .titlebar__controls {
   display: flex;
   height: 100%;
@@ -309,6 +321,26 @@ button.danger {
 :where(html:not(.pointer-away)) .actions button.about-link:hover:not(:disabled) {
   background: none;
   color: var(--oo-color-text);
+}
+
+/* The About window: the logo, the versions and the links, centred in its one size. */
+.about {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 0 22px 12px;
+}
+
+.about .about-versions {
+  margin: 0;
+}
+
+.about .result {
+  margin: 0;
+  text-align: center;
 }
 
 /* About's versions, a name and its version per row, as a form's label and field. */

@@ -1,5 +1,5 @@
 /**
- * The host list window's frame, which the OS does not draw: the rounded root,
+ * The frame of a shell window, which the OS does not draw: the rounded root,
  * squared while maximized, and the title bar as the place a drag moves the
  * window and a double click maximizes it, as ahpw's `embed/frame.ts`.
  */
@@ -18,8 +18,11 @@ export const controls = {
   onResized: (handler: () => void): Promise<() => void> => getCurrentWindow().onResized(() => handler()),
 };
 
-/** Starts the frame: called once, before the app renders. */
-export function startFrame(): void {
+/**
+ * Starts the frame: called once, before the app renders. A side window, of
+ * one size, passes `maximizes: false`, so a double click on its bar does nothing.
+ */
+export function startFrame({ maximizes }: { maximizes: boolean }): void {
   const html = document.documentElement;
   const sync = async () => {
     html.classList.toggle('is-maximized', await controls.isMaximized());
@@ -32,7 +35,9 @@ export function startFrame(): void {
     if (event.button !== 0 || !(event.target instanceof Element)) return;
     if (event.target.closest('.titlebar') === null || event.target.closest(INTERACTIVE) !== null) return;
     event.preventDefault();
-    void (event.detail === 2 ? controls.toggleMaximize() : getCurrentWindow().startDragging());
+    if (event.detail === 2) {
+      if (maximizes) void controls.toggleMaximize();
+    } else void getCurrentWindow().startDragging();
   });
 
   // WebKitGTK keeps the hover of a window that hid under the pointer, so the

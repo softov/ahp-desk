@@ -6,7 +6,8 @@ use tauri::menu::{Menu, MenuEvent, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter};
 
-use crate::app_window::{HOST_LIST_ABOUT, HOST_LIST_DESK_UPDATE, HOST_LIST_HOSTS, HOST_LIST_SETTINGS};
+use crate::app_window::{HOST_LIST_DESK_UPDATE, HOST_LIST_HOSTS, HOST_LIST_SETTINGS};
+use crate::side_windows;
 use crate::SHELL_WINDOW;
 
 pub const TRAY_ID: &str = "ahp-desk";
@@ -123,12 +124,8 @@ fn on_menu_event(app: &AppHandle, event: MenuEvent) {
                 eprintln!("ahp-desk: the tray could not open Settings: {err}");
             }
         }
-        MENU_ABOUT => {
-            show_host_list(app);
-            if let Err(err) = app.emit_to(SHELL_WINDOW, HOST_LIST_ABOUT, ()) {
-                eprintln!("ahp-desk: the tray could not open About: {err}");
-            }
-        }
+        // Beside the host list, which keeps its screen.
+        MENU_ABOUT => side_windows::open_about(app),
         // Through RunEvent::Exit, so the local ahpd's stop on quit runs as on a close.
         MENU_QUIT => app.exit(0),
         _ => {}

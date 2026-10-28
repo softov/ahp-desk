@@ -4,6 +4,7 @@ mod frame;
 mod hosts;
 mod local_ahpd;
 mod settings;
+mod side_windows;
 mod ssh;
 mod ssh_install;
 mod statuses;
@@ -159,6 +160,7 @@ pub fn run() {
             updates::install_desk_update,
             updates::check_desk_update,
             about::about,
+            side_windows::open_about_window,
             ssh::tunnel::ssh_tunnel_states,
             ssh::tunnel::open_ssh_tunnel,
             ssh::tunnel::ssh_sign_in,
