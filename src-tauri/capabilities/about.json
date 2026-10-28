@@ -1,0 +1,18 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "about",
+  "description": "The About window: the desk's versions, its license and two links.",
+  "windows": ["about"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-minimize",
+    "core:window:allow-close",
+    "core:window:allow-start-dragging",
+    "core:window:allow-set-title",
+    "allow-about",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://ahpio.com" }, { "url": "https://github.com/softov/ahp-desk/releases" }]
+    }
+  ]
+}

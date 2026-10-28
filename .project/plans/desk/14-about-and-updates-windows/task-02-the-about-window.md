@@ -1,6 +1,6 @@
 ---
 title: About opens in a window of its own
-status: todo
+status: doing
 depends: []
 layer: "src-tauri and packages/shell"
 refs:
@@ -59,3 +59,8 @@ The tray's About, Settings' "About ahp-desk" and the logo menu open it, or bring
 
 ## Resume
 
+- Built: `side_windows.rs` with `open_side`, `open_about` and the async command `open_about_window` (async, as a window built in a synchronous command deadlocks on Windows); `capabilities/about.json`; `WindowBar`; `AboutWindow`; the hash entry in `main.tsx`; the `storage` listener in `i18n.ts`. `AboutScreen.tsx`, `onAboutAsked` and `HOST_LIST_ABOUT` are gone.
+- Beyond the steps: `about.json` also grants `opener:allow-open-url` for the two links, as `shell.json` does; `startFrame` takes `{ maximizes }`, so a double click on a side window's bar does not maximize it.
+- Until task 03, Check now has no place: it left with `AboutScreen`; `checkDeskUpdate` and the `about.check*` words wait for it.
+- Checked: `pnpm typecheck`, `pnpm test`, `cargo clippy --all-targets -- -D warnings` pass.
+- Next: the by-hand checks in Validation, then `status: done`.

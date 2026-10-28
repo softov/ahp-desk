@@ -43,6 +43,7 @@
     "allow-install-desk-update",
     "allow-check-desk-update",
     "allow-about",
+    "allow-open-about-window",
     "allow-ssh-tunnel-states",
     "allow-local-starting",
     "allow-open-ssh-tunnel",

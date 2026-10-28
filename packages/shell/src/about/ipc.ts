@@ -1,7 +1,6 @@
-/** What the About screen asks the desk: its versions, and its update check on demand. */
+/** What About asks the desk: its versions, its update check on demand, and its window. */
 
 import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 
 /** The desk's version, the bundled ahpw's and the bundled Node's; `null` when the build carries none. */
 export interface About {
@@ -19,7 +18,7 @@ export function checkDeskUpdate(): Promise<string | null> {
   return invoke<string | null>('check_desk_update');
 }
 
-/** Calls `handler` when the tray's About item asks for the About screen. */
-export function onAboutAsked(handler: () => void): Promise<UnlistenFn> {
-  return listen('host-list-about', () => handler());
+/** Opens the About window beside the host list, or brings it to the front. */
+export function openAboutWindow(): Promise<void> {
+  return invoke('open_about_window');
 }

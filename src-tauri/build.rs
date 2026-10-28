@@ -110,6 +110,7 @@ fn main() {
             "install_desk_update",
             "check_desk_update",
             "about",
+            "open_about_window",
             "ssh_tunnel_states",
             "open_ssh_tunnel",
             "ssh_sign_in",
