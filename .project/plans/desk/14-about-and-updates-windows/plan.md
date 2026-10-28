@@ -108,7 +108,7 @@ host list status.ts publish -> publish_host_running -> hosts-running -> every wi
 ## Resume state
 
 - **Done so far:** every task; see [implemented.md](implemented.md).
-- **Next action:** none; the Restart check by hand waits for the desk 0.2.3 release, in [deferred.md](deferred.md).
+- **Next action:** none; the Restart check by hand waits for the first desk release after 0.2.3, in [deferred.md](deferred.md).
 - **Open questions:** none.
 
 ## Final verification checklist
@@ -116,7 +116,7 @@ host list status.ts publish -> publish_host_running -> hosts-running -> every wi
 - [x] `pnpm typecheck`, `pnpm test` and `cargo clippy --all-targets -- -D warnings` pass.
 - [x] By hand on Windows: About opens from the tray, Settings and the logo menu while the host list shows a host form, and a second open focuses it.
 - [x] By hand: Check for updates opens from the three places; Check now answers.
-- [ ] By hand: with an update ready and a turn running on a local ahpd the desk started, Restart names the turn in the Updates window - deferred to the 0.2.3 release, see [deferred.md](deferred.md).
+- [ ] By hand: with an update ready and a turn running on a local ahpd the desk started, Restart names the turn in the Updates window - deferred to the first desk release after 0.2.3, see [deferred.md](deferred.md).
 - [x] By hand: a language picked in the host list changes an open About or Updates window.
 - [x] `specs/tray-and-settings.md` corrected.
 - [x] `plans/index.md` updated.
