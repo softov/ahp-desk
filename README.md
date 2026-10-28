@@ -8,7 +8,7 @@ A desktop app for [Agent Host Protocol](https://microsoft.github.io/agent-host-p
 
 Keep a list of your hosts, see which ones are up, and open each one in a window of its own with [ahpw](https://github.com/softov/ahpw).
 
-![The host list with two hosts connected on ahpd 0.12.0 and one down](docs/media/host-list-dark.png)
+![The host list with two hosts connected on ahpd 0.14.0 and one down](docs/media/host-list-dark.png)
 
 What you get:
 
@@ -19,7 +19,7 @@ What you get:
   - **Connect via SSH**, a Linux server you can sign in to; the desk uses the ahpd it finds there, or installs one, and reaches it through an SSH tunnel or an open port.
 - **A window per host**, with ahpw inside: sessions, chats, terminals and the rest of the host.
 - **Updates**, for the desk itself and for ahpd: the host list says when a newer one is ready, and nothing restarts until you click.
-- **The tray**, where the desk stays when you close the list, and **Start with the OS**, so your hosts are there after you sign in.
+- **The tray**, where the desk stays when you close the list, and **Launch at startup**, so your hosts are there after you sign in.
 - **English, Português and Español.**
 
 ---
@@ -42,7 +42,21 @@ With no tray, closing the host list quits the desk.
 
 The first start welcomes you and asks where your first host is:
 
-![The welcome screen, with Start with the OS and Get started](docs/media/welcome-dark.png)
+![The welcome screen, with Launch at startup and Get started](docs/media/welcome-dark.png)
+
+![Where is your host? Remote host, This computer, or Connect via SSH](docs/media/where-dark.png)
+
+**This computer** uses the ahpd it finds here, or installs one with the desk's own Node:
+
+![This computer, installing ahpd with the Claude backend](docs/media/add-local-dark.png)
+
+**Connect via SSH** checks the server first, then uses the ahpd it finds there or installs one as a user service:
+
+![Connect via SSH, installing ahpd on an Ubuntu server, with Sign in, Check the server and Node done](docs/media/add-ssh-dark.png)
+
+**Remote host** takes the address and token of an AHP server you already run:
+
+![Remote host, with a name, an address and a token](docs/media/add-remote-dark.png)
 
 Once installed, the desk updates itself: it checks each release's signature before it installs it.
 
