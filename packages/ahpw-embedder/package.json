@@ -14,7 +14,7 @@
     "@tauri-apps/api": "^2.12.3"
   },
   "devDependencies": {
-    "@ahpd/web": "0.7.1",
+    "@ahpd/web": "0.8.0",
     "typescript": "^5.9.3",
     "vite": "^8.2.1",
     "vitest": "^4.1.0"
