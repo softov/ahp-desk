@@ -1018,7 +1018,8 @@ input[type='radio'] {
   color: var(--oo-color-muted);
   font-size: var(--oo-font-size-xs);
   white-space: pre-wrap;
-  word-break: break-all;
+  /* At a space where there is one, so "(cache miss)" stays whole; a URL longer than the box still breaks. */
+  overflow-wrap: anywhere;
 }
 
 /* Inputs as ahpw's filter box. */
