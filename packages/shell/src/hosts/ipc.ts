@@ -428,6 +428,16 @@ export function onDeskUpdateAsked(handler: () => void): Promise<UnlistenFn> {
   return listen('host-list-desk-update', () => handler());
 }
 
+/** Each host's running turns, as the host list last published them: the titles of its chats with a turn on. */
+export function hostRunning(): Promise<Record<string, string[]>> {
+  return invoke<Record<string, string[]>>('host_running');
+}
+
+/** Calls `handler` with each host's running turns on every change. */
+export function onHostRunning(handler: (map: Record<string, string[]>) => void): Promise<UnlistenFn> {
+  return listen<Record<string, string[]>>('hosts-running', (event) => handler(event.payload));
+}
+
 /** Calls `handler` with the version once a newer desk is downloaded. */
 export function onDeskUpdateReady(handler: (version: string) => void): Promise<UnlistenFn> {
   return listen<string>('desk-update-ready', (event) => handler(event.payload));

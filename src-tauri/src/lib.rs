@@ -20,7 +20,7 @@ use crate::hosts::HostStore;
 use crate::local_ahpd::LocalAhpd;
 use crate::settings::{CloseBehavior, SettingsStore};
 use crate::ssh::known_keys::KnownKeys;
-use crate::statuses::HostStatuses;
+use crate::statuses::{HostRunning, HostStatuses};
 use crate::tokens::Keyring;
 
 /// The label of the window with the host list.
@@ -77,6 +77,7 @@ pub fn run() {
             )?);
             app.manage(AppWindows::default());
             app.manage(HostStatuses::default());
+            app.manage(HostRunning::default());
             app.manage(ssh_install::InstallControl::default());
             ssh::tunnel::manage(app.handle());
             app.manage(LocalAhpd::new(app.handle())?);
@@ -141,6 +142,8 @@ pub fn run() {
             app_window::show_host_list,
             statuses::publish_host_statuses,
             statuses::host_statuses,
+            statuses::publish_host_running,
+            statuses::host_running,
             tray::set_tray_words,
             tray::quit_desk,
             settings::settings,

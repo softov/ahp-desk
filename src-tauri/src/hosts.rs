@@ -11,7 +11,7 @@ use tauri::{AppHandle, Emitter, State, WebviewWindow};
 use crate::app_window::AppWindows;
 use crate::ssh::tunnel::Tunnels;
 use crate::ssh::{password, Secrets, SignIn};
-use crate::statuses::HostStatuses;
+use crate::statuses::{HostRunning, HostStatuses};
 use crate::tokens::{self, Vault};
 
 /// The event every save and remove sends, with the whole list.
@@ -569,6 +569,7 @@ pub fn remove_host(
     store: State<'_, HostStore>,
     windows: State<'_, AppWindows>,
     statuses: State<'_, HostStatuses>,
+    running: State<'_, HostRunning>,
     tunnels: State<'_, Tunnels>,
     id: String,
 ) -> Result<(), String> {
@@ -576,6 +577,7 @@ pub fn remove_host(
     tunnels.close(&id);
     windows.close_host(&app, &id);
     statuses.forget(&id);
+    running.forget(&id);
     app.emit(HOSTS_CHANGED, list).map_err(|err| err.to_string())
 }
 

@@ -1,6 +1,6 @@
 ---
 title: Every window reads each host's running turns
-status: todo
+status: done
 depends: []
 layer: "src-tauri and packages/shell"
 refs:
@@ -46,4 +46,9 @@ The host list publishes each host's running turns as `hosts-running` (decision 3
 - By hand on the debug desk: with a turn running on a host, `host_running` answers its title (from the devtools console, `__TAURI__.core.invoke('host_running')`).
 
 ## Resume
+
+- Built: `HOSTS_RUNNING`, `HostRunning`, `publish_host_running` and `host_running` in `statuses.rs`; `remove_host` forgets the host's turns; `hostRunning` and `onHostRunning` in `hosts/ipc.ts`; `DeskUpdateBar` takes `running`.
+- Beyond the steps: `status.ts` also publishes on each of the client's session events (`multi.events()`), since `hostEvents()` carries only connection changes and a turn starts or ends in a host's session list. The client updates its session cache before it sends the event, so the map read then is current. `publishRunning` is its own function beside `publish`, called from both.
+- Checked: `pnpm typecheck`, `pnpm test` (with the new `statuses.rs` test), `cargo clippy --all-targets -- -D warnings` pass.
+- The by-hand check runs with task 03's Restart check: until then no window reads the map.
 
