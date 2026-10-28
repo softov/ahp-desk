@@ -308,9 +308,8 @@ button.danger {
   gap: 8px;
 }
 
-/* Settings' link to About: words, at the start of the actions, away from Back. */
+/* Settings' links to About and the update check: words, at the start of the actions, away from Back. */
 .actions button.about-link {
-  margin-right: auto;
   padding: 0;
   border: 0;
   background: none;
@@ -321,6 +320,14 @@ button.danger {
 :where(html:not(.pointer-away)) .actions button.about-link:hover:not(:disabled) {
   background: none;
   color: var(--oo-color-text);
+}
+
+.actions button.about-link + button.about-link {
+  margin-left: 8px;
+}
+
+.actions button.about-link + button:not(.about-link) {
+  margin-left: auto;
 }
 
 /* The About window: the logo, the versions and the links, centred in its one size. */
@@ -361,16 +368,40 @@ button.danger {
   font-variant-numeric: tabular-nums;
 }
 
-/* Check now and what it found, under the versions. */
-.about-check {
+/* The Updates window: the desk's version over Check now, or over the ready update. */
+.updates {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: 0 22px 12px;
+}
+
+.updates-version {
+  margin: 0;
+  font-size: var(--oo-font-size-sm);
+  color: var(--oo-color-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.updates .desk-update {
+  margin: 0;
+}
+
+.updates .result {
+  margin: 0;
+}
+
+/* Check now and what it found. */
+.updates-check {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 0 0 16px;
   font-size: var(--oo-font-size-sm);
 }
 
-.about-check .bad {
+.updates-check .bad {
   color: var(--oo-color-danger);
 }
 

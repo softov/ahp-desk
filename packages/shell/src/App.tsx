@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useState } from 'react';
 import { openAboutWindow } from './about/ipc.js';
+import { openUpdatesWindow } from './updates/ipc.js';
 import { FirstRun } from './FirstRun.js';
 import { HostForm } from './hosts/HostForm.js';
 import { HostList } from './hosts/HostList.js';
@@ -32,6 +33,9 @@ type Screen = { kind: 'list' } | { kind: 'form'; host: ShellHost | null } | { ki
 
 /** About opens beside the host list, which keeps its screen. */
 const openAbout = () => void openAboutWindow().catch((err: unknown) => console.error('About failed', err));
+
+/** The update check opens beside the host list too. */
+const openUpdates = () => void openUpdatesWindow().catch((err: unknown) => console.error('Updates failed', err));
 
 export function App() {
   // Every word below is read in this language; a pick redraws the whole window.
@@ -96,6 +100,7 @@ export function App() {
     setTrayWords({
       hosts: t('tray.hosts'),
       settings: t('tray.settings'),
+      check: t('tray.check'),
       about: t('tray.about'),
       quit: t('tray.quit'),
       update: update === null ? null : t('update.ready', { version: update }),
@@ -144,6 +149,7 @@ export function App() {
                 onHosts: () => setScreen({ kind: 'list' }),
                 onAdd: add,
                 onSettings: () => setScreen({ kind: 'settings' }),
+                onCheck: openUpdates,
                 onAbout: openAbout,
               }
         }
@@ -157,7 +163,7 @@ export function App() {
             }}
           />
         ) : screen.kind === 'settings' ? (
-          <SettingsScreen onAbout={openAbout} onDone={() => setScreen({ kind: 'list' })} />
+          <SettingsScreen onCheck={openUpdates} onAbout={openAbout} onDone={() => setScreen({ kind: 'list' })} />
         ) : screen.kind === 'list' ? (
           <HostList
             hosts={hosts}

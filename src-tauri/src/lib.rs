@@ -164,6 +164,7 @@ pub fn run() {
             updates::check_desk_update,
             about::about,
             side_windows::open_about_window,
+            side_windows::open_updates_window,
             ssh::tunnel::ssh_tunnel_states,
             ssh::tunnel::open_ssh_tunnel,
             ssh::tunnel::ssh_sign_in,

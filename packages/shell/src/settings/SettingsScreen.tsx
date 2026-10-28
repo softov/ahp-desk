@@ -13,7 +13,15 @@ const WINDOWS: readonly { value: Windows; key: 'settings.windowsPerHost' | 'sett
 ];
 
 /** The desk's settings, each saved as it changes; Back returns to the host list. */
-export function SettingsScreen({ onAbout, onDone }: { onAbout: () => void; onDone: () => void }) {
+export function SettingsScreen({
+  onCheck,
+  onAbout,
+  onDone,
+}: {
+  onCheck: () => void;
+  onAbout: () => void;
+  onDone: () => void;
+}) {
   const [settings, setSettings] = useState<Settings | null>(null);
   // The OS's login entry; null until it is read.
   const [atLogin, setAtLogin] = useState<boolean | null>(null);
@@ -81,6 +89,9 @@ export function SettingsScreen({ onAbout, onDone }: { onAbout: () => void; onDon
       <footer className="actions">
         <button type="button" className="link about-link" onClick={onAbout}>
           {t('settings.about')}
+        </button>
+        <button type="button" className="link about-link" onClick={onCheck}>
+          {t('tray.check')}
         </button>
         <button type="button" onClick={onDone}>
           {t('form.back')}

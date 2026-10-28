@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { t } from '../i18n.js';
-import { installDeskUpdate, localAhpdStatus, onDeskUpdateAsked, type ShellHost } from './ipc.js';
+import { installDeskUpdate, localAhpdStatus, type ShellHost } from './ipc.js';
 
 /**
  * The ready desk update and its Restart, on the host list and in the Updates window.
  * Restart stops each local ahpd the desk started, as the installer replaces
  * the Node it runs on: the turns running there are named first, and a second
- * Restart installs. The tray's item comes here too, so it asks the same question.
+ * Restart installs. The tray's item opens the Updates window, so it asks the same question.
  */
 export function DeskUpdateBar({
   version,
@@ -34,13 +34,6 @@ export function DeskUpdateBar({
     if (busy.length === 0) return installDeskUpdate();
     setQuestion(busy.join('; '));
   };
-  const asked = useRef(() => run(restart()));
-  asked.current = () => run(restart());
-  useEffect(() => {
-    const stop = onDeskUpdateAsked(() => void asked.current());
-    return () => void stop.then((unlisten) => unlisten());
-  }, []);
-
   return (
     <div className="desk-update">
       <span>

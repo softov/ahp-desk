@@ -55,10 +55,11 @@ export interface MenuWays {
   onHosts: () => void;
   onAdd: () => void;
   onSettings: () => void;
+  onCheck: () => void;
   onAbout: () => void;
 }
 
-/** ahpio's logo, a button: its menu has the host list, Add host, Settings, About and Quit. */
+/** ahpio's logo, a button: its menu has the host list, Add host, Settings, Check for updates, About and Quit. */
 function LogoMenu({ ways }: { ways?: MenuWays }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -96,6 +97,7 @@ function LogoMenu({ ways }: { ways?: MenuWays }) {
               {item(t('form.addTitle'), ways.onAdd)}
               {item(t('tray.settings'), ways.onSettings)}
               <div className="menu-line" role="separator" />
+              {item(t('tray.check'), ways.onCheck)}
               {item(t('tray.about'), ways.onAbout)}
               <div className="menu-line" role="separator" />
             </>
