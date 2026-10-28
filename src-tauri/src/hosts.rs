@@ -575,7 +575,7 @@ pub fn remove_host(
 ) -> Result<(), String> {
     let list = store.remove(&id)?;
     tunnels.close(&id);
-    windows.close_host(&app, &id);
+    windows.close_host(&app, &id, list.len());
     statuses.forget(&id);
     running.forget(&id);
     app.emit(HOSTS_CHANGED, list).map_err(|err| err.to_string())

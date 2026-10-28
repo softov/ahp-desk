@@ -53,7 +53,7 @@ AND Quit exits as a close does, so the local ahpd's stop on quit runs.
 
 WHEN the logo at the start of the host list's title bar is clicked
 THEN its menu is Hosts, Add host, Settings, a line, Check for updates…, About ahp-desk, a line, and Quit
-AND during the first run it has only Quit
+AND during the first run it has Check for updates…, About ahp-desk, a line, and Quit, since the first run has no host list or Settings to go to
 AND the title bar has no gear; the logo menu is the way to Settings.
 
 ### Closing the host list

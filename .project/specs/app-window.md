@@ -58,6 +58,7 @@ THEN the desk opens one window, `app-:every`, on the UI with `?hosts=every&focus
 AND with that window open, it is shown and focused, and sent `focus-host` with the host's id
 AND ahpw shows only that host in its lists, and the host list hides when it opened the host
 AND removing a host closes no window there; the host leaves its list through `hosts-changed`
+AND removing the last host closes that window, which would show none.
 AND a change of the setting applies to the next Open, and leaves open windows as they are.
 
 ### Who reads a token

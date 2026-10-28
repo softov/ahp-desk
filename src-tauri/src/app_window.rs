@@ -73,12 +73,17 @@ impl AppWindows {
     }
 
     /// Closes every window that shows only `host_id`, as when the host is
-    /// removed; the window with every host stays, and drops it from its list.
-    pub fn close_host(&self, app: &AppHandle, host_id: &str) {
+    /// removed; the window with every host stays and drops it from its list,
+    /// unless `hosts_left` is none, when it closes too.
+    pub fn close_host(&self, app: &AppHandle, host_id: &str, hosts_left: usize) {
         let labels: Vec<String> = self
             .lock()
             .iter()
-            .filter(|(label, host)| host.as_str() == host_id && label.as_str() != EVERY_WINDOW)
+            .filter(|(label, host)| {
+                // With no host left, the window with every host would show none.
+                (host.as_str() == host_id && label.as_str() != EVERY_WINDOW)
+                    || (hosts_left == 0 && label.as_str() == EVERY_WINDOW)
+            })
             .map(|(label, _)| label.clone())
             .collect();
         for label in labels {

@@ -109,11 +109,6 @@ html.is-maximized #root {
   background: var(--oo-color-hover);
 }
 
-.titlebar__logo .menu-items {
-  right: auto;
-  left: 4px;
-}
-
 /* A side window's logo and title, where the host list has its menu; the free space drags the window. */
 .titlebar__title {
   display: flex;
@@ -178,6 +173,12 @@ html.is-maximized #root {
   right: 4px;
   min-width: 170px;
   font-weight: normal;
+}
+
+/* The logo's menu opens from the left edge; after the rule above, which would also pin its right edge. */
+.titlebar__logo .menu-items {
+  right: auto;
+  left: 4px;
 }
 
 .shell {

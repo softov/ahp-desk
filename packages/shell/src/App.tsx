@@ -140,19 +140,19 @@ export function App() {
 
   return (
     <>
-      {/* The first run has no host list, Settings or About to go to; its logo menu only quits. */}
+      {/* The first run has no host list or Settings to go to; its logo menu has the windows and Quit. */}
       <TitleBar
-        ways={
-          firstRun
+        ways={{
+          onCheck: openUpdates,
+          onAbout: openAbout,
+          screens: firstRun
             ? undefined
             : {
                 onHosts: () => setScreen({ kind: 'list' }),
                 onAdd: add,
                 onSettings: () => setScreen({ kind: 'settings' }),
-                onCheck: openUpdates,
-                onAbout: openAbout,
-              }
-        }
+              },
+        }}
       />
       <main className="shell">
         {hosts === null ? null : firstRun ? (
