@@ -1,6 +1,7 @@
 ---
 title: The desk shows its versions on an About screen, from the tray and Settings
-status: accepted
+status: superseded
+superseded-by: decisions/about-is-a-window-of-its-own.md
 date: 2026-10-23
 refs:
   - "[code://src-tauri/src/tray.rs#L21](../../src-tauri/src/tray.rs#L21) - `TrayWords`, the menu's items"
