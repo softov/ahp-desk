@@ -16,6 +16,8 @@
     "allow-open-app-window",
     "allow-publish-host-statuses",
     "allow-host-statuses",
+    "allow-publish-host-running",
+    "allow-host-running",
     "allow-find-local-ahpd",
     "allow-install-local-ahpd",
     "allow-add-local-backends",

@@ -1,6 +1,6 @@
 ---
 title: About opens in a window of its own
-status: doing
+status: done
 depends: []
 layer: "src-tauri and packages/shell"
 refs:
@@ -63,4 +63,4 @@ The tray's About, Settings' "About ahp-desk" and the logo menu open it, or bring
 - Beyond the steps: `about.json` also grants `opener:allow-open-url` for the two links, as `shell.json` does; `startFrame` takes `{ maximizes }`, so a double click on a side window's bar does not maximize it.
 - Until task 03, Check now has no place: it left with `AboutScreen`; `checkDeskUpdate` and the `about.check*` words wait for it.
 - Checked: `pnpm typecheck`, `pnpm test`, `cargo clippy --all-targets -- -D warnings` pass.
-- Next: the by-hand checks in Validation, then `status: done`.
+- By hand: checked by Softov on the debug desk; merged in PR #17.

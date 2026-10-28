@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { t } from '../i18n.js';
 import { installDeskUpdate, localAhpdStatus, onDeskUpdateAsked, type ShellHost } from './ipc.js';
-import type { HostStatuses } from './status.js';
 
 /**
- * The ready desk update and its Restart, on the host list and on About.
+ * The ready desk update and its Restart, on the host list and in the Updates window.
  * Restart stops each local ahpd the desk started, as the installer replaces
  * the Node it runs on: the turns running there are named first, and a second
  * Restart installs. The tray's item comes here too, so it asks the same question.
@@ -12,12 +11,13 @@ import type { HostStatuses } from './status.js';
 export function DeskUpdateBar({
   version,
   hosts,
-  statuses,
+  running,
   onError,
 }: {
   version: string;
   hosts: readonly ShellHost[];
-  statuses: HostStatuses;
+  /** The titles of a host's chats with a turn on. */
+  running: (id: string) => string[];
   onError: (message: string) => void;
 }) {
   const [question, setQuestion] = useState<string | null>(null);
@@ -27,9 +27,9 @@ export function DeskUpdateBar({
   const restart = async () => {
     const busy: string[] = [];
     for (const host of hosts) {
-      const running = statuses.running(host.id);
-      if (host.kind !== 'local' || running.length === 0) continue;
-      if ((await localAhpdStatus(host.id)).startedByDesk) busy.push(`${host.name}: ${running.join(', ')}`);
+      const titles = running(host.id);
+      if (host.kind !== 'local' || titles.length === 0) continue;
+      if ((await localAhpdStatus(host.id)).startedByDesk) busy.push(`${host.name}: ${titles.join(', ')}`);
     }
     if (busy.length === 0) return installDeskUpdate();
     setQuestion(busy.join('; '));

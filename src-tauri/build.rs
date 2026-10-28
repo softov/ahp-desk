@@ -82,6 +82,8 @@ fn main() {
             "show_host_list",
             "publish_host_statuses",
             "host_statuses",
+            "publish_host_running",
+            "host_running",
             "find_local_ahpd",
             "install_local_ahpd",
             "add_local_backends",

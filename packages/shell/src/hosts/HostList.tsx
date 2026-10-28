@@ -288,7 +288,7 @@ export function HostList({
         </button>
       </header>
       {deskUpdate !== null && (
-        <DeskUpdateBar version={deskUpdate} hosts={hosts} statuses={statuses} onError={setError} />
+        <DeskUpdateBar version={deskUpdate} hosts={hosts} running={(id) => statuses.running(id)} onError={setError} />
       )}
       {error !== null && (
         <div onClick={() => setError(null)}>

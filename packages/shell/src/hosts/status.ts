@@ -111,6 +111,7 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
   const multi = new MultiHostClient();
   // What every window last heard, so a change that moves no dot sends nothing.
   let published = '';
+  let publishedRunning = '';
   const urls = new Map<string, string>();
   const servers = new Map<string, ServerInfo>();
   // One sync at a time, so two quick changes never add the same host twice.
@@ -122,6 +123,10 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
 
   void (async () => {
     for await (const _event of multi.hostEvents()) onChange();
+  })();
+  // A turn starts or ends in a host's session list, not in its connection's state.
+  void (async () => {
+    for await (const _event of multi.events()) publishRunning();
   })();
 
   const add = (host: ShellHost) =>
@@ -171,9 +176,34 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
     );
   };
 
+  /** Each host's running turns, for a window that asks before Restart stops them (decision `the-host-list-publishes-each-hosts-running-turns`). */
+  function publishRunning() {
+    const map: Record<string, string[]> = {};
+    for (const known of multi.hostsSnapshot()) {
+      const titles = running(known.id);
+      if (titles.length > 0) map[known.id] = titles;
+    }
+    const text = JSON.stringify(map);
+    if (text === publishedRunning) return;
+    publishedRunning = text;
+    invoke('publish_host_running', { map }).catch((err: unknown) =>
+      console.error('publishing running turns failed', err),
+    );
+  }
+
   function onChange() {
     redraw();
     publish();
+    publishRunning();
+  }
+
+  function running(id: string): string[] {
+    return multi
+      .aggregatedSessions()
+      .filter((hosted) => hosted.hostId === id)
+      .flatMap((hosted) => hosted.summary.chats ?? [])
+      .filter((chat) => chat.status !== undefined && (chat.status & IN_PROGRESS) !== 0)
+      .map((chat) => chat.title);
   }
 
   /** ahpd's check about `version` on the host's connection, or `null` while it is not a connected ahpd. */
@@ -243,14 +273,7 @@ export function createHostStatuses(redraw: () => void): HostStatuses {
       }
     },
     retry: (id) => multi.reconnectHost(id),
-    running(id) {
-      return multi
-        .aggregatedSessions()
-        .filter((hosted) => hosted.hostId === id)
-        .flatMap((hosted) => hosted.summary.chats ?? [])
-        .filter((chat) => chat.status !== undefined && (chat.status & IN_PROGRESS) !== 0)
-        .map((chat) => chat.title);
-    },
+    running,
     async updateWay(host, version) {
       const may = host.ssh?.byDesk === true || version === null ? null : checkOf(host.id, version);
       return wayFor(host, version, may === null ? null : await may);
