@@ -1,6 +1,6 @@
 ---
 title: Check for updates opens a window of its own
-status: todo
+status: doing
 depends: [task-01-every-window-reads-running-turns.md, task-02-the-about-window.md]
 layer: "src-tauri and packages/shell"
 refs:
@@ -60,4 +60,9 @@ It opens from the logo menu, the tray and Settings, and the tray's "Restart to u
 - By hand on a Windows release build: the window opens from the logo menu, the tray and Settings, and a second open focuses it; Check now answers "up to date" or the ready notice; with an update ready and a turn running on a local ahpd the desk started, Restart names the turn in the Updates window and a second Restart installs; the tray's "Restart to update" opens the window.
 
 ## Resume
+
+- Built: `UPDATES_WINDOW`, `open_updates` and the async command `open_updates_window`; `capabilities/updates.json`; the tray's `MENU_CHECK`, with `MENU_UPDATE` opening the window too; `UpdatesWindow` and `updates/ipc.ts`; the logo menu's and Settings' entries; the words in three languages; the spec corrected. `HOST_LIST_DESK_UPDATE` and `onDeskUpdateAsked` are gone.
+- Beyond the steps: `checkDeskUpdate` moved from `about/ipc.ts` to `updates/ipc.ts`, as About no longer checks; Settings' two links sit together at the start of the actions, and Back keeps the end.
+- Checked: `pnpm typecheck`, `pnpm test` (the tray's tests in the new order), `cargo clippy --all-targets -- -D warnings` pass.
+- Next: the by-hand checks in Validation, with task 01's (the Restart names a running turn), then `status: done` and the plan closed.
 

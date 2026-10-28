@@ -6,7 +6,7 @@ use tauri::menu::{Menu, MenuEvent, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter};
 
-use crate::app_window::{HOST_LIST_DESK_UPDATE, HOST_LIST_HOSTS, HOST_LIST_SETTINGS};
+use crate::app_window::{HOST_LIST_HOSTS, HOST_LIST_SETTINGS};
 use crate::side_windows;
 use crate::SHELL_WINDOW;
 
@@ -14,6 +14,7 @@ pub const TRAY_ID: &str = "ahp-desk";
 const MENU_UPDATE: &str = "tray.update";
 const MENU_HOSTS: &str = "tray.hosts";
 const MENU_SETTINGS: &str = "tray.settings";
+const MENU_CHECK: &str = "tray.check";
 const MENU_ABOUT: &str = "tray.about";
 const MENU_QUIT: &str = "tray.quit";
 
@@ -23,6 +24,7 @@ const MENU_QUIT: &str = "tray.quit";
 pub struct TrayWords {
     pub hosts: String,
     pub settings: String,
+    pub check: String,
     pub about: String,
     pub quit: String,
     /// The desk update's words, while one is ready.
@@ -36,6 +38,7 @@ fn entries(words: &TrayWords) -> Vec<(&'static str, String)> {
         .chain([
             (MENU_HOSTS, words.hosts.clone()),
             (MENU_SETTINGS, words.settings.clone()),
+            (MENU_CHECK, words.check.clone()),
             (MENU_ABOUT, words.about.clone()),
             (MENU_QUIT, words.quit.clone()),
         ])
@@ -105,13 +108,9 @@ pub fn quit_desk(app: AppHandle) {
 
 fn on_menu_event(app: &AppHandle, event: MenuEvent) {
     match event.id().as_ref() {
-        // Through the host list, which names the turns a local ahpd's stop would end.
-        MENU_UPDATE => {
-            show_host_list(app);
-            if let Err(err) = app.emit_to(SHELL_WINDOW, HOST_LIST_DESK_UPDATE, ()) {
-                eprintln!("ahp-desk: the tray could not ask for the desk update: {err}");
-            }
-        }
+        // The Updates window shows the ready update, and its Restart names the
+        // turns a local ahpd's stop would end.
+        MENU_UPDATE | MENU_CHECK => side_windows::open_updates(app),
         MENU_HOSTS => {
             show_host_list(app);
             if let Err(err) = app.emit_to(SHELL_WINDOW, HOST_LIST_HOSTS, ()) {
@@ -156,10 +155,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn tray_entries_are_hosts_settings_about_then_quit() {
+    fn tray_entries_are_hosts_settings_check_about_then_quit() {
         let words = TrayWords {
             hosts: "Hosts".into(),
             settings: "Settings".into(),
+            check: "Check for updates…".into(),
             about: "About ahp-desk".into(),
             quit: "Quit ahp-desk".into(),
             update: None,
@@ -169,6 +169,7 @@ mod tests {
             [
                 (MENU_HOSTS, "Hosts".to_string()),
                 (MENU_SETTINGS, "Settings".to_string()),
+                (MENU_CHECK, "Check for updates…".to_string()),
                 (MENU_ABOUT, "About ahp-desk".to_string()),
                 (MENU_QUIT, "Quit ahp-desk".to_string())
             ]
@@ -180,6 +181,7 @@ mod tests {
         let words = TrayWords {
             hosts: "Hosts".into(),
             settings: "Settings".into(),
+            check: "Check for updates…".into(),
             about: "About ahp-desk".into(),
             quit: "Quit ahp-desk".into(),
             update: Some("ahp-desk 0.2.0 is ready. Restart to update.".into()),
@@ -187,7 +189,14 @@ mod tests {
         let ids: Vec<_> = entries(&words).into_iter().map(|(id, _)| id).collect();
         assert_eq!(
             ids,
-            [MENU_UPDATE, MENU_HOSTS, MENU_SETTINGS, MENU_ABOUT, MENU_QUIT]
+            [
+                MENU_UPDATE,
+                MENU_HOSTS,
+                MENU_SETTINGS,
+                MENU_CHECK,
+                MENU_ABOUT,
+                MENU_QUIT
+            ]
         );
     }
 }

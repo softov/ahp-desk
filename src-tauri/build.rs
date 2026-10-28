@@ -113,6 +113,7 @@ fn main() {
             "check_desk_update",
             "about",
             "open_about_window",
+            "open_updates_window",
             "ssh_tunnel_states",
             "open_ssh_tunnel",
             "ssh_sign_in",

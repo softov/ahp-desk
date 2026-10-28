@@ -376,6 +376,7 @@ export function removeHost(id: string): Promise<void> {
 export interface TrayWords {
   hosts: string;
   settings: string;
+  check: string;
   about: string;
   quit: string;
   /** The desk update's words while one is ready; its item comes first. */
@@ -421,11 +422,6 @@ export function deskUpdate(): Promise<string | null> {
 /** Installs the ready desk and restarts into it; it answers only on a failure. */
 export function installDeskUpdate(): Promise<void> {
   return invoke('install_desk_update');
-}
-
-/** Calls `handler` when the tray's item asks for the ready desk update, as Restart does. */
-export function onDeskUpdateAsked(handler: () => void): Promise<UnlistenFn> {
-  return listen('host-list-desk-update', () => handler());
 }
 
 /** Each host's running turns, as the host list last published them: the titles of its chats with a turn on. */
