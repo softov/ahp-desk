@@ -10,19 +10,17 @@ Keep a list of your hosts, see which ones are up, and open each one in a window 
 
 ![The host list with two hosts connected on ahpd 0.14.0 and one down](docs/media/host-list-dark.png)
 
-What you get:
+## What it does
 
-- **Hosts**, one list with a live dot for each: connected, connecting or down, and the server's name and version.
-- **Three ways to add a host:**
-  - **Remote host**, an AHP server at an address you know, with its token.
-  - **This computer**, an ahpd that runs here; the desk installs one for you with its own Node, so nothing else is needed.
-  - **Connect via SSH**, a Linux server you can sign in to; the desk uses the ahpd it finds there, or installs one, and reaches it through an SSH tunnel or an open port.
+- **One list of hosts**, with a live dot for each: connected, connecting or down, and the server's name and version.
+- **Three ways to add a host**: one on this computer, one on a Linux server over SSH, or any AHP server by its address.
+  See [Add your first host](#add-your-first-host).
 - **A window per host**, with ahpw inside: sessions, chats, terminals and the rest of the host.
-- **Updates**, for the desk itself and for ahpd: the host list says when a newer one is ready, and nothing restarts until you click.
+  Or one window with every host, if you prefer.
+- **Updates** for the desk and for ahpd.
+  Nothing restarts until you click.
 - **The tray**, where the desk stays when you close the list, and **Launch at startup**, so your hosts are there after you sign in.
 - **English, Português and Español.**
-
----
 
 ## Install
 
@@ -40,35 +38,66 @@ On Linux the tray needs `libayatana-appindicator3`, which the AppImage carries a
 GNOME shows the tray only with its AppIndicator extension (`gnome-shell-extension-appindicator` on Debian and Ubuntu).
 With no tray, closing the host list quits the desk.
 
-The first start welcomes you and asks where your first host is:
+Once installed, the desk updates itself.
+It checks each release's signature before it installs it.
+
+## Add your first host
+
+The first start welcomes you and asks where your first host is.
+Later, **+ Add host** in the host list asks the same.
 
 ![The welcome screen, with Launch at startup and Get started](docs/media/welcome-dark.png)
 
 ![Where is your host? Remote host, This computer, or Connect via SSH](docs/media/where-dark.png)
 
-**This computer** uses the ahpd it finds here, or installs one with the desk's own Node:
+### This computer
+
+The desk uses the ahpd it finds on this computer.
+With none, it installs one with its own Node, so you need nothing else.
+Pick the backends to install, such as Claude, and the folder ahpd serves.
+The desk can start ahpd when it starts, stop it when it quits, and keep it updated.
 
 ![This computer, installing ahpd with the Claude backend](docs/media/add-local-dark.png)
 
-**Connect via SSH** checks the server first, then uses the ahpd it finds there or installs one as a user service:
+### Connect via SSH
+
+For a Linux server you can sign in to.
+The desk checks the server first: its system, its Node, and any ahpd already there.
+It uses that ahpd, or installs one as a user service.
+It reaches ahpd through the SSH connection, or through an open port.
 
 ![Connect via SSH, installing ahpd on an Ubuntu server, with Sign in, Check the server and Node done](docs/media/add-ssh-dark.png)
 
-**Remote host** takes the address and token of an AHP server you already run:
+### Remote host
+
+For an AHP server you already run.
+Give it a name, its address and its token, and **Test** checks them before you save.
 
 ![Remote host, with a name, an address and a token](docs/media/add-remote-dark.png)
 
-Once installed, the desk updates itself: it checks each release's signature before it installs it.
+## Using it
 
----
+**Open** on a host shows it in its own window.
+Close the host list and the desk stays in the tray; its menu, or on Windows a click on its icon, brings the list back.
+
+The logo at the top left opens the menu: Hosts, Add host, Settings, Check for updates…, About ahp-desk and Quit.
+Check for updates and About open in small windows of their own, so the host list keeps what it shows.
+
+**Settings** has:
+
+- **When I close the host list**: hide it in the tray, or quit ahp-desk.
+- **Launch at startup**.
+- **Hosts open in**: a window for each host, or one window with every host.
+
+**Updates:** when a newer desk is ready, the host list says so, and **Restart** installs it.
+When a host runs an older ahpd, its row offers **Update**.
+Both name the sessions still running before anything stops.
 
 ## Where it keeps things
 
 - The host list and the settings: `%APPDATA%\dev.softov.ahpdesk\` on Windows, `~/.config/dev.softov.ahpdesk/` on Linux.
 - Tokens and SSH passwords: the OS keyring (Windows Credential Manager, or the Secret Service on Linux), never in the host list.
 - SSH server keys you trusted: `known_keys.json` beside the host list, and your own `~/.ssh/known_hosts` is read, never written.
-
----
 
 ## Build it yourself
 
