@@ -14,8 +14,9 @@
   --oo-rgb-hover: 240 240 240;
   --oo-rgb-border: 185 185 255;
   --oo-border-alpha: 0.25;
-  --oo-rgb-accent: 78 201 176;
-  --oo-rgb-primary: 12 112 97;
+  /* ahpio's blue, the logo's blue dot, as scena's default theme. */
+  --oo-rgb-accent: 91 155 255;
+  --oo-rgb-primary: 37 99 235;
   --oo-rgb-danger: 204 0 0;
   --oo-rgb-success: 0 170 0;
   --oo-rgb-warning: 204 136 0;
