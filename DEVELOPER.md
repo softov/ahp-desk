@@ -102,6 +102,7 @@ AHP_DESK_AHPW=local pnpm tauri dev     # here
 
 `pnpm stage:node` puts the Node 22 runtime the desk ships into `src-tauri/resources/node/`: the official build for the OS and CPU you build on, checked against the release's `SHASUMS256.txt`.
 The desk installs ahpd with that Node's npm, and runs it on that Node.
+On Linux, the symlinks in its `bin/` (`npm`, `npx`, `corepack`) are staged as small scripts, because a build copies a link's target in place of the link.
 The first run downloads about 30 MB into `.cache/node/`; later runs are offline.
 The version is `VERSION` in `scripts/stage-node.mjs`.
 
