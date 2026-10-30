@@ -10,7 +10,17 @@
 
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  readlinkSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -31,8 +41,10 @@ if (arch === undefined || os === undefined) {
 const name = `node-${VERSION}-${os}-${arch}`;
 const file = `${name}.${os === 'win' ? 'zip' : 'tar.gz'}`;
 const stamp = join(to, '.staged');
+// Bumped when the staged layout changes, so a runtime staged the old way is staged again.
+const staged = `${name}+bin-scripts`;
 
-if (existsSync(stamp) && readFileSync(stamp, 'utf8').trim() === name) {
+if (existsSync(stamp) && readFileSync(stamp, 'utf8').trim() === staged) {
   console.log(`stage-node: ${name} is staged at ${to}`);
   process.exit(0);
 }
@@ -72,9 +84,29 @@ const tar = process.platform === 'win32' ? join(process.env.SystemRoot ?? 'C:\\W
 execFileSync(tar, ['-xf', archive, '-C', unpack], { stdio: 'inherit' });
 const [top, ...more] = readdirSync(unpack);
 if (top !== name || more.length > 0) throw new Error(`${file} did not unpack to ${name}/ alone`);
+
+// The Linux build's bin/npm, bin/npx and bin/corepack are symlinks into lib/.
+// Tauri copies a resource through its symlink, so the installed desk would hold
+// copies of the scripts whose `require('../lib/cli.js')` then looks beside bin/
+// and fails; ahpd runs `npm` by name from this bin/ to install its backends.
+// Each link becomes a script that runs its target with this Node, and needs no link.
+if (os === 'linux') {
+  const bin = join(unpack, top, 'bin');
+  for (const tool of readdirSync(bin)) {
+    const at = join(bin, tool);
+    if (!lstatSync(at).isSymbolicLink()) continue;
+    const target = readlinkSync(at);
+    rmSync(at);
+    writeFileSync(at, `#!/bin/sh\nhere=$(dirname "$(readlink -f "$0")")\nexec "$here/node" "$here/${target}" "$@"\n`, {
+      mode: 0o755,
+    });
+  }
+  execFileSync(join(bin, 'npm'), ['--version'], { stdio: 'inherit' });
+}
+
 rmSync(to, { recursive: true, force: true });
 mkdirSync(dirname(to), { recursive: true });
 renameSync(join(unpack, top), to);
 rmSync(unpack, { recursive: true, force: true });
-writeFileSync(stamp, `${name}\n`);
+writeFileSync(stamp, `${staged}\n`);
 console.log(`stage-node: staged ${name} at ${to}`);
