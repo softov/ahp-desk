@@ -1,7 +1,7 @@
 ---
 title: The Linux desk's bundled npm works when ahpd runs it
 domain: desk
-status: active
+status: built
 priority: high
 created: 2026-10-30
 revalidated: 2026-10-30
@@ -70,7 +70,7 @@ first run -> LocalAhpd::install -> node npm-cli.js install @ahpd/server (works)
 
 | Task | Status | Depends on |
 | --- | --- | --- |
-| [01 - the staged bin holds scripts, not links](task-01-the-staged-bin-holds-scripts-not-links.md) | doing | - |
+| [01 - the staged bin holds scripts, not links](task-01-the-staged-bin-holds-scripts-not-links.md) | done | - |
 
 ## Risks and tradeoffs
 
@@ -79,13 +79,13 @@ first run -> LocalAhpd::install -> node npm-cli.js install @ahpd/server (works)
 
 ## Resume state
 
-- **Done so far:** the defect found and its cause confirmed in the 0.2.3 deb, 2026-10-30; task 01's code written.
-- **Next action:** task 01's validation by hand on the Debian box.
+- **Done so far:** task 01, with its checks on Windows and on the Debian box, 2026-10-30.
+- **Next action:** none; the fix ships in the next release.
 - **Open questions:** none.
 - **Watch out for:** the scripts are written in the unpack folder before it is renamed into place, so the `npm --version` check runs on what will be staged.
 
 ## Final verification checklist
 
-- [ ] `pnpm typecheck`, `pnpm test` and `cargo clippy --all-targets -- -D warnings` pass.
-- [ ] By hand on Debian, with a local deb build of this branch: the first run of "This computer" from zero installs ahpd and all four backends.
-- [ ] `plans/index.md` updated.
+- [x] `pnpm typecheck`, `pnpm test` and `cargo clippy --all-targets -- -D warnings` pass.
+- [x] By hand on Debian, with a local deb build of this branch: the first run of "This computer" from zero installs ahpd and all four backends.
+- [x] `plans/index.md` updated.

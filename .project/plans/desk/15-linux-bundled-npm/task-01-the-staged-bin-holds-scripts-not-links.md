@@ -1,6 +1,6 @@
 ---
 title: The staged Node's bin holds scripts, not links, on Linux
-status: doing
+status: done
 depends: []
 layer: "scripts"
 refs:
@@ -32,4 +32,4 @@ A deb or AppImage built from it ships a `bin/npm` that works when ahpd runs `npm
 
 ## Resume
 
-2026-10-30: the code and the DEVELOPER.md line are written; the checks on Windows run; the Debian checks are left.
+2026-10-30: done; the checks on Windows and on the Debian box passed, as `implemented.md` lists.
