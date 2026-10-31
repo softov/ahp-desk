@@ -30,3 +30,4 @@ What exists today, and the first release that plans 01 to 10 build: [00-desk.md]
 | [13 - The About screen, the tray's Hosts, and the update of a local ahpd the desk did not install](desk/13-about-and-update-gaps/plan.md) | active | the 0.13.0 Update check once a newer ahpd is on npm |
 | [14 - About and the desk's update check in windows of their own](desk/14-about-and-updates-windows/plan.md) | built | Restart check by hand with the release after 0.2.3 |
 | [15 - The Linux desk's bundled npm works when ahpd runs it](desk/15-linux-bundled-npm/plan.md) | active | task 01's checks by hand on the Debian box, with a local deb build |
+| [16 - The desk finds a local ahpd that its PATH misses, and starts its own on a free port](desk/16-local-ahpd-off-path/plan.md) | planned | task 01 (task 03 beside it) |
